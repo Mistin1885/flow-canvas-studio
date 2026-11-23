@@ -1,0 +1,50 @@
+# Frontend dependencies and build output
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local SQLite databases and sidecar files
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+
+# Local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Test output and logs
+coverage/
+.coverage
+*.log
+
+# Runtime data, recovery copies, and downloaded workbench exports
+/data/
+/flow-canvas-studio-data/
+backups/
+exports/
+workspaces/
+canvases/
+*-draft.json
+dfx-project-flow.json
+dfx-project-workbench.html

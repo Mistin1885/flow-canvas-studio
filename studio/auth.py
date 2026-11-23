@@ -1,0 +1,62 @@
+import os
+import re
+from functools import lru_cache
+from urllib.parse import urlsplit
+
+import jwt
+from fastapi import HTTPException
+from starlette.requests import HTTPConnection
+
+
+@lru_cache
+def signing_keys(issuer):
+    return jwt.PyJWKClient(issuer + "/cdn-cgi/access/certs", timeout=5)
+
+
+def authenticate(conn: HTTPConnection):
+    mode = os.getenv("FLOW_AUTH", "cloudflare")
+    if mode == "local":
+        local = {"localhost", "127.0.0.1", "::1"}
+        if (
+            not conn.client
+            or conn.client.host not in local
+            or conn.url.hostname not in local
+            or any(h in conn.headers for h in ("cf-ray", "forwarded", "x-forwarded-for", "cf-connecting-ip"))
+        ):
+            raise HTTPException(403, "本機模式僅開放 loopback")
+        origin = "http://" + conn.headers["host"]
+        user = {"label": "本機開發", "expires": None, "mode": mode}
+    else:
+        issuer = os.getenv("CF_ACCESS_ISSUER", "").rstrip("/")
+        aud = os.getenv("CF_ACCESS_AUD", "")
+        origin = os.getenv("FLOW_ORIGIN", "").rstrip("/")
+        if (
+            mode != "cloudflare"
+            or not aud
+            or not re.fullmatch(r"https://[a-z0-9-]+\.cloudflareaccess\.com", issuer)
+            or not origin.startswith("https://")
+            or not urlsplit(origin).hostname
+        ):
+            raise HTTPException(503, "請設定 Cloudflare Access 登入參數")
+        assertion = conn.headers.get("cf-access-jwt-assertion")
+        if not assertion:
+            raise HTTPException(401, "需要 Cloudflare Access 登入")
+        try:
+            key = signing_keys(issuer).get_signing_key_from_jwt(assertion)
+            claims = jwt.decode(
+                assertion,
+                key.key,
+                algorithms=["RS256"],
+                audience=aud,
+                issuer=issuer,
+                options={"require": ["aud", "iss", "exp", "sub", "email", "iat"]},
+            )
+            if claims.get("type") != "app" or not claims["email"]:
+                raise jwt.InvalidTokenError()
+        except jwt.PyJWTError as exc:
+            raise HTTPException(401, "Access 登入已逾期或無效") from exc
+        user = {"label": claims["email"], "expires": claims["exp"], "mode": mode}
+    supplied = conn.headers.get("origin")
+    if (supplied is not None or conn.scope["type"] == "websocket") and supplied != origin:
+        raise HTTPException(403, "請從此網站操作")
+    return user
