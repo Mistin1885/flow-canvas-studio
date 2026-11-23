@@ -3,8 +3,8 @@ name: flow-canvas-studio
 services:
   web:
     build:
-      context: ..
-      dockerfile: deploy/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
       target: web
     depends_on:
       database:
@@ -29,15 +29,15 @@ services:
 
   database:
     build:
-      context: ..
-      dockerfile: deploy/Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
       target: database
     user: "${FLOW_UID:-1000}:${FLOW_GID:-1000}"
     network_mode: none
     volumes:
       - database-socket:/run/flow-canvas
       - type: bind
-        source: ${FLOW_DATA_DIR:-../../flow-canvas-studio-data}
+        source: ${FLOW_DATA_DIR:-../../../flow-canvas-studio-data}
         target: /data
         bind:
           create_host_path: false

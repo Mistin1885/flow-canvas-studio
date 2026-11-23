@@ -29,7 +29,8 @@ The **web** container serves the built frontend, verifies the user's identity, a
 | `backend/main.py` | Public FastAPI entry point, authentication middleware and WebSockets |
 | `backend/database_api.py` | Private data API and transaction boundaries |
 | `backend/storage.py`, `backend/backup.py` | SQLite schema, graph persistence and online backup |
-| `deploy/` | Multi-stage Dockerfile, build-context allowlist and Compose configuration |
+| `deploy/native/` | Shell scripts to install dependencies, build the frontend and start the native server |
+| `deploy/docker/` | Multi-stage Dockerfile, build-context allowlist and Compose configuration |
 
 ## Deploy with Docker Compose
 
@@ -38,8 +39,8 @@ Run these commands **from the repo root** on Linux with Docker Engine and the Co
 ```bash
 export FLOW_UID="$(id -u)" FLOW_GID="$(id -g)"
 mkdir -p ../flow-canvas-studio-data
-docker compose -f deploy/docker-compose.yml up -d --build --wait
-docker compose -f deploy/docker-compose.yml ps
+docker compose -f deploy/docker/docker-compose.yml up -d --build --wait
+docker compose -f deploy/docker/docker-compose.yml ps
 ```
 
 Open **[Flow Canvas Studio](http://127.0.0.1:8768/)**. Compose defaults to local mode. An existing native installation can use the same database directory, schema and canvas URLs. **Stop the native server before switching to Compose with the same database** so one web process owns the live editing sessions. To test alongside the native server, use a separate directory **and** port. Run this in a separate terminal so the test settings stay isolated:
@@ -47,14 +48,14 @@ Open **[Flow Canvas Studio](http://127.0.0.1:8768/)**. Compose defaults to local
 ```bash
 export FLOW_DATA_DIR="$(mktemp -d)" FLOW_PORT=8769 COMPOSE_PROJECT_NAME=flow-canvas-preview
 export FLOW_UID="$(id -u)" FLOW_GID="$(id -g)"
-docker compose -f deploy/docker-compose.yml up -d --build --wait
+docker compose -f deploy/docker/docker-compose.yml up -d --build --wait
 ```
 
 Open [the test instance](http://127.0.0.1:8769/). To read logs or stop the stack:
 
 ```bash
-docker compose -f deploy/docker-compose.yml logs -f web database
-docker compose -f deploy/docker-compose.yml down
+docker compose -f deploy/docker/docker-compose.yml logs -f web database
+docker compose -f deploy/docker/docker-compose.yml down
 ```
 
 The default database path is **`../flow-canvas-studio-data/studio.sqlite3`**, outside the repo. For a custom location, set `FLOW_DATA_DIR` to **an existing absolute path** on a local disk and grant the database process read/write access. `FLOW_UID` and `FLOW_GID` select the numeric owner used by the database container and default to `1000:1000`. Compose's named volume carries only the communication socket.
@@ -67,7 +68,7 @@ The default database path is **`../flow-canvas-studio-data/studio.sqlite3`**, ou
 4. Route the hostname through a host-installed Cloudflare Tunnel to `http://127.0.0.1:8768`. Start the stack with the explicit environment file and verify access with an account inside the team and one outside it.
 
 ```bash
-docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait
+docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d --build --wait
 ```
 
 An active Access session opens the site directly. When authentication is required, GitHub handles its session, consent and MFA. The web backend validates the signed Access token for HTTP and WebSocket connections. [GitHub identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/github/) · [Instant authentication](https://developers.cloudflare.com/learning-paths/clientless-access/access-application/create-access-app/) · [Access JWT validation](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)
@@ -78,7 +79,7 @@ Create a consistent online snapshot from the database container. It includes com
 
 ```bash
 snapshot="backup-$(date +%Y%m%d-%H%M%S).sqlite3"
-docker compose -f deploy/docker-compose.yml exec -T database \
+docker compose -f deploy/docker/docker-compose.yml exec -T database \
   python -m backend.backup "/data/$snapshot"
 ```
 
@@ -89,18 +90,18 @@ The snapshot appears in the host data directory. To migrate, pause editing, take
 Requires Python 3.12 with uv or venv/pip, and Node.js 22.12+ or 24. Native mode runs the same database API in-process. The default data path matches the Compose deployment.
 
 ```bash
-./setup.sh
-./start.sh --local
+./deploy/native/setup.sh
+./deploy/native/start.sh --local
 ```
 
-For Cloudflare mode, configure the repo-root `.env` and run `./start.sh`. To back up a native instance, run `.venv/bin/python -m backend.backup /path/to/new-backup.sqlite3` with the same `FLOW_DATA_DIR` as the server.
+For Cloudflare mode, configure the repo-root `.env` and run `./deploy/native/start.sh`. To back up a native instance, run `.venv/bin/python -m backend.backup /path/to/new-backup.sqlite3` with the same `FLOW_DATA_DIR` as the server.
 
 ## Verification
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
 (cd frontend && npm run build)
-docker compose -f deploy/docker-compose.yml config --quiet
+docker compose -f deploy/docker/docker-compose.yml config --quiet
 ```
 
 The backend suite covers the private service boundary, database outages, concurrent edits, conflicts, rollback, canvas duplication, backup/restore and Access authentication. Set `FLOW_TEST_GRAPH` to an external workflow JSON to include the full import/export round-trip check. To exercise two independent browser sessions against a temporary database:

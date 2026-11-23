@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.."
 if command -v uv >/dev/null; then
   if [[ ! -x .venv/bin/python ]]; then uv venv --python python3 .venv; fi
   uv pip install --python .venv/bin/python -r requirements.txt
