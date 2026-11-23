@@ -1,0 +1,53 @@
+name: flow-canvas-studio
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+    depends_on:
+      database:
+        condition: service_healthy
+    network_mode: host
+    command: ["uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "${FLOW_PORT:-8768}", "--workers", "1", "--no-proxy-headers"]
+    environment:
+      FLOW_PORT: "${FLOW_PORT:-8768}"
+      FLOW_AUTH: ${FLOW_AUTH:-local}
+      CF_ACCESS_ISSUER: ${CF_ACCESS_ISSUER:-}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
+      FLOW_ORIGIN: ${FLOW_ORIGIN:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,socket; socket.create_connection(('127.0.0.1', int(os.environ['FLOW_PORT'])), 2).close()"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+    volumes:
+      - database-socket:/run/flow-canvas:ro
+    restart: unless-stopped
+
+  database:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: database
+    user: "${FLOW_UID:-1000}:${FLOW_GID:-1000}"
+    network_mode: none
+    volumes:
+      - database-socket:/run/flow-canvas
+      - type: bind
+        source: ${FLOW_DATA_DIR:-../../flow-canvas-studio-data}
+        target: /data
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; c=httpx.Client(transport=httpx.HTTPTransport(uds='/run/flow-canvas/database.sock')); c.get('http://database/ready').raise_for_status()"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  database-socket:

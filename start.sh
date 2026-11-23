@@ -16,4 +16,4 @@ if [[ ! -s frontend/dist/index.html || ! -x .venv/bin/uvicorn ]]; then
   echo "請先在 repo 執行 ./setup.sh" >&2
   exit 1
 fi
-exec .venv/bin/uvicorn studio.app:app --host 127.0.0.1 --port "${FLOW_PORT:-8768}" --workers 1 --no-proxy-headers
+exec .venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port "${FLOW_PORT:-8768}" --workers 1 --no-proxy-headers

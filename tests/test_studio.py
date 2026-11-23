@@ -8,9 +8,9 @@ from unittest.mock import patch
 
 import jwt
 from fastapi.testclient import TestClient
-from studio import storage
-from studio.app import app
-from studio.backup import backup
+from backend import storage
+from backend.main import app
+from backend.backup import backup
 
 BASE = "http://127.0.0.1:8768"
 DFX = Path(os.environ.get("FLOW_TEST_GRAPH", ""))
@@ -171,7 +171,7 @@ class Studio(unittest.TestCase):
                 "exp": int(time.time() + 60),
                 "type": "app",
             }
-            with patch("studio.auth.signing_keys") as keys:
+            with patch("backend.auth.signing_keys") as keys:
                 keys.return_value.get_signing_key_from_jwt.return_value.key = key.public_key()
 
                 def get(changes):

@@ -1,0 +1,15 @@
+**
+!requirements.txt
+!backend/
+!backend/*.py
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/tsconfig.json
+!frontend/public/
+!frontend/public/workbench.html
+!frontend/src/
+!frontend/src/*.ts
+!frontend/src/*.tsx
+!frontend/src/*.css

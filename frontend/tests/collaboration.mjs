@@ -12,10 +12,10 @@ const root = fileURLToPath(new URL('../../', import.meta.url))
 const data = await mkdtemp(join(tmpdir(), 'flow-canvas-e2e-'))
 const server = spawn(
   join(root, '.venv/bin/python'),
-  ['-m', 'uvicorn', 'studio.app:app', '--port', '0', '--no-proxy-headers'],
+  ['-m', 'uvicorn', 'backend.main:app', '--port', '0', '--no-proxy-headers'],
   {
     cwd: root,
-    env: { ...process.env, FLOW_AUTH: 'local', FLOW_DATA_DIR: data },
+    env: { ...process.env, FLOW_AUTH: 'local', FLOW_DATA_DIR: data, FLOW_DATABASE_SOCKET: '' },
     stdio: ['ignore', 'ignore', 'pipe'],
   },
 )
