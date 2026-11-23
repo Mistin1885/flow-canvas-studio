@@ -1,0 +1,122 @@
+<dialog id="node-editor" aria-labelledby="editor-title">
+  <form id="node-form">
+    <header class="editor-head">
+      <div>
+        <p class="editor-eyebrow">FLOW CANVAS STUDIO</p>
+        <h2 id="editor-title">編輯節點</h2>
+      </div>
+      <button type="button" id="editor-close" aria-label="關閉節點編輯器">✕</button>
+    </header>
+    <div class="editor-scroll">
+      <p class="editor-tip" id="editor-context"></p>
+      <div class="editor-grid">
+        <label>
+          節點 ID
+          <input
+            id="node-id"
+            required
+            pattern="[A-Za-z][A-Za-z0-9_\-]{0,63}"
+            maxlength="64"
+            aria-describedby="id-check"
+          />
+          <small id="id-check" role="status"></small>
+        </label>
+        <label>
+          節點類型
+          <select id="node-type" required></select>
+        </label>
+        <fieldset class="layout-fields wide">
+          <legend>排版群組</legend>
+          <p>每個節點屬於一個群組。方向套用到同群組在各畫布區域內的節點。</p>
+          <div class="layout-pair">
+            <label>
+              所屬群組
+              <select id="node-group" required></select>
+            </label>
+            <label>
+              群組流程方向
+              <select id="group-direction">
+                <option value="auto">自動 · 沿用原圖</option>
+                <option value="TD">TD ↓ 由上往下</option>
+                <option value="LR">LR → 由左往右</option>
+                <option value="BT">BT ↑ 由下往上</option>
+                <option value="RL">RL ← 由右往左</option>
+              </select>
+            </label>
+          </div>
+          <div class="edit-row">
+            <input id="group-name" aria-label="新群組名稱" placeholder="新群組名稱" maxlength="80" />
+            <button type="button" id="add-group">建立群組</button>
+          </div>
+          <small id="group-message" role="status"></small>
+        </fieldset>
+        <fieldset class="legend-editor">
+          <legend>圖例分類 · 顏色與高亮（可複選）</legend>
+          <div id="legend-fields"></div>
+          <div class="edit-row">
+            <input
+              id="category-name"
+              aria-label="自訂分類名稱"
+              placeholder="自訂分類名稱"
+              maxlength="64"
+            />
+            <input id="category-color" aria-label="分類顏色" type="color" value="#387ab4" />
+            <button id="add-category" type="button">新增分類</button>
+          </div>
+          <small id="category-error" role="status"></small>
+        </fieldset>
+        <label class="wide">
+          名稱
+          <input id="node-title" required maxlength="200" />
+        </label>
+        <label class="wide">
+          說明
+          <textarea id="node-description" rows="3"></textarea>
+        </label>
+        <label>
+          操作位置
+          <input id="node-where" maxlength="500" />
+        </label>
+        <label class="wide">
+          預期結果
+          <textarea id="node-expect" rows="2"></textarea>
+        </label>
+        <label class="wide">
+          注意事項
+          <textarea id="node-note" rows="2"></textarea>
+        </label>
+      </div>
+      <div class="editor-section-head">
+        <h3>處理步驟與指令</h3>
+        <div>
+          <button type="button" id="add-text-block">＋ 說明</button>
+          <button type="button" id="add-code-block">＋ 指令</button>
+        </div>
+      </div>
+      <p class="editor-tip">可加入說明與指令。內容會原樣保存，不會自動替換參數。</p>
+      <div id="content-editor"></div>
+      <div class="editor-section-head">
+        <h3>從哪裡連入？</h3>
+        <button type="button" id="add-incoming">＋ 前序連線</button>
+      </div>
+      <div id="current-incoming" class="editor-tip"></div>
+      <div id="added-incoming"></div>
+      <div class="editor-section-head">
+        <h3>連到哪裡？</h3>
+        <button type="button" id="add-edge">＋ 連線</button>
+      </div>
+      <p class="editor-tip">
+        「下一步」會定位到目標節點；「返回／重試」會跳到指定節點。請依原圖確認連線方向與條件。
+      </p>
+      <div id="edge-editor"></div>
+      <p class="editor-tip" id="editor-main-note"></p>
+      <p id="editor-error" class="editor-error" role="alert"></p>
+    </div>
+    <footer class="editor-footer">
+      <button type="button" id="delete-node">刪除此節點</button>
+      <button type="button" id="new-node">＋ 新增後續節點</button>
+      <span>套用後，請匯出 JSON 或下載 HTML 保存。</span>
+      <button type="submit" class="editor-primary">套用變更</button>
+    </footer>
+  </form>
+</dialog>

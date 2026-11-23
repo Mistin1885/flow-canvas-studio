@@ -1,0 +1,164 @@
+/* Connection inspection uses a broad invisible hit area; only inspected edges animate. */
+.canvas {
+  overflow: clip;
+}
+:root {
+  --trace-source: #246eb8;
+  --trace-target: #087f79;
+  --trace-line: #2579bb;
+  --trace-surface: #f8fcff;
+  --trace-ink: #183e5b;
+}
+html[data-theme='dark'] {
+  --trace-source: #8bbdff;
+  --trace-target: #65dfc4;
+  --trace-line: #81c6ff;
+  --trace-surface: #17354a;
+  --trace-ink: #eaf7ff;
+}
+.world svg.wires {
+  overflow: visible;
+  pointer-events: none;
+}
+.node {
+  transition:
+    box-shadow 140ms,
+    border-color 140ms,
+    background-color 140ms,
+    filter 140ms;
+}
+.node.is-leaving {
+  transition: opacity 140ms !important;
+  pointer-events: none;
+}
+.edge-route {
+  transition: opacity 110ms;
+}
+.edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16px;
+  pointer-events: stroke;
+  vector-effect: non-scaling-stroke;
+  cursor: crosshair;
+}
+.edge-route .edge-annotation {
+  pointer-events: all;
+  cursor: crosshair;
+}
+.world.is-tracing .edge-route:not(.trace-active) {
+  opacity: 0.19;
+}
+.world.is-tracing .node:not(.trace-source):not(.trace-target) {
+  opacity: 0.32 !important;
+  filter: saturate(0.45);
+}
+.node.trace-source,
+.node.trace-target {
+  z-index: 3;
+  filter: none;
+  border-style: solid;
+}
+.node.trace-source {
+  border-color: var(--trace-source) !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--trace-source) 28%, transparent),
+    0 0 18px color-mix(in srgb, var(--trace-source) 18%, transparent);
+}
+.node.trace-target {
+  border-color: var(--trace-target) !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--trace-target) 27%, transparent),
+    0 0 18px color-mix(in srgb, var(--trace-target) 17%, transparent);
+}
+.node.trace-source .node-title {
+  color: var(--trace-source) !important;
+}
+.node.trace-target .node-title {
+  color: var(--trace-target) !important;
+}
+.node.trace-source::after,
+.node.trace-target::after {
+  content: attr(data-trace-role);
+  position: absolute;
+  width: auto;
+  height: auto;
+  transform: none;
+  border: 0;
+  right: auto;
+  bottom: auto;
+  top: -23px;
+  left: 5px;
+  white-space: nowrap;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font: 600 calc(11px * var(--reading-scale, 1)) var(--ui);
+  color: white;
+  background: var(--trace-source);
+  pointer-events: none;
+}
+.node.trace-target::after {
+  background: var(--trace-target);
+}
+html[data-theme='dark'] .node.trace-source::after,
+html[data-theme='dark'] .node.trace-target::after {
+  color: #102b3a;
+}
+.edge-route.trace-active .edge-label-bg,
+.trace-label .edge-label-bg {
+  fill: var(--trace-surface) !important;
+  stroke: var(--trace-line) !important;
+  stroke-width: 1.5;
+}
+.edge-route.trace-active .edge-label,
+.trace-label .edge-label {
+  fill: var(--trace-ink) !important;
+}
+.trace-overlay {
+  pointer-events: none;
+}
+.trace-rail {
+  fill: none;
+  stroke: var(--trace-surface);
+  stroke-width: 7px;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.92;
+}
+.trace-flow {
+  fill: none;
+  stroke: var(--trace-line);
+  stroke-width: 2.8px;
+  vector-effect: non-scaling-stroke;
+}
+.trace-particle {
+  fill: var(--trace-target);
+  stroke: var(--trace-surface);
+  stroke-width: 1.5px;
+}
+.connection-hint {
+  position: absolute;
+  left: 20px;
+  top: 48px;
+  max-width: min(720px, calc(100% - 40px));
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--trace-line) 35%, transparent);
+  border-radius: 8px;
+  background: var(--trace-surface);
+  color: var(--trace-ink);
+  box-shadow: 0 3px 12px #12334d12;
+  font: calc(12px * var(--reading-scale, 1))/1.5 var(--ui);
+  pointer-events: none;
+  z-index: 5;
+}
+.connection-hint[hidden] {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .node,
+  .edge-route {
+    transition: none !important;
+  }
+  .trace-particle {
+    display: none;
+  }
+}

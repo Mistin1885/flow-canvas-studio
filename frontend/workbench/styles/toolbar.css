@@ -1,0 +1,143 @@
+/* Keep branch conditions readable above their destination, clear of wires and nodes. */
+.edge-label {
+  font: 650 calc(12px * var(--reading-scale, 1)) var(--ui);
+  fill: #304e69;
+  stroke: none;
+}
+.edge-label-bg {
+  fill: #f9fbff;
+  stroke: #bdcdda;
+  stroke-width: 1;
+}
+.edge-annotation.active .edge-label-bg {
+  fill: #e4effa;
+  stroke: #638aac;
+}
+.edge-annotation.active .edge-label {
+  fill: #214f76;
+}
+html[data-theme='dark'] .edge-label {
+  fill: #e2edf8;
+}
+html[data-theme='dark'] .edge-label-bg {
+  fill: #23384b;
+  stroke: #607f99;
+}
+html[data-theme='dark'] .edge-annotation.active .edge-label-bg {
+  fill: #304e69;
+  stroke: #91b8da;
+}
+html[data-theme='dark'] .edge-annotation.active .edge-label {
+  fill: #fff;
+}
+.workspace-header {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 24px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.workspace-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: calc(15px * var(--reading-scale, 1));
+  white-space: nowrap;
+}
+.workspace-brand small {
+  display: block;
+  font-size: calc(10px * var(--reading-scale, 1));
+  font-weight: 400;
+  color: var(--muted);
+}
+.workspace-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 6px;
+  align-items: center;
+}
+.workspace-tabs button {
+  height: 40px;
+  background: transparent;
+  border: 0;
+  padding: 8px 18px;
+  color: var(--muted);
+  font-size: calc(13px * var(--reading-scale, 1));
+  font-weight: 600;
+}
+.workspace-tabs button[aria-selected='true'] {
+  background: var(--blue-soft);
+  color: var(--blue);
+  box-shadow: inset 0 -2px var(--blue);
+}
+.workspace-save {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+.workspace-save span {
+  font-size: calc(11px * var(--reading-scale, 1));
+  color: var(--muted);
+}
+.workspace-save button {
+  font-size: calc(12px * var(--reading-scale, 1));
+}
+#debug-workspace {
+  height: calc(100dvh - 68px);
+  display: flex;
+  flex-direction: column;
+}
+#debug-workspace > .top {
+  height: auto;
+  min-height: 76px;
+  flex-shrink: 0;
+  gap: 14px;
+  padding: 12px 22px;
+}
+#debug-workspace > .app {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+#debug-workspace .brand {
+  min-width: 174px;
+}
+#debug-workspace .brand .mark {
+  display: none;
+}
+#debug-workspace .brand h1 {
+  font-size: calc(17px * var(--reading-scale, 1));
+}
+#debug-workspace .rack-input {
+  max-width: 250px;
+}
+.debug-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.debug-tools button {
+  font-size: calc(12px * var(--reading-scale, 1));
+  white-space: nowrap;
+}
+.debug-tools input {
+  display: none;
+}
+#validation-workspace {
+  height: calc(100dvh - 68px);
+}
+#validation-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #f4f6f8;
+}

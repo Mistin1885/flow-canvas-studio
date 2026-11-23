@@ -1,0 +1,40 @@
+.dialog {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 23px;
+  width: min(430px, 94vw);
+  color: var(--ink);
+}
+.dialog::backdrop {
+  background: #1d2c3480;
+}
+.dialog header,
+.mapOverlay header {
+  justify-content: space-between;
+}
+.dialog h2,
+.mapOverlay h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+.dialog label {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+  font-size: 0.875rem;
+}
+.dialog input,
+.dialog select {
+  padding: 10px;
+  border: 1px solid light-dark(#bbc8c4, #52635c);
+  border-radius: 6px;
+  width: 100%;
+}
+.dialog footer {
+  justify-content: flex-end;
+  margin-top: 23px;
+}
+.dialog [role='alert'],
+.warning {
+  color: light-dark(#853f21, #ffd4a6);
+}

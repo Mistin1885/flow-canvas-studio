@@ -1,0 +1,214 @@
+.edit-dock {
+  position: absolute;
+  right: 12px;
+  bottom: 50px;
+  z-index: 6;
+  display: flex;
+  gap: 1px;
+  align-items: center;
+  padding: 3px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 2px 8px #0002;
+}
+.edit-dock button {
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  padding: 4px 8px;
+  border-radius: 5px;
+  min-height: 32px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.edit-dock button[aria-pressed='true'] {
+  background: #275a83;
+  color: white;
+}
+.edit-dock button:disabled {
+  opacity: 0.36;
+}
+#edit-hint {
+  position: absolute;
+  bottom: 94px;
+  right: 12px;
+  z-index: 6;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  pointer-events: none;
+}
+.connect-port {
+  display: none;
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid #256b9e;
+  box-shadow: 0 0 0 1px #fff;
+  cursor: crosshair;
+  z-index: 5;
+  padding: 0;
+  pointer-events: auto;
+  touch-action: none;
+}
+.edit-mode .node {
+  overflow: visible;
+}
+.edit-mode .connect-port {
+  display: block;
+  transform: translateY(-50%) scale(var(--port-scale, 1));
+  transform-origin: center;
+}
+.edit-mode .node-body {
+  cursor: grab;
+  touch-action: none;
+}
+.edit-mode .being-moved {
+  z-index: 10;
+  opacity: 0.85;
+}
+.edit-mode .link-target {
+  outline: 4px solid #479dff;
+}
+.draft-wire {
+  stroke: #458de2;
+  stroke-width: 3;
+  stroke-dasharray: 7 4;
+  pointer-events: none;
+}
+.edit-mode .edge-hit {
+  cursor: pointer;
+}
+.edit-mode .edge-annotation {
+  pointer-events: all;
+  cursor: pointer;
+}
+#paths .user-color .wire {
+  stroke: var(--edge-color);
+}
+#paths .user-color .edge-label-bg,
+#trace-overlay .user-color .edge-label-bg {
+  fill: var(--edge-color);
+  stroke: var(--edge-ink);
+}
+#paths .user-color .edge-label,
+#trace-overlay .user-color .edge-label {
+  fill: var(--edge-ink);
+}
+.layout-fields {
+  grid-column: 1/-1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.layout-fields p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.layout-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+.node-picker {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.node-picker select {
+  width: 100%;
+  min-width: 0;
+}
+.editor-edge > * {
+  min-width: 0;
+}
+#delete-node {
+  color: #a32d33;
+}
+body[data-theme='dark'] #delete-node,
+[data-theme='dark'] #delete-node {
+  color: #ffabab;
+}
+#line-dialog {
+  width: min(400px, 94vw);
+  max-height: 85dvh;
+  overflow: auto;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.line-fields {
+  display: grid;
+  padding: 15px;
+  gap: 10px;
+}
+.line-fields p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.line-fields label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.line-fields input:not([type='checkbox']) {
+  flex: 1;
+  min-width: 0;
+}
+#line-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+.color-chip {
+  min-width: 30px;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 3px 8px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.editor-footer {
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .edit-dock {
+    right: 6px;
+    bottom: 44px;
+  }
+  .edit-dock button {
+    min-height: 36px;
+  }
+  #edit-hint {
+    right: 6px;
+    bottom: 89px;
+  }
+  .layout-pair {
+    grid-template-columns: 1fr;
+  }
+  .editor-footer span {
+    display: none;
+  }
+  .connect-port {
+    width: 24px;
+    height: 24px;
+    right: -12px;
+  }
+}

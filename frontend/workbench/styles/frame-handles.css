@@ -1,0 +1,64 @@
+.canvas:not(.choosing-endpoint) .graph-handle.edit-only-handle {
+  display: none;
+}
+#nodes .node.frame-node {
+  z-index: 3;
+  overflow: visible;
+  background: transparent !important;
+}
+#nodes .node.frame-node > .node-body {
+  inset: 4px auto auto 6px;
+  display: block;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  height: auto;
+  min-height: 0;
+  padding: 3px 8px;
+  background: var(--paper) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 5px;
+  z-index: 2;
+  text-align: left;
+}
+#nodes .node.frame-node > .node-body .node-title,
+.frame-heading-measure {
+  font: 700 calc(13px * var(--reading-scale, 1))/1.35 var(--ui);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html #nodes .node.frame-node > .node-body .node-title {
+  color: var(--ink) !important;
+  display: block;
+}
+.frame-heading-measure {
+  box-sizing: border-box;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  position: fixed;
+  visibility: hidden;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+}
+.frame-membership {
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.frame-membership strong {
+  font-size: 0.87rem;
+  color: var(--muted);
+  margin-right: 3px;
+}
+.frame-membership button {
+  font-size: 0.88rem;
+  text-align: left;
+  padding: 4px 9px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 30px;
+}

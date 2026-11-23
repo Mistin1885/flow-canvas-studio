@@ -1,0 +1,227 @@
+#members-dialog {
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0;
+  width: min(780px, 95vw);
+  max-height: 92dvh;
+}
+#members-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.member-scroll {
+  overflow: auto;
+  padding: 14px 20px;
+}
+.member-scroll h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.member-scroll small,
+.member-note {
+  color: var(--muted);
+}
+.member-pane {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.member-pane section {
+  min-width: 0;
+}
+.member-scroll label {
+  display: grid;
+  gap: 5px;
+}
+.member-scroll input,
+.member-scroll select,
+#edge-pickers select {
+  min-width: 0;
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px;
+}
+#member-chosen,
+#member-options {
+  max-height: 32dvh;
+  overflow: auto;
+  border-block: 1px solid var(--line);
+  margin: 8px 0;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding: 5px 0;
+}
+.member-row span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+}
+.member-row button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 2px;
+}
+.member-note {
+  font-size: 0.88rem;
+}
+.member-scroll #member-error {
+  color: var(--ink);
+}
+.graph-handle {
+  position: absolute;
+  display: flex;
+  align-items: stretch;
+  z-index: 3;
+  gap: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--teal);
+  border-radius: 5px;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+.graph-handle button {
+  min-height: 0;
+  padding: 1px 6px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: 600 12px var(--ui);
+}
+.graph-handle .handle-title {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.graph-handle .group-port {
+  cursor: crosshair;
+  touch-action: none;
+  background: var(--teal-soft);
+  border-left: 1px solid var(--line);
+  font-size: 16px;
+}
+.canvas:not(.edit-mode) .edit-only-handle,
+.canvas:not(.edit-mode) .group-port {
+  display: none;
+}
+.edit-mode .graph-handle.link-target,
+.edit-mode .style-group-frame.link-target rect {
+  outline: 3px solid var(--teal);
+}
+.edit-mode .style-group-frame rect,
+.edit-mode .flow-outline {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.frame-rim {
+  position: absolute;
+  pointer-events: none;
+}
+.edit-mode .frame-rim {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.frame-rim[data-side='top'],
+.frame-rim[data-side='bottom'] {
+  left: 0;
+  right: 0;
+  height: 7px;
+}
+.frame-rim[data-side='left'],
+.frame-rim[data-side='right'] {
+  top: 0;
+  bottom: 0;
+  width: 7px;
+}
+.frame-rim[data-side='top'] {
+  top: -3px;
+}
+.frame-rim[data-side='bottom'] {
+  bottom: -3px;
+}
+.frame-rim[data-side='left'] {
+  left: -3px;
+}
+.frame-rim[data-side='right'] {
+  right: -3px;
+}
+.graph-link .edge-label-bg {
+  pointer-events: all;
+}
+.graph-link.edit-picked .wire {
+  stroke-width: 4;
+}
+.graph-link:hover .wire {
+  stroke: var(--teal);
+  stroke-width: 3;
+}
+#edge-pickers {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+#edge-pickers label {
+  display: block;
+}
+#edit-tools-list {
+  display: flex;
+  gap: 4px;
+}
+#edit-tools-list[hidden] {
+  display: none;
+}
+@media (max-width: 640px) {
+  .member-pane {
+    grid-template-columns: 1fr;
+  }
+  .member-scroll {
+    padding: 10px;
+  }
+  #member-chosen,
+  #member-options {
+    max-height: 20dvh;
+  }
+  .edit-dock {
+    max-width: calc(100% - 12px);
+    flex-wrap: wrap;
+  }
+  .edit-dock button {
+    padding: 3px 5px;
+  }
+}
+#members-dialog [hidden] {
+  display: none !important;
+}
+#frame-actions {
+  margin: 12px 0;
+}
+#frame-actions summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.object-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin: 10px 0;
+}
+#frame-actions small {
+  display: block;
+  color: var(--muted);
+}
+
+#member-pack {
+  width: auto;
+}

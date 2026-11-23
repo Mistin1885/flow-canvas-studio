@@ -1,0 +1,266 @@
+.workspace-header.project-header {
+  position: relative;
+  z-index: 35;
+  display: block;
+  flex: none;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border: 0;
+}
+.project-heading,
+.canvas-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-inline: clamp(12px, 1.7vw, 28px);
+}
+.project-heading {
+  min-height: 64px;
+  padding-block: 8px;
+  background: color-mix(in srgb, var(--blue) 5%, var(--paper));
+  border-bottom: 1px solid var(--line);
+}
+.project-identity,
+.project-actions,
+.node-actions {
+  display: flex;
+  align-items: center;
+}
+.project-identity {
+  gap: 12px;
+  min-width: 0;
+}
+.project-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  background: #24496a;
+  color: #fff;
+  border-radius: 9px;
+  font: 700 14px var(--ui);
+  letter-spacing: 0.02em;
+  border-bottom: 3px solid #528b98;
+}
+html[data-theme='dark'] .project-mark {
+  background: #2e516c;
+  border-color: #67b8b7;
+}
+.project-identity h1 {
+  font: 650 clamp(17px, 1.5vw, 22px)/1.2 var(--ui);
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+.project-identity #project-summary,
+.project-actions #workspace-save-state {
+  font: 500 12px/1.45 var(--ui);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.project-actions {
+  margin-left: auto;
+  gap: 8px;
+}
+.project-actions #workspace-save-state {
+  margin-right: 8px;
+}
+.canvas-bar {
+  min-height: 48px;
+  padding-block: 5px;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+.canvas-bar .search-wrap {
+  width: clamp(190px, 25vw, 380px);
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.canvas-bar .search-box {
+  height: 34px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.canvas-bar .search-box input {
+  background: transparent !important;
+  color: var(--ink);
+  min-width: 0;
+  width: 100%;
+}
+.project-header :is(button, summary) {
+  font: 600 13px/1.3 var(--ui);
+  border-radius: 7px;
+  min-height: 34px;
+  flex: none;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.project-header .theme-toggle {
+  position: static;
+}
+.project-header #workspace-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-header #legend-toggle {
+  order: initial;
+}
+.project-header #show-detail {
+  display: inline-flex;
+  align-items: center;
+}
+.node-actions {
+  margin-left: auto;
+  gap: 8px;
+}
+.project-header #create-node {
+  background: #185a5c;
+  color: #fff;
+  border-color: #185a5c;
+}
+html[data-theme='dark'] .project-header #create-node {
+  background: #96d4c9;
+  color: #102f32;
+  border-color: #96d4c9;
+}
+.project-header :is(button, summary):hover {
+  box-shadow: inset 0 0 0 1px var(--teal);
+}
+.project-header :focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.project-header #legend-toggle[aria-expanded='true'] {
+  background: var(--teal-soft);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+.project-header #tools-menu[open] {
+  z-index: 4;
+}
+.canvas-bar .search-results button {
+  width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+@media (max-width: 700px) {
+  .project-heading {
+    min-height: 58px;
+    gap: 7px;
+  }
+  .project-actions {
+    gap: 4px;
+  }
+  .project-actions #workspace-save-state {
+    display: none;
+  }
+  .project-header #theme-label,
+  .project-header .utility-label {
+    display: none;
+  }
+  .project-actions #workspace-save {
+    font-size: 20px;
+    justify-content: center;
+  }
+  .project-header :is(button, summary) {
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+  .project-actions :is(#theme-toggle, #workspace-save) {
+    width: 44px;
+  }
+  .project-header #theme-icon {
+    font-size: 18px;
+  }
+  .canvas-bar {
+    gap: 4px;
+    min-height: 52px;
+  }
+  .canvas-bar .search-wrap {
+    flex: 1;
+  }
+  .canvas-bar .search-box {
+    padding-inline: 5px;
+    height: 40px;
+  }
+  .node-actions {
+    gap: 4px;
+  }
+  .project-identity h1 {
+    font-size: 17px;
+  }
+  .project-identity {
+    gap: 7px;
+  }
+}
+@media (max-width: 560px) {
+  .project-heading,
+  .canvas-bar {
+    padding-inline: 8px;
+  }
+  .project-mark {
+    display: none;
+  }
+  .project-header #mobile-nav {
+    display: block;
+  }
+  .project-header .node-actions button {
+    min-width: 44px;
+    font-size: 0;
+  }
+  .node-actions #edit-node:after {
+    content: '編輯';
+    font: 600 13px var(--ui);
+  }
+  .node-actions #create-node:after {
+    content: '新增';
+    font: 600 13px var(--ui);
+  }
+  .project-actions #tools-menu summary {
+    gap: 3px;
+  }
+  .project-identity #project-summary {
+    font-size: 11px;
+  }
+}
+@media (max-width: 380px) {
+  .project-heading {
+    gap: 4px;
+  }
+  .project-actions {
+    gap: 2px;
+  }
+  .project-heading,
+  .canvas-bar {
+    padding-inline: 4px;
+  }
+  .project-identity h1 {
+    font-size: 15px;
+  }
+}
+
+#legend-panel {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-height: min(28dvh, 230px);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  flex: 0 0 auto;
+}
+.work {
+  position: relative;
+}

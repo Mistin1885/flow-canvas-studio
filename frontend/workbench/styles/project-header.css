@@ -1,0 +1,148 @@
+.workspace-header {
+  gap: 12px;
+}
+.workspace-save {
+  flex-wrap: wrap;
+}
+.workspace-brand {
+  min-width: 0;
+}
+.debug-tools {
+  flex-wrap: wrap;
+}
+.top {
+  height: auto;
+  min-height: 76px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 20px;
+}
+.app {
+  height: calc(100dvh - var(--workspace-top, 72px) - var(--flow-top, 76px));
+  min-height: 180px;
+}
+.source-meta {
+  font: 12px var(--mono);
+  color: var(--muted);
+}
+@media (max-width: 850px) {
+  .project-summary {
+    display: none;
+  }
+  .top .brand {
+    min-width: 0;
+    flex: 1;
+  }
+  .top .brand h1 {
+    font-size: 16px;
+  }
+  .top {
+    padding: 9px 12px;
+    gap: 8px;
+  }
+  .debug-tools {
+    width: 100%;
+    gap: 5px;
+  }
+  .debug-tools button {
+    flex: 1;
+    padding: 7px 5px;
+    font-size: 12px;
+  }
+  .workspace-header {
+    padding: 10px 12px;
+  }
+  .workspace-brand {
+    width: 100%;
+  }
+  .workspace-save {
+    width: 100%;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+  .workspace-save button {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+  .workspace-save #workspace-save-state {
+    display: none;
+  }
+  .review-fields {
+    grid-template-columns: 1fr;
+  }
+  .source-scroll {
+    padding: 12px;
+  }
+  .source-tabs {
+    padding: 12px;
+  }
+  .inspector.open {
+    max-height: calc(100dvh - var(--workspace-top, 120px) - 15px);
+  }
+  .nav-group button {
+    font-size: 12px;
+  }
+}
+#theme-toggle #theme-icon {
+  display: inline;
+}
+.workspace-header #theme-toggle {
+  min-width: 44px;
+}
+#mobile-nav {
+  display: none;
+}
+.nav-num {
+  white-space: nowrap;
+  flex: none;
+}
+.node-title,
+.editor-head h2 {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  #mobile-nav {
+    display: block;
+  }
+  .workspace-header .theme-toggle {
+    position: static;
+  }
+  .workspace-header {
+    height: auto;
+  }
+  .toolbar .search-wrap {
+    flex: 1;
+    min-width: 90px;
+  }
+  .toolbar .depth select {
+    max-width: 100px;
+  }
+  .mobile-nav-open .rail {
+    display: block;
+    position: absolute;
+    z-index: 33;
+    top: 100%;
+    left: 0;
+    width: min(280px, 85vw);
+    max-height: 55dvh;
+    background: var(--paper);
+    box-shadow: 0 8px 24px #16273b33;
+  }
+  .mobile-nav-open .app {
+    position: relative;
+  }
+  .mobile-nav-open .rail {
+    top: 52px;
+  }
+  .mobile-nav-open .rail .nav-label,
+  .mobile-nav-open .rail .rail-title {
+    display: block;
+  }
+  .mobile-nav-open .rail-controls {
+    display: none;
+  }
+  .review-row select,
+  .editor-edge select {
+    max-width: 100%;
+  }
+}

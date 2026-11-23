@@ -1,51 +1,23 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, GitFork, Activity, X, Download, Copy } from 'lucide-react'
-import { api, differences, errorText, type Canvas, type Graph, type Snapshot } from './api'
-
-import { DisplayControls, type DisplayPrefs, type useDisplayPreferences } from './DisplayPreferences'
-const Overview = import.meta.env.MODE === 'core' ? null : lazy(() => import('./Overview'))
-interface Workbench extends Window {
-  T1Playbook: {
-    setDisplayPreferences(prefs: DisplayPrefs): void
-    receive(graph: Graph, resetHistory?: boolean): void
-    saved(): void
-    editing(): boolean
-    go(id: string, center: boolean): void
-  }
-}
+import { useEffect, useRef, useState, type RefObject } from 'react'
+import { api, differences, errorText, type Canvas, type Graph, type Snapshot } from '../api'
+import type { Workbench } from './WorkbenchWindow'
 type Draft = { graph: Graph; base: number; ops: ReturnType<typeof differences> }
 
-export default function Editor({
-  canvas,
-  workspace,
-  display,
-  identity,
-  open,
-  back,
-}: {
-  canvas: Canvas
-  workspace: string
-  display: ReturnType<typeof useDisplayPreferences>
-  identity: string
-  open: (id: string) => void
-  back: () => void
-}) {
-  const frame = useRef<HTMLIFrameElement>(null)
-  const [loaded, setLoaded] = useState(false)
+export function useCanvasSession(
+  canvas: Canvas,
+  identity: string,
+  frame: RefObject<HTMLIFrameElement | null>,
+  loaded: boolean,
+  open: (id: string) => void,
+) {
   const [status, setStatus] = useState('連線中')
   const [issue, setIssue] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
-  const [map, setMap] = useState<Graph | null>(null)
   const [busy, setBusy] = useState(false)
   const current = useRef<Snapshot | null>(null)
   const recovered = useRef<Draft | null>(null)
   const actions = useRef({ retry: () => {}, discard: () => {} })
   const cacheKey = 'flow-draft:' + identity + ':' + canvas.id
-
-  useEffect(() => {
-    if (loaded)
-      (frame.current?.contentWindow as Workbench)?.T1Playbook?.setDisplayPreferences(display.prefs)
-  }, [loaded, display.prefs])
   useEffect(() => {
     if (!loaded) return
     const win = frame.current?.contentWindow as Workbench
@@ -260,87 +232,6 @@ export default function Editor({
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
-  function leave() {
-    const editing = (frame.current?.contentWindow as Workbench)?.T1Playbook?.editing()
-    if (!busy && (!editing || confirm('離開後會關閉目前的編輯表單，確定返回？'))) back()
-  }
-  return (
-    <main className="editor">
-      <header className="editorBar">
-        <button className="icon" onClick={leave} disabled={busy} aria-label="返回工作區">
-          <ArrowLeft size={19} />
-        </button>
-        <span className="crumb">{workspace}</span>
-        <span className="slash">/</span>
-        <b>{canvas.name}</b>
-        <div className="editorTools">
-          {!map && <DisplayControls {...display} />}
-          <span className="live">
-            <Activity size={14} />
-            {status}
-          </span>
-          {Overview && (
-            <button
-              onClick={() => current.current && setMap(current.current.graph)}
-              disabled={busy || !!draft}
-            >
-              <GitFork size={15} />
-              節點總覽
-            </button>
-          )}
-        </div>
-      </header>
-      {issue && (
-        <aside className="warning" role="alert">
-          <b>{issue}</b>
-          {draft && (
-            <div>
-              <span>你的草稿已保留。可複製成新畫布，再與團隊版本對照。</span>
-              <button disabled={busy} onClick={fork}>
-                <Copy size={15} />
-                另存草稿畫布
-              </button>
-              <button onClick={download}>
-                <Download size={15} />
-                下載草稿
-              </button>
-              <button disabled={busy} onClick={() => actions.current.retry()}>
-                重試儲存
-              </button>
-              <button
-                disabled={busy}
-                onClick={() => {
-                  if (confirm('捨棄這份草稿並載入團隊版本？')) actions.current.discard()
-                }}
-              >
-                載入團隊版本
-              </button>
-            </div>
-          )}
-        </aside>
-      )}
-      <iframe ref={frame} title="流程工作台" src="/workbench.html?studio" onLoad={() => setLoaded(true)} />
-      {map && Overview && (
-        <section className="mapOverlay">
-          <header>
-            <h2>節點總覽</h2>
-            <DisplayControls {...display} />
-            <button onClick={() => setMap(null)} aria-label="關閉總覽">
-              <X size={18} />
-            </button>
-          </header>
-          <Suspense fallback={<p>正在載入總覽…</p>}>
-            <Overview
-              graph={map}
-              prefs={display.prefs}
-              locate={(id) => {
-                setMap(null)
-                ;(frame.current?.contentWindow as Workbench).T1Playbook.go(id, true)
-              }}
-            />
-          </Suspense>
-        </section>
-      )}
-    </main>
-  )
+
+  return { status, issue, draft, busy, current, actions, fork, download }
 }

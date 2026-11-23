@@ -1,0 +1,55 @@
+<dialog id="display-dialog" class="display-dialog" aria-labelledby="display-title">
+  <div class="display-heading">
+    <h2 id="display-title">閱讀與游標</h2>
+    <button id="display-close" type="button" aria-label="關閉閱讀與游標設定">✕</button>
+  </div>
+  <div class="display-options">
+    <p>即時套用到 DFx 流程與節點詳情。顯示偏好會記在此瀏覽器；下載 HTML 也會保留這次設定。</p>
+    <div class="display-option">
+      <label for="reading-size">
+        字體大小
+        <output id="reading-value" for="reading-size"></output>
+      </label>
+      <input id="reading-size" type="range" min="0" max="3" step="1" value="0" />
+    </div>
+    <div class="display-preview">
+      閱讀預覽 · Design Review &amp; Sign Off
+      <br />
+      流程卡片與說明文字會一起調整大小。
+    </div>
+    <div class="display-option">
+      <label for="cursor-size">
+        Large Cursor
+        <output id="cursor-value" for="cursor-size"></output>
+      </label>
+      <input id="cursor-size" type="range" min="0" max="2" step="1" value="0" />
+    </div>
+    <div class="display-option">
+      <label for="cursor-highlight">
+        Cursor Highlight
+        <output id="highlight-value" for="cursor-highlight"></output>
+      </label>
+      <input id="cursor-highlight" type="range" min="0" max="3" step="1" value="0" />
+    </div>
+    <div class="display-option">
+      <label for="cursor-glow">
+        Cursor Glow
+        <output id="glow-value" for="cursor-glow"></output>
+      </label>
+      <input id="cursor-glow" type="range" min="0" max="3" step="1" value="0" />
+    </div>
+    <div class="display-option">
+      <label for="cursor-color">效果顏色</label>
+      <select id="cursor-color">
+        <option value="cyan">青藍</option>
+        <option value="yellow">亮黃</option>
+        <option value="pink">粉紅</option>
+      </select>
+    </div>
+    <p>游標效果只在滑鼠或觸控筆移動時顯示。手機流程圖可單指拖曳空白處、雙指縮放；點選節點開啟詳情。</p>
+  </div>
+  <div class="display-footer">
+    <button type="button" id="display-reset">還原顯示預設</button>
+    <button type="button" id="display-done">完成</button>
+  </div>
+</dialog>

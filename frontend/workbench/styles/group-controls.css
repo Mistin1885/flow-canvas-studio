@@ -1,0 +1,197 @@
+.group-off,
+[hidden].edit-dock,
+[hidden]#canvas-delete,
+.node-picker [hidden],
+#group-panel[hidden],
+#group-empty[hidden] {
+  display: none !important;
+}
+#group-panel {
+  padding: 7px 14px;
+  flex: 0 1 auto;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  overflow: auto;
+  max-height: 24dvh;
+}
+.group-head,
+#group-checks {
+  display: flex;
+  align-items: center;
+  gap: 6px 10px;
+  flex-wrap: wrap;
+}
+.group-head {
+  margin-bottom: 5px;
+}
+.group-head small {
+  color: var(--muted);
+  margin-right: auto;
+}
+.group-head button,
+#empty-all {
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 5px;
+  padding: 4px 7px;
+  cursor: pointer;
+}
+#group-checks label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+#group-checks input {
+  accent-color: var(--blue);
+}
+#group-empty {
+  position: absolute;
+  z-index: 4;
+  inset: 45% 0 auto;
+  text-align: center;
+  color: var(--ink);
+}
+.edit-dock #canvas-delete:enabled {
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.edit-mode .edit-picked.node {
+  outline: 3px solid #3987c8;
+  outline-offset: 3px;
+}
+.edit-mode .edge-route.edit-picked .wire {
+  stroke: #348ce4 !important;
+  stroke-width: 4 !important;
+}
+.edit-mode .connect-port {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font:
+    bold 15px/1 Arial,
+    sans-serif;
+  color: white !important;
+  background: #22618d !important;
+  border: 1.5px solid white !important;
+  min-width: 20px;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  box-shadow: 0 0 0 1px #326687;
+}
+#group-toggle[aria-expanded='true'] {
+  background: var(--blue-soft);
+  color: var(--ink);
+}
+.node-picker {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.node-picker input[role='combobox'] {
+  grid-area: 1/1;
+  color: transparent !important;
+  caret-color: transparent;
+  cursor: pointer;
+  width: 100%;
+  background: var(--paper);
+}
+.node-picker input[role='combobox']::placeholder {
+  color: transparent !important;
+}
+.picker-caption {
+  pointer-events: none;
+  grid-area: 1/1;
+  align-self: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  padding: 0 23px 0 8px;
+  font-size: 13px;
+}
+.node-picker:after {
+  content: '▾';
+  grid-area: 1/1;
+  pointer-events: none;
+  align-self: center;
+  justify-self: end;
+  margin-right: 8px;
+  color: var(--muted);
+}
+.picker-options {
+  position: relative;
+  grid-column: 1;
+  display: block;
+  max-height: 150px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.picker-option {
+  display: block;
+  padding: 6px 8px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.picker-option[aria-selected='true'],
+.picker-option:hover {
+  background: var(--blue-soft);
+  color: var(--ink);
+}
+@media (max-width: 600px) {
+  .canvas-bar {
+    flex-wrap: wrap;
+  }
+  .canvas-bar .search-wrap {
+    min-width: 90px;
+  }
+  .edit-mode .connect-port {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.canvas .edit-dock {
+  bottom: 8px;
+  cursor: default;
+}
+.canvas #edit-hint {
+  bottom: 55px;
+}
+.canvas.edit-mode {
+  background-image: radial-gradient(circle at 0 0, var(--line) 1.5px, transparent 2px);
+  background-size: var(--edit-grid) var(--edit-grid);
+  background-position: var(--edit-origin);
+}
+@media (max-width: 560px) {
+  .canvas-bar {
+    display: grid;
+    grid-template-columns: minmax(44px, 1fr) auto auto auto auto;
+    gap: 3px;
+  }
+  .canvas-bar .search-wrap {
+    min-width: 0;
+    width: 100%;
+  }
+  .canvas-bar #group-toggle,
+  .canvas-bar #legend-toggle {
+    font-size: 0;
+    min-width: 42px;
+  }
+  .canvas-bar #group-toggle:after {
+    content: '群組';
+    font: 600 13px var(--ui);
+  }
+  .canvas-bar #legend-toggle:after {
+    content: '圖例';
+    font: 600 13px var(--ui);
+  }
+}

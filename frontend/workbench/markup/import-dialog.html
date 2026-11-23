@@ -1,0 +1,16 @@
+<dialog id="graph-import-preview" aria-labelledby="import-title">
+  <header class="editor-head">
+    <h2 id="import-title">匯入流程</h2>
+    <button id="import-close" type="button" aria-label="關閉匯入預覽">✕</button>
+  </header>
+  <div class="editor-scroll">
+    <p id="import-summary"></p>
+    <div id="import-changes"></div>
+    <p class="editor-tip">套用後會更新目前畫布及來源資料；套用前請先保存需要保留的版本。</p>
+    <p id="graph-import-error" class="editor-error" role="alert"></p>
+  </div>
+  <footer class="editor-footer">
+    <button id="import-cancel" type="button">取消</button>
+    <button id="import-confirm" type="button" class="editor-primary">套用匯入</button>
+  </footer>
+</dialog>

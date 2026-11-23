@@ -1,0 +1,65 @@
+<dialog id="members-dialog" aria-labelledby="members-heading">
+  <header class="editor-head">
+    <h2 id="members-heading">編輯框內步驟</h2>
+    <button id="members-close" aria-label="關閉框內步驟">✕</button>
+  </header>
+  <div class="member-scroll">
+    <label>
+      編輯對象
+      <select id="member-object"></select>
+    </label>
+    <p class="member-note" id="member-rule"></p>
+    <label id="pack-label">
+      <span>
+        <input type="checkbox" id="member-pack" />
+        依清單順序將成員排入外框
+      </span>
+    </label>
+    <div class="member-pane">
+      <section>
+        <h3>
+          框內步驟
+          <small id="member-count"></small>
+        </h3>
+        <div id="member-chosen"></div>
+      </section>
+      <section>
+        <h3>加入步驟</h3>
+        <input id="member-search" placeholder="搜尋名稱或 ID" aria-label="搜尋可加入的步驟" />
+        <div id="member-options"></div>
+        <label>
+          建立新步驟
+          <input id="member-new" maxlength="200" placeholder="輸入步驟名稱" />
+        </label>
+        <button id="member-create">建立並加入</button>
+      </section>
+    </div>
+    <div id="member-links"></div>
+    <details id="frame-actions">
+      <summary>新增、命名與解散</summary>
+      <div class="object-fields">
+        <label>
+          名稱
+          <input id="object-name" maxlength="80" />
+        </label>
+        <button id="frame-rename">重新命名目前物件</button>
+        <label>
+          新增類型
+          <select id="object-type">
+            <option value="group">排版群組</option>
+            <option value="source">外框</option>
+            <option value="flow">子流程</option>
+          </select>
+        </label>
+        <button id="frame-create">以此名稱新增</button>
+      </div>
+      <button id="frame-remove"></button>
+      <small>保留成員步驟，可用畫布上的復原鍵還原。</small>
+    </details>
+    <p id="member-error" role="alert"></p>
+  </div>
+  <footer class="editor-footer">
+    <button id="member-cancel">取消</button>
+    <button class="primary" id="member-apply">套用步驟</button>
+  </footer>
+</dialog>

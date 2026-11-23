@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { chromium, expect } from '@playwright/test'
@@ -65,6 +65,22 @@ try {
   await expect(b.locator('.node-title').first()).toHaveText('第二位成員的草稿')
   assert.notEqual(original, bob.url())
   await expect(a.locator('.node-title').first()).toHaveText('第一位成員的變更')
+  const downloaded = alice.waitForEvent('download')
+  await a.locator('#workspace-save').click()
+  const file = join(data, 'portable.html')
+  await (await downloaded).saveAs(file)
+
+  const offline = await browser.newContext({ offline: true })
+  const page = await offline.newPage()
+  await page.goto(pathToFileURL(file).href)
+  await expect(page.locator('.node-title').first()).toHaveText('第一位成員的變更')
+  await expect(page.locator('script[src], link[rel="stylesheet"]')).toHaveCount(0)
+  await page.locator('#edit-node').click()
+  await page.locator('#node-title').fill('離線編輯')
+  await page.getByRole('button', { name: '套用變更' }).click()
+  await expect(page.locator('.node-title').first()).toHaveText('離線編輯')
+  await offline.close()
+  console.log('Standalone HTML reopened and edited offline.')
   console.log('Two-browser sync, draft recovery after reload, and independent fork passed.')
 } finally {
   await browser?.close()

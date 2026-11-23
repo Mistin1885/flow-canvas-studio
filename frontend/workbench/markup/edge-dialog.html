@@ -1,0 +1,39 @@
+<dialog id="line-dialog" aria-labelledby="edge-heading">
+  <form id="line-form">
+    <header class="editor-head">
+      <h2 id="edge-heading">編輯連線</h2>
+      <button id="line-close" type="button" aria-label="關閉連線編輯">✕</button>
+    </header>
+    <div class="line-fields">
+      <p id="edge-endpoints"></p>
+      <div id="edge-pickers">
+        <label>
+          連線起點
+          <select id="edge-from-control"></select>
+        </label>
+        <label>
+          連線終點
+          <select id="edge-to-control"></select>
+        </label>
+      </div>
+      <label>
+        條件文字
+        <input id="line-text" maxlength="200" placeholder="例如 Pass 或 Fail" />
+      </label>
+      <label>
+        條件顏色
+        <input type="color" id="line-color" />
+      </label>
+      <label>
+        <input type="checkbox" id="line-auto" />
+        依條件自動配色
+      </label>
+      <div>
+        套用已使用的條件文字與顏色
+        <div id="line-palette"></div>
+      </div>
+      <small id="line-error" role="alert"></small>
+      <button type="submit" class="editor-primary">套用連線</button>
+    </div>
+  </form>
+</dialog>

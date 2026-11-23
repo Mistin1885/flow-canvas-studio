@@ -1,0 +1,141 @@
+<nav id="diagram-tabs" aria-label="流程圖頁籤" hidden></nav>
+<section
+  data-diagram-page="project-design"
+  data-page-title="DFx Project Flow"
+  id="debug-workspace"
+  aria-label="DFx 專案流程"
+>
+  <div class="app">
+    <nav class="rail" id="navigation" aria-label="流程導覽">
+      <div class="rail-controls">
+        <button
+          class="nav-toggle"
+          id="nav-toggle"
+          type="button"
+          aria-label="收合左側導覽"
+          aria-expanded="true"
+          aria-controls="navigation"
+          title="收合左側導覽"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16m6-11-3 3 3 3" />
+          </svg>
+        </button>
+      </div>
+      <div class="rail-title">圖面定位</div>
+      <div class="nav-group" id="stage-nav"></div>
+      <div class="rail-title">測試子流程</div>
+      <div class="nav-group" id="shared-nav"></div>
+      <div class="rail-bottom">
+        <div class="rail-note">
+          箭頭僅依已確認端點建立。
+          <br />
+          未對應的條件與連線請見
+          <br />
+          「來源與待確認」。
+        </div>
+      </div>
+    </nav>
+    <main class="work">
+      <section id="legend-panel" aria-label="圖面分類" hidden>
+        <div class="legend-head">
+          <strong>圖面分類</strong>
+          <span role="status" id="legend-status">可複選分類</span>
+          <button
+            id="legend-other"
+            type="button"
+            aria-pressed="false"
+            title="原圖未對應圖例的節點"
+          ></button>
+          <button id="legend-notes" type="button" hidden></button>
+          <button id="legend-next" type="button" disabled>定位命中</button>
+          <button id="legend-clear" type="button" disabled>清除選取</button>
+        </div>
+        <div id="drawing-legend" role="group" aria-label="可複選的圖面分類"></div>
+      </section>
+      <section id="group-panel" hidden aria-label="排版群組篩選">
+        <div class="group-head">
+          <strong>排版群組</strong>
+          <small id="group-status"></small>
+          <button id="manage-frames">框內步驟</button>
+          <button type="button" id="group-style-launch" aria-haspopup="dialog">群組樣式</button>
+          <button type="button" id="groups-none">隱藏全部</button>
+          <button type="button" id="groups-all">顯示全部</button>
+        </div>
+        <div id="group-checks"></div>
+      </section>
+      <div
+        class="canvas"
+        id="canvas"
+        tabindex="0"
+        aria-label="互動流程圖。方向鍵平移，加減鍵縮放，節點按鈕可查看詳情。"
+      >
+        <div class="edit-dock" role="group" aria-label="畫布編輯工具">
+          <button id="canvas-edit" type="button" aria-pressed="false">✥ 拖拉編輯</button>
+          <span id="edit-tools-list" hidden>
+            <button id="canvas-properties">編輯</button>
+            <button id="canvas-members">框內步驟</button>
+            <button id="canvas-connect">連線</button>
+          </span>
+          <button type="button" id="canvas-delete" disabled hidden>刪除</button>
+          <button id="history-undo" type="button" title="復原 Ctrl / ⌘ Z" aria-label="復原">↶</button>
+          <button id="history-redo" type="button" title="重做 Ctrl / ⌘ Shift Z" aria-label="重做">
+            ↷
+          </button>
+        </div>
+        <div id="edit-hint" hidden>從 ＋ 拖到節點、群組標題或框線；點群組標題編輯步驟</div>
+        <div id="group-empty" hidden>
+          目前畫布沒有顯示中的群組
+          <button id="empty-all" type="button">顯示全部群組</button>
+        </div>
+        <div class="world" id="world">
+          <svg class="wires" id="wires" aria-hidden="true">
+            <defs>
+              <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M0 0L6 3L0 6" fill="context-stroke" />
+              </marker>
+            </defs>
+            <g id="paths" />
+            <g id="trace-overlay" class="trace-overlay" />
+          </svg>
+          <div id="nodes"></div>
+        </div>
+      </div>
+      <footer class="statusbar">
+        <div class="canvas-controls">
+          <button id="zoom-out" aria-label="縮小">−</button>
+          <button class="zoom" id="zoom-label" aria-label="重設為百分之百縮放">100%</button>
+          <button id="zoom-in" aria-label="放大">＋</button>
+          <button id="fit" aria-label="顯示全部可見節點">全覽</button>
+          <button id="home">回到起點</button>
+        </div>
+        <div class="flow-status">
+          <span id="visible-count"></span>
+          <span id="connection-hint" hidden></span>
+          <span id="caption">流程畫布</span>
+        </div>
+      </footer>
+    </main>
+    <aside class="inspector" id="inspector" aria-label="節點詳情">
+      <div
+        class="inspector-resize"
+        id="inspector-resize"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="調整詳情面板寬度"
+        aria-controls="inspector"
+        title="拖曳調整寬度；雙擊還原。方向鍵亦可調整。"
+      ></div>
+      <div class="detail-header">
+        <strong>節點詳情</strong>
+        <span id="detail-id"></span>
+        <button id="node-style-launch" aria-haspopup="dialog" type="button">節點樣式</button>
+        <button class="panel-close" id="close-detail" aria-label="關閉詳情">✕</button>
+      </div>
+      <div class="detail-scroll" id="detail"></div>
+    </aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</section>

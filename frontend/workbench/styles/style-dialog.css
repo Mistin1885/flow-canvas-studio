@@ -1,0 +1,294 @@
+#style-launch {
+  font-weight: 650;
+}
+#style-dialog {
+  color: var(--ink);
+  background: var(--paper);
+  width: min(680px, calc(100vw - 20px));
+  max-width: none;
+  max-height: 92dvh;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 20px 80px #10233844;
+}
+#style-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+#style-dialog::backdrop {
+  background: #0d1a2e75;
+}
+#style-dialog header,
+#style-dialog footer {
+  flex: none;
+}
+.style-scroll {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px 20px;
+}
+.scope-switch {
+  display: flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--canvas);
+  gap: 3px;
+}
+.scope-switch button {
+  flex: 1;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+.scope-switch button[aria-pressed='true'] {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 4px #0d23332a;
+}
+#style-target {
+  width: 100%;
+  margin-top: 12px;
+}
+#style-dialog select {
+  color: var(--ink);
+  background-color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 8px;
+  min-height: 34px;
+  min-width: 0;
+}
+#style-impact,
+#style-origin {
+  font-size: 0.83rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+#style-impact {
+  margin: 8px 0 14px;
+}
+.style-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+#style-dialog h3 {
+  font-size: 1rem;
+  margin: 0 0 7px;
+}
+.style-field {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.8fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 0.88rem;
+}
+.style-color {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.style-color select {
+  flex: 1;
+}
+.style-color input {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 5px;
+  width: 34px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+.style-color input:disabled {
+  opacity: 0.35;
+}
+#frame-fields {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.style-preview {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+}
+.style-preview-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 12px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+#preview-mode {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+#style-sample {
+  padding: 22px 13px;
+  display: grid;
+  align-content: center;
+  min-height: 112px;
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+#style-sample .node {
+  position: static;
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  pointer-events: none;
+}
+#style-sample .node-body {
+  display: grid;
+  padding: 10px 12px;
+  height: auto;
+}
+#style-sample .sample-frame {
+  padding: 10px;
+  border-radius: 8px;
+}
+#style-sample .frame-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 650;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+#style-origin {
+  padding: 0 12px;
+  margin: 8px 0;
+}
+#reset-style {
+  margin-right: auto;
+}
+.style-group-frame {
+  pointer-events: none;
+}
+.style-group-frame text {
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4px;
+  font: 600 12px var(--ui);
+}
+@media (max-width: 590px) {
+  .style-scroll {
+    padding: 12px;
+  }
+  .style-columns {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .style-preview {
+    position: static;
+    grid-row: 1;
+  }
+  .style-preview-head {
+    padding: 5px 10px;
+  }
+  #style-sample {
+    min-height: 0;
+    padding: 8px 12px;
+  }
+  #style-origin {
+    margin: 4px 0;
+  }
+  .style-field {
+    min-height: 38px;
+  }
+  #style-dialog footer {
+    padding: 8px;
+  }
+  #style-dialog {
+    max-height: 94dvh;
+  }
+}
+#style-dialog .scope-switch button[aria-pressed='true'] {
+  background: var(--teal-soft);
+  color: var(--teal);
+  box-shadow: inset 0 0 0 1.5px var(--teal);
+  font-weight: 700;
+}
+#style-dialog #preview-mode {
+  min-height: 28px;
+  padding: 2px 5px;
+  font-size: 0.82rem;
+}
+#node-style-launch {
+  min-height: 28px;
+  padding: 2px 7px;
+  font-size: 0.84rem;
+}
+#style-dialog #style-sample[data-preview='light'] {
+  background-color: #edf2f6;
+}
+#style-dialog #style-sample[data-preview='dark'] {
+  background-color: #16232f;
+}
+#style-dialog #style-sample[data-preview='light'] .node {
+  background: var(--fill-light, color-mix(in srgb, var(--surface) var(--tint, 14%), white));
+  border-color: var(--stripe);
+}
+#style-sample[data-preview='light'] .node[data-surface]:not([data-surface='']) {
+  --tint: 34%;
+}
+#style-dialog #style-sample[data-preview='dark'] .node {
+  background: var(--fill-dark, color-mix(in srgb, var(--surface) 34%, #16232f));
+  border-color: color-mix(in srgb, var(--stripe) 55%, white);
+}
+#style-dialog #style-sample[data-preview='light'] .node-title {
+  color: var(--ink-light, #152c3c);
+}
+#style-dialog #style-sample[data-preview='light'] .node-kicker {
+  color: var(--ink-light, #394b54);
+}
+#style-dialog #style-sample[data-preview='dark'] .node-title {
+  color: var(--ink-dark, #f7fbff);
+}
+#style-dialog #style-sample[data-preview='dark'] .node-kicker {
+  color: var(--ink-dark, #deebf5);
+}
+#style-sample[data-preview='dark'] .frame-name {
+  color: #deebf5;
+}
+#style-sample[data-preview='light'] .frame-name {
+  color: #284055;
+}
+html[data-theme='dark'] #nodes .node.fill-dark:not(.frame-node):not(.preview-container),
+html[data-theme='dark'] #nodes .node.fill-dark:not(.frame-node):not(.preview-container) .node-body:hover {
+  background: var(--fill-dark) !important;
+}
+html[data-theme='dark']
+  #nodes
+  .node.fill-dark:not(.frame-node):not(.preview-container)
+  :is(.node-title, .node-kicker) {
+  color: var(--ink-dark) !important;
+}
+html:not([data-theme='dark']) #nodes .node.fill-light:not(.frame-node):not(.preview-container),
+html:not([data-theme='dark'])
+  #nodes
+  .node.fill-light:not(.frame-node):not(.preview-container)
+  .node-body:hover {
+  background: var(--fill-light) !important;
+}
+html:not([data-theme='dark'])
+  #nodes
+  .node.fill-light:not(.frame-node):not(.preview-container)
+  :is(.node-title, .node-kicker) {
+  color: var(--ink-light) !important;
+}
+#style-dialog [hidden] {
+  display: none !important;
+}
+#style-sample .preview-container {
+  background: transparent !important;
+  border-style: dashed;
+}

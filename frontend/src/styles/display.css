@@ -1,0 +1,93 @@
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+:root[data-theme='dark'] :is(.live, .switch button.active) {
+  color: #a5d7c3;
+}
+.dialog {
+  background: var(--surface);
+  max-height: 90dvh;
+}
+.displayControls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.displayControls > button {
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.displayControls > button[aria-pressed='true'] {
+  color: #b8e2ce;
+  background: #274039;
+}
+.displayDialog p {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.displayDialog label > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.displayDialog output {
+  color: var(--muted);
+}
+.displayDialog input[type='range'] {
+  padding: 0;
+  accent-color: #398a71;
+}
+.displayDialog footer {
+  flex-wrap: wrap;
+}
+.mapOverlay > header > .displayControls {
+  margin-left: auto;
+}
+.top,
+.editorBar {
+  flex-wrap: wrap;
+}
+.search,
+.switch,
+.sort {
+  min-height: 2.25rem;
+  height: auto;
+}
+.cursorHalo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  border-radius: 50%;
+}
+@media (any-pointer: fine) {
+  html[data-large-cursor] body {
+    cursor: var(--large-cursor), auto;
+  }
+  html[data-large-cursor] :is(button, a, select, summary, input[type='range'], .react-flow__node) {
+    cursor: var(--large-pointer), pointer;
+  }
+  html[data-large-cursor] :is(input:not([type='range']), textarea) {
+    cursor: text;
+  }
+}
+@media (max-width: 760px) {
+  .displayControls > button span {
+    display: none;
+  }
+  .top .account {
+    max-width: 32%;
+  }
+  .editorTools {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .hero,
+  .toolbar {
+    flex-wrap: wrap;
+  }
+}

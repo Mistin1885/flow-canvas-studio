@@ -8,6 +8,12 @@ Flow Workspace is a self-hosted flowchart editor for a team of about five people
 - Build the backend with Python, FastAPI, and WebSocket connections. Enable write-ahead logging (WAL) in SQLite and store the database on the server's local disk.
 - Use `backend.main:app` for the public web/API entry point and `backend.database_api:app` for the private SQLite service. Keep the Dockerfile and Compose configuration in `deploy/docker/` and native setup and startup scripts in `deploy/native/`.
 
+## Frontend structure
+
+- Keep the React catalog, display preferences and collaboration session in their feature directories under `frontend/src/`. Keep WebSocket and draft recovery logic in the session hook.
+- Implement the canvas workbench in `frontend/workbench/`. Put interface markup in `markup/`, CSS in `styles/`, and JavaScript in the feature that owns the behavior. Use explicit module imports and keep the startup entry focused on wiring features together.
+- The hosted workbench loads separate assets. Its HTML download embeds those same assets for offline use. Test both entry points after changing initialization or export.
+
 ## Editing and Collaboration
 
 - Keep node IDs unique within each canvas. Both endpoints of an edge must belong to that canvas. When deleting a node, delete all connected edges in the same transaction.

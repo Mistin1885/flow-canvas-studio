@@ -25,7 +25,11 @@ The **web** container serves the built frontend, verifies the user's identity, a
 
 | Path | Responsibility |
 | --- | --- |
-| `frontend/` | React and TypeScript UI, flow editor, browser tests |
+| `frontend/src/catalog/` | Workspace and canvas catalog, creation, renaming and duplication |
+| `frontend/src/editor/`, `frontend/src/display/` | Canvas session, draft recovery, graph overview and personal display preferences |
+| `frontend/workbench/markup/`, `frontend/workbench/styles/` | Workbench interface fragments and feature stylesheets |
+| `frontend/workbench/` | JavaScript modules for graph validation, editing, layout, rendering, import and export |
+| `frontend/build/workbench.js` | Assembles the hosted workbench HTML, JavaScript and CSS during the Vite build |
 | `backend/main.py` | Public FastAPI entry point, authentication middleware and WebSockets |
 | `backend/database_api.py` | Private data API and transaction boundaries |
 | `backend/storage.py`, `backend/backup.py` | SQLite schema, graph persistence and online backup |
@@ -95,6 +99,8 @@ Requires Python 3.12 with uv or venv/pip, and Node.js 22.12+ or 24. Native mode 
 ```
 
 For Cloudflare mode, configure the repo-root `.env` and run `./deploy/native/start.sh`. To back up a native instance, run `.venv/bin/python -m backend.backup /path/to/new-backup.sqlite3` with the same `FLOW_DATA_DIR` as the server.
+
+To rebuild after frontend changes, run `npm run build` in `frontend/`. The server serves the result from `frontend/dist/`. The hosted editor loads separate JavaScript and CSS files. Downloading a canvas embeds its graph, runtime and stylesheet in one HTML file that can reopen and be edited offline.
 
 ## Verification
 

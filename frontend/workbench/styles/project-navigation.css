@@ -1,0 +1,138 @@
+.toolbar .search-wrap {
+  margin-left: auto;
+}
+#back-sheet {
+  margin-right: auto;
+}
+.toolbar {
+  position: relative;
+  z-index: 12;
+}
+.legend-picker {
+  position: relative;
+  order: 1;
+}
+.legend-picker summary {
+  list-style: none;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--paper);
+  color: var(--ink);
+}
+.legend-picker .legend {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 5px);
+  width: 215px;
+  max-height: 50dvh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 4px 20px #0002;
+  border-radius: 9px;
+  padding: 12px;
+  font-size: 13px;
+}
+.legend-picker .legend span {
+  color: var(--ink);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.legend-picker .dot {
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+}
+@media (max-width: 850px) {
+  #inspector:not(.open) {
+    pointer-events: none;
+  }
+}
+@media (max-width: 560px) {
+  .legend-picker summary {
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    padding: 5px 8px;
+  }
+  .toolbar {
+    gap: 5px;
+  }
+  #back-sheet {
+    font-size: 12px;
+  }
+  .toolbar .search-wrap {
+    min-width: 85px;
+    max-width: 100%;
+  }
+}
+:is(#nodes, #style-sample) .node.inline-step {
+  border-radius: 8px;
+}
+:is(#nodes, #style-sample) .node.frame-node > .node-body {
+  top: 3px;
+  bottom: auto;
+  left: 6px;
+}
+.flow-outline {
+  fill: none;
+  stroke: #8093a4;
+  stroke-width: 1.6;
+  stroke-dasharray: 6 5;
+  pointer-events: none;
+}
+html[data-theme='dark'] .flow-outline {
+  stroke: #8397ac;
+}
+.statusbar {
+  align-items: center;
+  gap: 8px 14px;
+  padding: 4px 12px;
+}
+.statusbar .canvas-controls {
+  position: static;
+  flex: 0 1 auto;
+  max-width: 100%;
+  box-shadow: none;
+}
+.flow-status {
+  display: flex;
+  flex: 1 1 170px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.flow-status #visible-count {
+  white-space: nowrap;
+}
+.flow-status #caption,
+.flow-status #connection-hint {
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flow-status #connection-hint {
+  color: var(--ink);
+}
+.flow-status #connection-hint:not([hidden]) ~ #caption {
+  display: none;
+}
+@media (max-width: 560px) {
+  .statusbar {
+    padding: 3px 8px;
+    gap: 1px;
+  }
+  .flow-status {
+    flex-basis: 100%;
+  }
+  .statusbar .canvas-controls {
+    margin: auto;
+  }
+}

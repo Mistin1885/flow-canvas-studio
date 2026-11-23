@@ -1,0 +1,48 @@
+import { embeddedPrefs } from '../display/preferences.js'
+
+const diagramState = {
+  depth: 1,
+  rack: '',
+  selected: null,
+  instances: [],
+  instanceMap: new Map(),
+  overrides: new Map(),
+  domNodes: new Map(),
+  copied: new Set(),
+  cm: 0,
+  scale: 0.86,
+  tx: 44,
+  ty: 48,
+  totalW: 800,
+  totalH: 1000,
+  revision: 0,
+  lastDetailKey: null,
+  panelWidth: null,
+  theme: embeddedPrefs.theme === 'dark' ? 'dark' : 'light',
+  navCollapsed: false,
+  diagramFrame: 0,
+  diagramRevision: 0,
+  displayPositions: new Map(),
+  edgeViews: [],
+  hoverTrace: null,
+  focusTrace: null,
+  traceWithKeyboard: true,
+  extraRoot: null,
+  resumeAfterSSH: null,
+  debugDirty: false,
+  joins: new Map(),
+  graphLinks: [],
+  linkKeys: new Set(),
+  stableKeys: new Map(),
+  contextSensitive: new Set(),
+  equivalentNodes: new Map(),
+  W: 280,
+  H: 120,
+  readingScale: 1,
+  frame: 0,
+  toastTimer: 0,
+}
+
+const DX = 334
+
+export { DX, diagramState }

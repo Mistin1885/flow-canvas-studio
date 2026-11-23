@@ -1,0 +1,141 @@
+:root {
+  color-scheme: light;
+  font-size: calc(100% * var(--reading-scale, 1));
+  font-family: Inter, 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  color: light-dark(#202b37, #e4ebf0);
+  background: light-dark(#f7f8fa, #151d24);
+  font-synthesis: none;
+  --surface: light-dark(white, #202a31);
+  --ink: light-dark(#253143, #e4ecf1);
+  --muted: light-dark(#647184, #a9b8c4);
+  --line: light-dark(#dce2e7, #3c4a54);
+  --green: #1c6655;
+  --soft: light-dark(#e8f2ed, #253b34);
+}
+* {
+  box-sizing: border-box;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+}
+button:hover {
+  background: light-dark(#f1f5f3, #2b3b3b);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #53a496;
+  outline-offset: 2px;
+}
+button.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+  font-weight: 600;
+  padding: 10px 16px;
+}
+button.primary:hover {
+  background: #174c41;
+}
+.icon {
+  border: 0;
+  background: transparent;
+  padding: 7px;
+  color: var(--muted);
+}
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 222px minmax(0, 1fr);
+  grid-template-rows: minmax(65px, auto) 1fr;
+}
+.top {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  gap: 23px;
+  padding: 0 26px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+}
+.brand strong {
+  font-weight: 470;
+  color: light-dark(#5c6a74, #b8c5cd);
+}
+.brandMark {
+  background: #1c5147;
+  color: white;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  margin-right: 5px;
+}
+.topRule {
+  height: 21px;
+  border-left: 1px solid var(--line);
+}
+.topSection,
+.account,
+.live,
+.breadcrumb,
+.cardTitle p,
+.toolbar,
+.sort,
+.search,
+.switch,
+.dialog header,
+.dialog footer,
+.editorBar,
+.editorTools,
+.mapOverlay header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topSection,
+.account {
+  font-size: 0.8125rem;
+  color: light-dark(#556371, #b8c5cd);
+}
+.top > .displayControls {
+  margin-left: auto;
+}
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: light-dark(#e9eeec, #304039);
+  color: light-dark(#2f6455, #acd9c5);
+  font-weight: 700;
+}

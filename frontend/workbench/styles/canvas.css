@@ -1,0 +1,209 @@
+.canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-image: radial-gradient(#c4d2de 1px, transparent 1px);
+  background-size: 20px 20px;
+  touch-action: none;
+  cursor: grab;
+}
+.canvas.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.world svg.wires {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+.wire {
+  fill: none;
+  stroke: #a2b2c2;
+  stroke-width: 1.4;
+}
+.wire.branch {
+  stroke: #c5b58c;
+}
+.wire.shared {
+  stroke: #8ebeb6;
+}
+.wire.active {
+  stroke: #2a7e95;
+  stroke-width: 2.2;
+}
+.edge-label {
+  font: calc(10px * var(--reading-scale, 1)) var(--ui);
+  fill: #687989;
+  paint-order: stroke;
+  stroke: var(--canvas);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.node {
+  position: absolute;
+  width: 240px;
+  height: 84px;
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #c9d7e2;
+  border-radius: 9px;
+  box-shadow: 0 3px 8px #26415b06;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.75, 0.2, 1),
+    opacity 180ms;
+  will-change: transform;
+}
+.node.main {
+  border-left: 4px solid var(--blue);
+}
+.node.fault {
+  border-left: 3px solid #c58e31;
+}
+.node.shared {
+  border-left: 3px solid var(--teal);
+}
+.node.selected {
+  border-color: #386b98;
+  box-shadow:
+    0 0 0 3px #376c9c16,
+    0 6px 16px #223c5c12;
+}
+.node.active-path {
+  background: #f6fbff;
+}
+.node.enter {
+  opacity: 0;
+}
+.node-body {
+  flex: 1;
+  min-width: 0;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 12px 11px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 7px;
+  line-height: 1.3;
+}
+.node-kicker {
+  font-size: calc(10px * var(--reading-scale, 1));
+  color: #738391;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.node-kicker .mini-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.node-title {
+  font-size: calc(13px * var(--reading-scale, 1));
+  font-weight: 650;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.node.shared .node-kicker {
+  color: var(--teal);
+}
+.node.fault .node-kicker {
+  color: #966518;
+}
+.toggle {
+  border: 0 !important;
+  border-left: 1px solid #e6ebef !important;
+  border-radius: 0 8px 8px 0;
+  width: 37px;
+  min-width: 37px;
+  padding: 6px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+}
+.toggle .symbol {
+  font: calc(20px * var(--reading-scale, 1))/1 var(--ui);
+  font-weight: 300;
+}
+.toggle small {
+  font: calc(9px * var(--reading-scale, 1)) var(--mono);
+  color: var(--muted);
+}
+.node .node-body:hover .node-title {
+  color: #246ca5;
+}
+.diagram-caption {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  pointer-events: none;
+  color: var(--muted);
+  font-size: calc(11px * var(--reading-scale, 1));
+  background: #edf2f6df;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.canvas-controls {
+  position: absolute;
+  bottom: 22px;
+  left: 20px;
+  display: flex;
+  gap: 1px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 3px 12px #263e5510;
+  border-radius: 8px;
+  padding: 3px;
+  z-index: 3;
+}
+.canvas-controls button {
+  border: 0;
+  border-radius: 5px;
+  padding: 6px 10px;
+  min-width: 34px;
+  font-size: calc(12px * var(--reading-scale, 1));
+}
+.canvas-controls .zoom {
+  font: calc(11px * var(--reading-scale, 1)) var(--mono);
+  min-width: 56px;
+}
+.canvas-hint {
+  position: absolute;
+  right: 16px;
+  bottom: 27px;
+  font-size: calc(10px * var(--reading-scale, 1));
+  color: var(--muted);
+  background: #edf2f6d9;
+  padding: 5px;
+}
+.statusbar {
+  height: 29px;
+  border-top: 1px solid var(--line);
+  background: #f8fafc;
+  padding: 4px 18px;
+  color: var(--muted);
+  font-size: calc(10px * var(--reading-scale, 1));
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}

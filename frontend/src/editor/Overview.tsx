@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { ReactFlow, Controls, Background, Position, type Node } from '@xyflow/react'
 import ELK from 'elkjs/lib/elk.bundled.js'
 import '@xyflow/react/dist/style.css'
-import { edgeKey, errorText, type Graph } from './api'
+import { edgeKey, errorText, type Graph } from '../api'
 
-import { readingScales, type DisplayPrefs } from './DisplayPreferences'
+import { readingScales, type DisplayPrefs } from '../display/preferences'
 export default function Overview({
   graph,
   locate,

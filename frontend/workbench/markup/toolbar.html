@@ -1,0 +1,75 @@
+<a class="skip" href="#canvas">跳至流程圖</a>
+<header class="workspace-header project-header">
+  <div class="project-heading">
+    <button id="mobile-nav" aria-controls="navigation" aria-expanded="false">導覽</button>
+    <div class="project-identity">
+      <span class="project-mark" aria-hidden="true">FS</span>
+      <div>
+        <h1>流程畫布</h1>
+        <span id="project-summary"></span>
+      </div>
+    </div>
+    <div class="project-actions">
+      <span id="workspace-save-state" role="status">流程已載入</span>
+      <button
+        type="button"
+        class="theme-toggle"
+        id="theme-toggle"
+        aria-label="切換深色模式"
+        aria-pressed="false"
+      >
+        <span aria-hidden="true" id="theme-icon">☾</span>
+        <span id="theme-label">深色模式</span>
+      </button>
+      <button id="workspace-save" type="button" aria-label="下載 HTML" title="下載 HTML">
+        <span aria-hidden="true">↓</span>
+        <span class="utility-label">下載 HTML</span>
+      </button>
+      <details id="tools-menu">
+        <summary>工具</summary>
+        <div class="tool-list">
+          <button id="style-launch" type="button" aria-haspopup="dialog">畫布樣式</button>
+          <button id="source-review" type="button">來源與待確認</button>
+          <button id="display-settings" type="button" aria-haspopup="dialog">閱讀與游標</button>
+          <button id="debug-export" type="button">匯出 JSON</button>
+          <button id="debug-import" type="button">匯入 JSON</button>
+          <button id="debug-help" type="button" aria-label="流程編輯說明">編輯說明</button>
+          <input id="debug-file" type="file" accept=".json,application/json" hidden />
+        </div>
+      </details>
+    </div>
+  </div>
+  <div class="canvas-bar" role="group" aria-label="畫布工具">
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 4 4" />
+        </svg>
+        <input
+          id="search"
+          name="search"
+          type="search"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="搜尋節點或內容"
+          placeholder="搜尋節點或內容…"
+          aria-controls="search-results"
+          aria-expanded="false"
+        />
+      </div>
+      <div class="search-results" id="search-results" hidden></div>
+    </div>
+    <button id="legend-toggle" type="button" aria-controls="legend-panel" aria-expanded="false">
+      分類圖例
+    </button>
+    <button id="group-toggle" type="button" aria-expanded="false" aria-controls="group-panel">
+      排版群組
+    </button>
+    <button class="mobile-detail" id="show-detail" aria-label="顯示或收合節點詳情">詳情</button>
+    <div class="node-actions">
+      <button id="edit-node" aria-label="編輯節點" type="button">編輯節點</button>
+      <button id="create-node" aria-label="新增節點" type="button">新增節點</button>
+    </div>
+  </div>
+</header>

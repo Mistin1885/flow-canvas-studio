@@ -1,0 +1,42 @@
+<dialog id="graph-help" aria-labelledby="graph-help-title">
+  <header class="editor-head">
+    <h2 id="graph-help-title">編輯與保存流程</h2>
+    <button id="help-close" type="button" aria-label="關閉編輯說明">✕</button>
+  </header>
+  <div class="editor-scroll help-copy">
+    <p>
+      <strong>瀏覽：</strong>
+      左側提供圖面定位與子流程；搜尋涵蓋節點名稱、原文內容與來源
+      ID。專案步驟預設全開，點節點查看完整內容。
+    </p>
+    <p>
+      <strong>編輯：</strong>
+      按「新增節點」可先建立獨立節點，再從編輯器加入前序與後續連線。節點角色可直接選擇，分類可複選，也可新增名稱與顏色。
+    </p>
+    <p>
+      <strong>來源：</strong>
+      箭頭對照工作表的連接線；外框可作為端點，框內步驟可獨立查閱。來源清單保留人工核對紀錄。
+    </p>
+    <p>
+      <strong>子流程：</strong>
+      子流程可由父節點的 ＋ 就地展開；多組可同時展開。左側捷徑可定位到第一步；內嵌來源圖片可離線查看。
+    </p>
+    <p>
+      <strong>保存：</strong>
+      團隊網站會同步已套用的變更。下載的 HTML 可獨立離線編輯，離線變更須重新下載保存。
+    </p>
+    <p>
+      <strong>匯入：</strong>
+      支援原始 dfx-flow-extraction/0.1 草稿，以及本版匯出的 dfx-project-flow
+      JSON。套用前可預覽節點差異，之後可復原上次匯入。
+    </p>
+    <details>
+      <summary>JSON 規則</summary>
+      <p>
+        nodes 保留穩定 ID；edges 決定實際連線。drawingBox 與 drawingRoute 記錄原圖位置和線路。navigation
+        是側邊捷徑。subflows 記錄父節點與子流程的對應；sourceData 保存原始擷取資料；review
+        保存待確認連線及人工確認紀錄。
+      </p>
+    </details>
+  </div>
+</dialog>
