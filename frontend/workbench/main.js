@@ -1,3 +1,6 @@
+import { bindFormDrafts } from './editing/formDrafts.js'
+import { bindFields } from './modeling/fieldDialog.js'
+import { bindLanes } from './modeling/lanes.js'
 import './styles/index.css'
 import { bindSearch } from './ui/search.js'
 import { bindViewport } from './diagram/viewport.js'
@@ -11,12 +14,15 @@ import { exposeStudioApi } from './integration/studio.js'
 import { bindDisplayControls } from './display/controls.js'
 import { openWorkbench } from './bootstrap.js'
 
+bindFields()
+bindLanes()
 bindSearch()
 bindViewport()
 bindWorkspaceControls()
 bindExports()
 bindImportDialog()
 bindNodeForm()
+bindFormDrafts()
 bindNodeActions()
 bindSourceReview()
 openWorkbench()

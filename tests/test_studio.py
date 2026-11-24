@@ -111,14 +111,23 @@ class Studio(unittest.TestCase):
                 db.executescript(storage.SCHEMA)
             with storage.session(True) as db:
                 workspace = db.execute("SELECT id FROM workspaces").fetchone()[0]
-                canvas = storage.create_canvas(db, workspace, "Existing canvas", "Editor")
-                storage.commit(db, canvas, 1, [operation("nodes", "A", None, node("A"))], "Editor")
+                # Seed a real v1 database before running the current migrations.
+                canvas = "legacy-canvas"
+                db.execute("INSERT INTO canvases VALUES(?,?,?,?,?,?)",
+                           (canvas, workspace, "Existing canvas", 2, storage.now(), "Editor"))
+                for key, value in {"schemaVersion": 1, "documentType": "dfx-project-flow",
+                                   "title": "Existing canvas", "navigation": [], "subflows": []}.items():
+                    storage.put(db, canvas, "meta", key, value, 1)
+                storage.put(db, canvas, "nodes", "A", node("A"), 2)
             storage.initialize()
             storage.initialize()
             with storage.session() as db:
                 self.assertEqual(storage.snapshot(db, canvas)["graph"]["nodes"], {"A": node("A")})
                 self.assertEqual(db.execute("SELECT count(*) FROM import_history").fetchone()[0], 0)
-                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 3)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 4)
+            with storage.session(True) as db:
+                storage.commit(db, canvas, 2, [operation("nodes", "B", None, node("B"))], "Editor")
+                self.assertEqual(db.execute("SELECT rev FROM canvas_activity").fetchone()[0], 3)
 
     def test_import_precondition_recovery_and_atomicity(self):
         self.change(1, *(operation("nodes", i, None, node(i)) for i in "AB"))

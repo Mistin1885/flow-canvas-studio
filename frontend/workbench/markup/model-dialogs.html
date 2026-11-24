@@ -1,0 +1,13 @@
+<dialog id="field-dialog" aria-labelledby="field-heading">
+  <header class="editor-head"><h2 id="field-heading">畫布自訂欄位</h2><button id="fields-close" type="button">關閉</button></header>
+  <form id="field-form" class="editor-scroll">
+    <div id="field-list"></div>
+    <label>欄位名稱<input id="field-name" required maxlength="80"></label>
+    <label>資料類型<select id="field-type"><option value="text">文字</option><option value="number">數字</option><option value="select">選項</option></select></label>
+    <label>單位<input id="field-unit" maxlength="40"></label>
+    <label>選項（每行一項）<textarea id="field-options" rows="3"></textarea></label>
+    <p id="field-error" role="alert"></p><button type="submit">新增欄位</button>
+  </form>
+</dialog>
+<dialog id="lanes-dialog" aria-labelledby="lanes-title"><header class="editor-head"><h2 id="lanes-title">角色泳道</h2><button id="lanes-close" type="button">關閉</button></header><div class="lane-scroll"><div id="lane-board"></div></div></dialog>
+<dialog id="draft-list" aria-labelledby="draft-list-title"><header class="editor-head"><h2 id="draft-list-title">未發佈的表單草稿</h2><button id="draft-list-close">關閉</button></header><div id="saved-forms" class="editor-scroll"></div></dialog>

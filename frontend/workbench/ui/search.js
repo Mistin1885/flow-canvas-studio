@@ -1,3 +1,4 @@
+import { properties, rules } from '../modeling/fields.js'
 import { $, el } from './dom.js'
 import { graphModel, groupNames } from '../graph/model.js'
 import { go } from '../diagram/navigation.js'
@@ -10,33 +11,28 @@ function bindSearch() {
     list.hidden = !q
     $('search').setAttribute('aria-expanded', String(!!q))
     if (!q) return
-    const matches = Object.values(graphModel.nodes)
-      .filter((n) =>
-        (
-          n.title +
-          ' ' +
-          n.description +
-          ' ' +
-          n.group +
-          ' ' +
-          n.id +
-          ' ' +
-          (n.content || []).map((c) => c.value).join(' ')
-        )
-          .toLowerCase()
-          .includes(q),
-      )
-      .slice(0, 18)
-    if (!matches.length) list.append(el('p', 'search-empty', '找不到節點，試試 Layout、RFP 或 DFx。'))
-    for (const n of matches) {
-      const b = el('button', '', n.title)
-      b.append(el('small', '', groupNames[n.group] || n.group))
+    let count = 0
+    for (const n of Object.values(graphModel.nodes)) {
+      const fields = [
+        ['名稱',n.title],['ID',n.id],['說明',n.description],['群組',n.group],
+        ['預期結果',n.expect],['備註',n.note],['位置',n.where],['角色',n.ownerRole],
+        ['規則',rules[n.gatewayRule]],['分類',(n.tags || []).join(' ')],
+        ...(n.content || []).flatMap(c => [['標籤',c.label],['內容',c.value]]),
+        ...properties(n),
+      ]
+      const hit = fields.find(([label,value]) => value != null && (label+' '+value).toLowerCase().includes(q))
+      if (!hit) continue
+      count++
+      const b = el('button','',n.title)
+      const value = String(hit[1]), pos = Math.max(0,value.toLowerCase().indexOf(q)-25)
+      b.append(el('small','search-match',hit[0]+' · '+(pos?'…':'')+value.slice(pos,pos+100)))
       b.addEventListener('click', () => {
         go(n.id)
         $('search').value = ''
       })
       list.append(b)
     }
+    if (!count) list.append(el('p', 'search-empty', '找不到符合的節點或內容。'))
   })
   $('search').addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') {

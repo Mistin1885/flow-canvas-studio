@@ -1,3 +1,4 @@
+import { templates, templateGraph } from './templates'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { X } from 'lucide-react'
 import { api, errorText, type Workspace, type Canvas } from '../api'
@@ -30,6 +31,7 @@ export function CatalogDialog({
         ? modal.item?.name || ''
         : '',
   )
+  const [template, setTemplate] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [target, setTarget] = useState(workspaceId)
   const [formError, setFormError] = useState('')
@@ -57,7 +59,7 @@ export function CatalogDialog({
       } else {
         const result = await api<Canvas>('workspaces/' + target + '/canvases', 'POST', {
           name: clean,
-          graph: modal.action === 'import' && file ? unpackDocument(await readFile(file)).graph : undefined,
+          graph: modal.action === 'import' && file ? unpackDocument(await readFile(file)).graph : templateGraph(template, clean),
           source: modal.action === 'copy' ? modal.item?.id : undefined,
         })
         navigate = ['canvas', result.id]
@@ -101,6 +103,9 @@ export function CatalogDialog({
             <X size={18} />
           </button>
         </header>
+        {modal.action === 'canvas' && <label>起始範本<select value={template} onChange={e=>setTemplate(e.target.value)}>
+          <option value="">空白畫布</option>{templates.map((t,i)=><option key={t.name} value={String(i)}>{t.name}</option>)}
+        </select></label>}
         {modal.action === 'import' && (
           <label>
             流程 JSON

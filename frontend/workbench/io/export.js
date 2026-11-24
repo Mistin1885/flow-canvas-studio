@@ -19,7 +19,7 @@ function snapshotWorkspace() {
 }
 
 function saveWorkspaceHtml() {
-  downloadFile(snapshotWorkspace(), 'dfx-project-workbench.html', 'text/html;charset=utf-8')
+  downloadFile(snapshotWorkspace(), 'flow-canvas.html', 'text/html;charset=utf-8')
   diagramState.debugDirty = false
   $('workspace-save-state').textContent = '已下載目前流程'
   say('已下載流程、來源資料與顯示設定')
@@ -33,7 +33,7 @@ function bindExports() {
       const event = new CustomEvent('studio-export', { cancelable: true })
       if (!window.dispatchEvent(event)) return
     }
-    downloadFile(safeData(exportGraph()), 'dfx-project-flow.json', 'application/json;charset=utf-8')
+    downloadFile(safeData(exportGraph()), 'flow-canvas.json', 'application/json;charset=utf-8')
     say('已匯出節點詳情與完整流程連線')
   }
   $('debug-help').onclick = () => $('graph-help').showModal()

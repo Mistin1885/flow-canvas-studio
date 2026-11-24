@@ -1,3 +1,4 @@
+import { configureDrafts } from '../editing/formDrafts.js'
 import { editState } from '../editing/state.js'
 import { cleanDisplayPrefs, displayState, studioFrame } from '../display/preferences.js'
 import { diagramState } from '../diagram/state.js'
@@ -10,11 +11,13 @@ import { $ } from '../ui/dom.js'
 import { graphModel } from '../graph/model.js'
 import { validateGraph } from '../graph/validate.js'
 import { exportGraph } from '../io/graph.js'
-import { go } from '../diagram/navigation.js'
+import { go, setCanvasTitle } from '../diagram/navigation.js'
 
 function exposeStudioApi() {
   // Expose immutable data and a small inspection surface for local verification.
   window.T1Playbook = {
+    configureDrafts,
+    setCanvasTitle,
     setDisplayPreferences(value) {
       if (!studioFrame) return
       displayState.prefs = cleanDisplayPrefs(value)

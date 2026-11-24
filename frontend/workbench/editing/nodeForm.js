@@ -1,3 +1,5 @@
+import { draftOpened } from './formDrafts.js'
+import { showNodeFields } from '../modeling/fields.js'
 import { legendState } from '../categories/model.js'
 import { selectionState, editState } from './state.js'
 import { cloneGraph } from '../graph/json.js'
@@ -61,7 +63,7 @@ function appendContentBlock(block) {
   row.append(value.wrap)
   if (block.type === 'code') {
     const details = el('details')
-    details.append(el('summary', '', '進階：測項選項'))
+    details.append(el('summary', '', '進階選項'))
     const options = editorField(
         'textarea',
         '選項（每行一項，留空代表無選單）',
@@ -91,7 +93,7 @@ function appendEditorEdge(edge) {
     kind = el('select', 'edge-kind')
   for (const [value, label] of [
     ['next', '下一步'],
-    ['return', '返回／復測'],
+    ['return', '返回'],
     ['retry', '重試'],
   ]) {
     const o = el('option', '', label)
@@ -109,7 +111,7 @@ function appendEditorEdge(edge) {
   const extras = el('div', 'edge-extra'),
     fallback = editorField(
       'input',
-      '獨立開啟時的復測目標 ID（逗號分隔）',
+      '獨立開啟時的返回目標 ID（逗號分隔）',
       (edge.fallback || []).join(', '),
       'edge-fallback',
     )
@@ -130,6 +132,23 @@ function appendEditorEdge(edge) {
     row.append(info)
   }
   $('edge-editor').append(row)
+}
+
+function appendIncoming(id = '', condition = '') {
+  const row = el('div', 'edit-row'),
+    select = el('select'),
+    label = el('input'),
+    remove = el('button', '', '移除')
+  select.setAttribute('aria-label', '前序節點')
+  label.placeholder = '連線條件（選填）'
+  label.ariaLabel = '前序連線條件'
+  label.maxLength = 200
+  remove.type = 'button'
+  remove.onclick = () => row.remove()
+  label.className = 'incoming-condition'
+  label.value = condition
+  row.append(attachSearch(select, id, '前序節點'), label, remove)
+  $('added-incoming').append(row)
 }
 
 function populateEditor(id, add = false) {
@@ -176,10 +195,12 @@ function populateEditor(id, add = false) {
   $('edge-editor').replaceChildren()
   if (!add) (outgoing.get(id) || []).filter((e) => e.kind !== 'spine').forEach(appendEditorEdge)
   setupGroups(n)
+  showNodeFields(n)
   $('delete-node').hidden = add
   $('editor-main-note').textContent = ''
   $('editor-error').textContent = ''
   $('new-node').hidden = add
+  draftOpened()
 }
 
 function checkNodeId() {
@@ -240,24 +261,7 @@ function bindNodeForm() {
     input.value = ''
     msg.textContent = ''
   }
-  $('add-incoming').onclick = () => {
-    const row = el('div', 'edit-row'),
-      select = el('select'),
-      label = el('input'),
-      remove = el('button', '', '移除')
-    select.required = true
-    select.setAttribute('aria-label', '前序節點')
-    select.prepend(new Option('選擇前序節點', '', true, true))
-    select.value = ''
-    label.placeholder = '連線條件（選填）'
-    label.ariaLabel = '前序連線條件'
-    label.maxLength = 200
-    remove.type = 'button'
-    remove.onclick = () => row.remove()
-    label.className = 'incoming-condition'
-    row.append(attachSearch(select, '', '前序節點'), label, remove)
-    $('added-incoming').append(row)
-  }
+  $('add-incoming').onclick = () => appendIncoming()
   $('edit-node').onclick = openNodeEditor
   $('editor-close').onclick = () => $('node-editor').close()
   $('add-text-block').onclick = () => appendContentBlock({ type: 'text', value: '' })
@@ -273,4 +277,4 @@ function bindNodeForm() {
     })
 }
 
-export { bindNodeForm, nodeForm, populateEditor }
+export { bindNodeForm, nodeForm, populateEditor, appendContentBlock, appendEditorEdge, appendIncoming }

@@ -145,6 +145,7 @@ def restore(db, point, editor, expected=None):
         db.execute("UPDATE workspaces SET name=?,updated=? WHERE id=?", (name, stamp, key))
     else:
         graph = payload["graph"]
+        before_nodes = store.snapshot(db, key)["graph"]["nodes"]
         store.check_graph(graph)
         rev += 1
         for table in ("edges", "nodes", "meta"):
@@ -157,6 +158,7 @@ def restore(db, point, editor, expected=None):
             if field not in ("edges", "nodes"):
                 store.put(db, key, "meta", field, value, rev)
         db.execute("UPDATE canvases SET name=?,updated=?,rev=?,editor=? WHERE id=?", (name, stamp, rev, editor, key))
+        store.activity.record(db, key, rev, stamp, editor, "restored", store.activity.node_changes(before_nodes, graph["nodes"]))
     db.execute("UPDATE recovery_points SET cold=1,expires=? WHERE kind=? AND item=? AND cold=0 AND id>?",
                (expiry, kind, key, point))
     mark_head(db, kind, key, stamp, rev, point)

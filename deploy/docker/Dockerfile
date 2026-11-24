@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY backend/__init__.py backend/
 
 FROM runtime AS database
-COPY backend/database_api.py backend/storage.py backend/backup.py backend/snapshot_schema.py backend/snapshots.py backend/snapshot_schedule.py backend/admin_api.py backend/recovery.py backend/
+COPY backend/database_api.py backend/storage.py backend/activity.py backend/backup.py backend/snapshot_schema.py backend/snapshots.py backend/snapshot_schedule.py backend/admin_api.py backend/recovery.py backend/
 ENV FLOW_DATA_DIR=/data
 USER 1000:1000
 CMD ["uvicorn", "backend.database_api:app", "--uds", "/run/flow-canvas/database.sock", "--workers", "1", "--no-proxy-headers"]

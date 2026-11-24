@@ -1,3 +1,4 @@
+import { rules } from '../modeling/fields.js'
 import { editState } from '../editing/state.js'
 import { effectiveStyle } from '../appearance/schema.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
@@ -90,7 +91,7 @@ export function renderCards(oldPositions, pathSet) {
     dom.style.width = (i.w || diagramState.W) + 'px'
     dom.style.height = (i.h || diagramState.H) + 'px'
     dom.querySelector('.node-kicker').textContent =
-      (type === 'decision' ? '◇ 決策 · ' : '') + tags.join(' · ')
+      [rules[n.gatewayRule], type === 'decision' ? '◇ 決策' : '', n.ownerRole, ...tags].filter(Boolean).join(' · ')
     dom.querySelector('.node-title').textContent =
       (n.jumpTo ? '↗ ' : type === 'return' ? '↩ ' : '') + n.title
     dom

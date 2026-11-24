@@ -1,3 +1,4 @@
+import { properties, rules } from '../modeling/fields.js'
 import { groupStyle } from '../appearance/schema.js'
 import { categoryTags } from '../categories/model.js'
 
@@ -180,6 +181,9 @@ function renderDetail() {
   }
   const layout = el('p', 'source-meta', '排版群組 · ' + n.group)
   frag.append(layout)
+  for (const [label, value] of [['負責角色', n.ownerRole], ['規則', rules[n.gatewayRule]], ...properties(n)]) {
+    if (value) frag.append(el('p','detail-property', label + ' · ' + value))
+  }
   const meta = el('div', 'detail-meta')
   for (const t of categoryTags(n)) meta.append(el('span', 'meta-chip', t))
   if (n.where && !/^來源 S\d+$/.test(n.where) && !tagList(n).includes(n.where))

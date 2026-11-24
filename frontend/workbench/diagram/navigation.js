@@ -131,8 +131,24 @@ function go(id, center = false) {
   $('search').setAttribute('aria-expanded', 'false')
 }
 
+function syncCanvasTitle() {
+  const workspace = $('debug-workspace')
+  const title = workspace.dataset.canvasName || graphModel.document.title || '流程畫布'
+  document.querySelector('.project-identity h1').textContent = title
+  document.title = title
+  workspace.setAttribute('aria-label', title)
+}
+
+function setCanvasTitle(name) {
+  $('debug-workspace').dataset.canvasName = name
+  syncCanvasTitle()
+}
+
 function rebuildGraphNavigation() {
-  document.querySelector('.project-identity h1').textContent = graphModel.document.title || '流程畫布'
+  syncCanvasTitle()
+  const hasSource = !!(graphModel.document.sourceData || graphModel.document.review?.length)
+  $('source-review').hidden = !hasSource
+  $('source-note').hidden = !hasSource
   renderLegend()
   renderGroupPanel()
   $('stage-nav').replaceChildren()
@@ -174,6 +190,7 @@ export {
   rebuildGraphNavigation,
   scrollState,
   select,
+  setCanvasTitle,
   setHash,
   showStart,
   transform,

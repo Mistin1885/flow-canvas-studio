@@ -21,7 +21,7 @@ function readGraph(value) {
   if (['constructor', 'prototype', '__proto__'].some((key) => Object.hasOwn(value, key)))
     bad('JSON', '含有保留的欄位名稱')
   if (value.schemaVersion !== 1 || value.documentType !== 'dfx-project-flow')
-    bad('格式', '請選擇 DFx 工作台匯出的 JSON')
+    bad('格式', '請選擇流程畫布匯出的 JSON')
   obj(value.nodes, 'nodes')
   const ids = Object.keys(value.nodes),
     has = (id) => Object.hasOwn(value.nodes, id)

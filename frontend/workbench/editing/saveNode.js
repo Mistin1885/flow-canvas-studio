@@ -1,3 +1,5 @@
+import { draftApplied } from './formDrafts.js'
+import { readNodeFields } from '../modeling/fields.js'
 import { editState } from './state.js'
 import { categoryTags, legendState, originalNames, unmappedTag } from '../categories/model.js'
 import { effectiveType } from '../graph/nodeTypes.js'
@@ -20,6 +22,7 @@ function applyEditor() {
     n = nodeForm.adding ? { id } : graph.nodes[id]
   for (const key of ['group', 'title', 'description', 'where', 'expect', 'note'])
     n[key] = $('node-' + key).value.trim()
+  readNodeFields(n)
   const categories = [...$('legend-fields').querySelectorAll('input:checked')].map((input) => input.value)
   if (n.sourceKind === 'subflow' && !nodeForm.adding) n.sheetId = sheetFor(id)
   const oldDirections = new Map((graph.layoutGroups || []).map((g) => [g.name, g.direction]))
@@ -136,6 +139,7 @@ function applyEditor() {
     }
   }
   replaceGraph(graph)
+  draftApplied()
   go(id)
   return id
 }

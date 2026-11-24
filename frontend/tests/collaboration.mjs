@@ -10,6 +10,7 @@ import { chromium, expect } from '@playwright/test'
 
 import { verifyAdminBackups } from './admin-backups.mjs'
 import { verifyImport } from './import-review.mjs'
+import { verifyDraftReview } from './draft-review.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const data = await mkdtemp(join(tmpdir(), 'flow-canvas-e2e-'))
@@ -83,6 +84,7 @@ try {
   await page.getByRole('button', { name: '套用變更' }).click()
   await expect(page.locator('.node-title').first()).toHaveText('離線編輯')
   await offline.close()
+  await verifyDraftReview(alice, bob)
   await verifyImport(alice, bob, origin)
   await verifyAdminBackups(alice, bob, origin, root, data)
   console.log('Standalone HTML reopened and edited offline.')

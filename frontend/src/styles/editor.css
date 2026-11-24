@@ -62,3 +62,7 @@
 .mapOverlay p {
   padding: 20px;
 }
+.activityDialog section {border-top:1px solid #8593a459;padding:10px 0}
+.activityDialog ul {padding-inline-start:1.3rem}
+.activityDialog time {font-size:.85em}
+.importDialog pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:12rem;overflow:auto}

@@ -9,6 +9,7 @@ import re
 import sqlite3
 from uuid import uuid4
 
+from . import activity
 from .snapshot_schema import MIGRATION
 
 
@@ -102,7 +103,7 @@ def initialize():
                 PRIMARY KEY(canvas,revision)
             );
             PRAGMA user_version=2;
-        """, MIGRATION)
+        """, MIGRATION, activity.MIGRATION)
         if version > len(migrations):
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
         # Keep the version check and schema changes in one write transaction.
@@ -250,10 +251,13 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None):
             put(db, canvas, "nodes", key, value, 1)
         for value in graph["edges"]:
             put(db, canvas, "edges", edge_key(value), value, 1)
+    activity.record(db, canvas, 1, now(), editor, "created")
     return canvas
 
 
-def commit(db, canvas, base, ops, editor):
+def commit(db, canvas, base, ops, editor, kind="edited"):
+    before = {}
+    after = {}
     current = required(db, "canvases", canvas)["rev"]
     stamp = current + 1
     visited = set()
@@ -267,6 +271,11 @@ def commit(db, canvas, base, ops, editor):
         result = db.execute(
             f"SELECT version,value FROM {table} WHERE canvas=? AND key=?", (canvas, key)
         ).fetchone()
+        if table == "nodes":
+            if result:
+                before[key] = json.loads(result[1])
+            if not op["remove"]:
+                after[key] = op["value"]
         if (result[0] if result else None) != op["version"]:
             if table == "meta" and result and not op["remove"] and json.loads(result[1]) == op["value"]:
                 continue
@@ -294,5 +303,11 @@ def commit(db, canvas, base, ops, editor):
             else:
                 put(db, canvas, table, op["key"], op["value"], stamp)
     check_graph(snapshot(db, canvas)["graph"])
-    db.execute("UPDATE canvases SET rev=?,updated=?,editor=? WHERE id=?", (stamp, now(), editor, canvas))
+    updated = now()
+    items = activity.node_changes(before, after)
+    for table, label in (("edges", "connections"), ("meta", "settings")):
+        if any(op["table"] == table for op in ops):
+            items.append({"action": label})
+    activity.record(db, canvas, stamp, updated, editor, kind, items)
+    db.execute("UPDATE canvases SET rev=?,updated=?,editor=? WHERE id=?", (stamp, updated, editor, canvas))
     return stamp

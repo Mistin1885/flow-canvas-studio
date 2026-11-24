@@ -196,7 +196,7 @@ function renderSourceReview() {
   } else {
     const info = el('div', 'source-info')
     info.append(
-      el('p', '', graphModel.document.title || 'DFx Project Flow'),
+      el('p', '', graphModel.document.title || '流程畫布'),
       el(
         'p',
         '',
@@ -222,7 +222,7 @@ function renderSourceReview() {
       el(
         'p',
         '',
-        '三組測試子流程以詳情按鈕連結到父節點，這是導覽關係，不代表額外新增的原圖箭頭。側邊分類參考原圖圖例。',
+        '子流程以詳情按鈕連結到父節點，這是導覽關係，不代表額外新增的原圖箭頭。側邊分類參考原圖圖例。',
       ),
       el(
         'p',

@@ -1,9 +1,9 @@
 <nav id="diagram-tabs" aria-label="流程圖頁籤" hidden></nav>
 <section
   data-diagram-page="project-design"
-  data-page-title="DFx Project Flow"
+  data-page-title="流程畫布"
   id="debug-workspace"
-  aria-label="DFx 專案流程"
+  aria-label="流程畫布"
 >
   <div class="app">
     <nav class="rail" id="navigation" aria-label="流程導覽">
@@ -25,10 +25,10 @@
       </div>
       <div class="rail-title">圖面定位</div>
       <div class="nav-group" id="stage-nav"></div>
-      <div class="rail-title">測試子流程</div>
+      <div class="rail-title">子流程</div>
       <div class="nav-group" id="shared-nav"></div>
       <div class="rail-bottom">
-        <div class="rail-note">
+        <div class="rail-note" id="source-note">
           箭頭僅依已確認端點建立。
           <br />
           未對應的條件與連線請見

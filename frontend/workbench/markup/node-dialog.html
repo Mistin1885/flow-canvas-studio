@@ -8,6 +8,8 @@
       <button type="button" id="editor-close" aria-label="關閉節點編輯器">✕</button>
     </header>
     <div class="editor-scroll">
+      <div id="draft-prompt" hidden>此節點有未發佈的草稿。 <button type="button" id="draft-resume">恢復草稿</button> <button type="button" id="draft-discard">捨棄草稿</button></div>
+      <p role="status" id="form-draft-status"></p>
       <p class="editor-tip" id="editor-context"></p>
       <div class="editor-grid">
         <label>
@@ -65,6 +67,9 @@
           </div>
           <small id="category-error" role="status"></small>
         </fieldset>
+        <label>負責角色<input id="node-role" maxlength="80" list="role-suggestions"><datalist id="role-suggestions"></datalist></label>
+        <label>分流與匯合<select id="node-gateway"><option value="">無</option></select></label>
+        <div id="custom-values" class="editor-grid wide"></div>
         <label class="wide">
           名稱
           <input id="node-title" required maxlength="200" />
@@ -87,7 +92,7 @@
         </label>
       </div>
       <div class="editor-section-head">
-        <h3>處理步驟與指令</h3>
+        <h3>步驟內容</h3>
         <div>
           <button type="button" id="add-text-block">＋ 說明</button>
           <button type="button" id="add-code-block">＋ 指令</button>
@@ -106,7 +111,7 @@
         <button type="button" id="add-edge">＋ 連線</button>
       </div>
       <p class="editor-tip">
-        「下一步」會定位到目標節點；「返回／重試」會跳到指定節點。請依原圖確認連線方向與條件。
+        「下一步」會定位到目標節點；「返回／重試」會跳到指定節點。請確認連線方向與條件。
       </p>
       <div id="edge-editor"></div>
       <p class="editor-tip" id="editor-main-note"></p>

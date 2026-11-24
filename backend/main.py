@@ -90,6 +90,7 @@ async def database_unavailable(request, exc):
 
 @app.get("/api/admin/backups")
 @app.post("/api/admin/backups/{point}/restore")
+@app.get("/api/canvases/{canvas}/activity/{after}")
 @app.get("/api/catalog")
 @app.post("/api/workspaces")
 @app.patch("/api/workspaces/{key}")

@@ -10,7 +10,7 @@ from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
-from . import storage as store
+from . import activity, storage as store
 from .admin_api import router as admin_router
 from .snapshot_schedule import scheduler
 
@@ -68,6 +68,7 @@ class Operation(BaseModel):
 
 
 class Batch(BaseModel):
+    strict: bool = False
     base: int = Field(ge=1)
     ops: list[Operation] = Field(min_length=1, max_length=4000)
 
@@ -97,7 +98,7 @@ def workspace(body: Named):
 
 
 @app.patch("/api/{kind}/{key}")
-def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename):
+def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename, x_flow_editor: str = Header()):
     with store.session(True) as db:
         row = store.required(db, kind, key)
         if row["name"] != body.previous:
@@ -108,6 +109,8 @@ def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename):
             stamp = store.next_update(row["updated"])
             revision = ", rev=rev+1" if kind == "canvases" else ""
             db.execute(f"UPDATE {kind} SET name=?,updated=?{revision} WHERE id=?", (name, stamp, key))
+            if kind == "canvases":
+                activity.record(db, key, row["rev"] + 1, stamp, unquote(x_flow_editor), "renamed")
         if kind == "canvases":
             return {"id": key, "rev": store.required(db, kind, key)["rev"]}
     return {"id": key}
@@ -129,6 +132,8 @@ def read(canvas: str):
 @app.post("/api/canvases/{canvas}/changes")
 def changes(canvas: str, body: Batch, x_flow_editor: str = Header()):
     with store.session(True) as db:
+        if body.strict and store.required(db, "canvases", canvas)["rev"] != body.base:
+            raise store.Conflict("團隊版本已更新，請確認最新比對")
         rev = store.commit(
             db, canvas, body.base, [op.model_dump() for op in body.ops], unquote(x_flow_editor)
         )
@@ -149,7 +154,7 @@ def apply_import(canvas: str, body: Batch, x_flow_editor: str = Header()):
             loses_endpoint = edge["from"] in removed_nodes or edge["to"] in removed_nodes
             if loses_endpoint and store.edge_key(edge) not in removed_edges:
                 raise store.Invalid("請確認與移除節點相連的每一條連線")
-        rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor)
+        rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor, kind="imported")
         db.execute(
             "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(?,?,?,?,?)",
             (canvas, body.base, store.now(), editor, store.encode(before["graph"])),
@@ -175,6 +180,13 @@ def before_import(canvas: str, revision: int):
         if row is None:
             raise store.Missing(revision)
         return Response(content=row[0], media_type="application/json")
+
+
+@app.get("/api/canvases/{canvas}/activity/{after}")
+def canvas_activity(canvas: str, after: int):
+    with store.session() as db:
+        store.required(db, "canvases", canvas)
+        return activity.page(db, canvas, after)
 
 
 @app.get("/revision")

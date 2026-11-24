@@ -1,12 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, GitFork, Activity, X, Download, Copy } from 'lucide-react'
-import { errorText, type Canvas, type Graph, type Snapshot } from '../api'
+import { api, errorText, type Canvas, type Graph, type Snapshot } from '../api'
 import { DisplayControls } from '../display/DisplayControls'
 import { type useDisplayPreferences } from '../display/useDisplayPreferences'
 import { useCanvasSession } from './useCanvasSession'
 import type { Workbench } from './WorkbenchWindow'
 import { downloadJson } from '../import/file'
 import { ImportDialog } from '../import/ImportDialog'
+import { DraftReview } from './DraftReview'
+import { ActivityDialog,useLastVisit } from './ActivityDialog'
 const Overview = import.meta.env.MODE === 'core' ? null : lazy(() => import('./Overview'))
 export default function Editor({
   canvas,
@@ -25,7 +27,11 @@ export default function Editor({
 }) {
   const frame = useRef<HTMLIFrameElement>(null)
   const [loaded, setLoaded] = useState(false)
-  const [map, setMap] = useState<Graph | null>(null)
+  const [map, setMap] = useState<{graph:Graph;rev:number} | null>(null)
+  const [showActivity,setActivity]=useState(false)
+  const [review,setReview]=useState(false)
+  const [mapBusy,setMapBusy]=useState(false)
+  const visit=useLastVisit(canvas.id,identity)
   const [importResult, setImportResult] = useState('')
   const [exportError, setExportError] = useState('')
   const [importBase, setImportBase] = useState<Snapshot | null>(null)
@@ -36,6 +42,9 @@ export default function Editor({
     loaded,
     open,
   )
+  useEffect(() => {
+    if (loaded) (frame.current?.contentWindow as Workbench)?.T1Playbook?.setCanvasTitle(canvasName)
+  }, [loaded, canvasName])
   useEffect(() => {
     if (loaded)
       (frame.current?.contentWindow as Workbench)?.T1Playbook?.setDisplayPreferences(display.prefs)
@@ -63,6 +72,17 @@ export default function Editor({
     const timer = window.setTimeout(() => setImportResult(''), 5500)
     return () => window.clearTimeout(timer)
   }, [importResult])
+  useEffect(()=>{
+    const mark=()=>{if(current.current)visit.seen(current.current.canvas.rev)}
+    window.addEventListener('pagehide',mark)
+    return ()=>{mark();window.removeEventListener('pagehide',mark)}
+  },[canvas.id,identity,current])
+  async function updateMap(){
+    setMapBusy(true)
+    try {const s=await api<Snapshot>('canvases/'+canvas.id);setMap(previous => previous && previous.rev < s.canvas.rev ? {graph:s.graph,rev:s.canvas.rev} : previous)}
+    catch(e){setExportError(errorText(e))}
+    finally{setMapBusy(false)}
+  }
   function leave() {
     const editing = (frame.current?.contentWindow as Workbench)?.T1Playbook?.editing()
     if (!busy && (!editing || confirm('離開後會關閉目前的編輯表單，確定返回？'))) back()
@@ -82,9 +102,10 @@ export default function Editor({
             <Activity size={14} />
             {status}
           </span>
+          <button disabled={!current.current || !!draft} onClick={()=>setActivity(true)}>變更紀錄</button>
           {Overview && (
             <button
-              onClick={() => current.current && setMap(current.current.graph)}
+              onClick={() => current.current && setMap({graph:current.current.graph,rev:current.current.canvas.rev})}
               disabled={busy || !!draft}
             >
               <GitFork size={15} />
@@ -103,7 +124,8 @@ export default function Editor({
           <b>{issue}</b>
           {draft && (
             <div>
-              <span>你的草稿已保留。可複製成新畫布，再與團隊版本對照。</span>
+              <span>你的草稿已保留。</span>
+              <button disabled={busy} onClick={()=>setReview(true)}>比對並合併草稿</button>
               <button disabled={busy} onClick={fork}>
                 <Copy size={15} />
                 另存草稿畫布
@@ -138,6 +160,10 @@ export default function Editor({
           {importResult}
         </p>
       )}
+      {showActivity && <ActivityDialog canvas={canvas.id} after={visit.last} close={()=>setActivity(false)}
+        exists={id=>!!current.current?.graph.nodes[id]} locate={id=>{setActivity(false);(frame.current?.contentWindow as Workbench).T1Playbook.go(id,true)}}/>}
+      {review && draft && <DraftReview canvas={canvas.id} draft={draft} revision={remoteRev} close={()=>setReview(false)}
+        done={()=>{setReview(false);actions.current.discard()}}/>}
       {importBase && (
         <ImportDialog
           base={importBase}
@@ -154,7 +180,8 @@ export default function Editor({
       {map && Overview && (
         <section className="mapOverlay">
           <header>
-            <h2>節點總覽</h2>
+            <h2>節點總覽 · v{map.rev}</h2>
+            {remoteRev>map.rev && <button disabled={mapBusy} onClick={updateMap}>有新版 · 更新總覽</button>}
             <DisplayControls {...display} />
             <button onClick={() => setMap(null)} aria-label="關閉總覽">
               <X size={18} />
@@ -162,7 +189,7 @@ export default function Editor({
           </header>
           <Suspense fallback={<p>正在載入總覽…</p>}>
             <Overview
-              graph={map}
+              graph={map.graph}
               prefs={display.prefs}
               locate={(id) => {
                 setMap(null)

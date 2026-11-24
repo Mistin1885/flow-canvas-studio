@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { api, differences, errorText, type Canvas, type Graph, type Snapshot } from '../api'
+import { api, differences, records, errorText, type Canvas, type Graph, type Snapshot } from '../api'
 import type { Workbench } from './WorkbenchWindow'
-type Draft = { graph: Graph; base: number; ops: ReturnType<typeof differences> }
+import type { Draft } from './draftMerge'
 
 export function useCanvasSession(
   canvas: Canvas,
@@ -36,6 +36,12 @@ export function useCanvasSession(
     let socket: WebSocket | undefined, timer: number | undefined, retryTimer: number | undefined
 
     current.current = null
+    editor.configureDrafts({user:identity,canvas:canvas.id,snapshot:()=>current.current,restore:(snap)=>{
+      if(!active)return
+      wanted=Math.max(wanted,current.current?.canvas.rev || 0)
+      editor.receive(snap.graph)
+      current.current=snap
+    }})
     function keep(value: Draft | null) {
       recovered.current = value
       setDraft(value)
@@ -132,7 +138,8 @@ export function useCanvasSession(
         editor.saved()
         return
       }
-      const item = { graph: next, ops, base: current.current.canvas.rev }
+      const originals = records(previous)
+      const item = { graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
       keep(item)
       void save(item)
     }
