@@ -117,7 +117,7 @@ class Studio(unittest.TestCase):
             with storage.session() as db:
                 self.assertEqual(storage.snapshot(db, canvas)["graph"]["nodes"], {"A": node("A")})
                 self.assertEqual(db.execute("SELECT count(*) FROM import_history").fetchone()[0], 0)
-                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 3)
 
     def test_import_precondition_recovery_and_atomicity(self):
         self.change(1, *(operation("nodes", i, None, node(i)) for i in "AB"))

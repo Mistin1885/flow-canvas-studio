@@ -3,11 +3,13 @@
 import json
 import os
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 import sqlite3
 from uuid import uuid4
+
+from .snapshot_schema import MIGRATION
 
 
 class Invalid(ValueError):
@@ -32,6 +34,13 @@ def location():
 
 def now():
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+
+
+def next_update(previous):
+    stamp = now()
+    if datetime.fromisoformat(stamp) <= datetime.fromisoformat(previous):
+        return (datetime.fromisoformat(previous) + timedelta(milliseconds=1)).isoformat(timespec="milliseconds")
+    return stamp
 
 
 def encode(value):
@@ -84,23 +93,24 @@ def initialize():
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with sqlite3.connect(path) as db:
         db.execute("PRAGMA journal_mode=WAL")
+        db.execute("BEGIN IMMEDIATE")
         version = db.execute("PRAGMA user_version").fetchone()[0]
-        if version == 0:
-            db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + "COMMIT;")
-            version = 1
-        if version == 1:
-            db.executescript('''
-                BEGIN IMMEDIATE;
-                CREATE TABLE IF NOT EXISTS import_history(
-                    canvas TEXT NOT NULL REFERENCES canvases(id), revision INTEGER NOT NULL,
-                    created TEXT NOT NULL, editor TEXT NOT NULL, graph TEXT NOT NULL,
-                    PRIMARY KEY(canvas,revision)
-                );
-                PRAGMA user_version=2;
-                COMMIT;
-            ''')
-        elif version != 2:
+        migrations = (SCHEMA, """
+            CREATE TABLE import_history(
+                canvas TEXT NOT NULL REFERENCES canvases(id), revision INTEGER NOT NULL,
+                created TEXT NOT NULL, editor TEXT NOT NULL, graph TEXT NOT NULL,
+                PRIMARY KEY(canvas,revision)
+            );
+            PRAGMA user_version=2;
+        """, MIGRATION)
+        if version > len(migrations):
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
+        # Keep the version check and schema changes in one write transaction.
+        for script in migrations[version:]:
+            for statement in script.split(";"):
+                if statement.strip():
+                    db.execute(statement)
+
 
 
 def required(db, table, key):

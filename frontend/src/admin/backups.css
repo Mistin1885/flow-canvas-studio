@@ -1,0 +1,48 @@
+.backupAdmin {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px clamp(16px, 4vw, 48px);
+}
+.backupAdmin header,
+.backupHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.backupAdmin header a,
+.adminLink {
+  color: var(--ink);
+}
+.backupAdmin section {
+  margin-top: 36px;
+}
+.backupHeading h1 {
+  margin: 0;
+}
+.backupAdmin section > p {
+  color: var(--muted);
+}
+.backupAdmin [role='alert'] {
+  color: light-dark(#943412, #ffbe8e);
+}
+.backupTable {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.backupTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.backupTable td,
+.backupTable th {
+  padding: 10px 14px;
+  text-align: start;
+  border-bottom: 1px solid var(--line);
+}
+.backupTable td:first-child,
+.backupTable button {
+  white-space: nowrap;
+}

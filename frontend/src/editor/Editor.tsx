@@ -29,7 +29,7 @@ export default function Editor({
   const [importResult, setImportResult] = useState('')
   const [exportError, setExportError] = useState('')
   const [importBase, setImportBase] = useState<Snapshot | null>(null)
-  const { remoteRev, status, issue, draft, busy, current, actions, fork, download } = useCanvasSession(
+  const { canvasName, remoteRev, status, issue, draft, busy, current, actions, fork, download } = useCanvasSession(
     canvas,
     identity,
     frame,
@@ -75,7 +75,7 @@ export default function Editor({
         </button>
         <span className="crumb">{workspace}</span>
         <span className="slash">/</span>
-        <b>{canvas.name}</b>
+        <b>{canvasName}</b>
         <div className="editorTools">
           {!map && <DisplayControls {...display} />}
           <span className="live">

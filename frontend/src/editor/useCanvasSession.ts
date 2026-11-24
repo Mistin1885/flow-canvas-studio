@@ -13,6 +13,7 @@ export function useCanvasSession(
   const [status, setStatus] = useState('連線中')
   const [issue, setIssue] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [canvasName, setCanvasName] = useState(canvas.name)
   const [remoteRev, setRemoteRev] = useState(0)
   const [busy, setBusy] = useState(false)
   const current = useRef<Snapshot | null>(null)
@@ -62,6 +63,7 @@ export function useCanvasSession(
         if (current.current && snap.canvas.rev <= current.current.canvas.rev) return
         editor.receive(snap.graph)
         current.current = snap
+        setCanvasName(snap.canvas.name)
         win.document.body.inert = false
         setIssue('')
         statusText()
@@ -215,7 +217,7 @@ export function useCanvasSession(
     setBusy(true)
     try {
       const { id } = await api<{ id: string }>('workspaces/' + canvas.workspace + '/canvases', 'POST', {
-        name: canvas.name.slice(0, 110) + ' · 草稿',
+        name: canvasName.slice(0, 110) + ' · 草稿',
         graph: draft.graph,
       })
       sessionStorage.removeItem(cacheKey)
@@ -234,10 +236,10 @@ export function useCanvasSession(
     )
     const link = document.createElement('a')
     link.href = url
-    link.download = canvas.name + '-draft.json'
+    link.download = canvasName + '-draft.json'
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  return { remoteRev, status, issue, draft, busy, current, actions, fork, download }
+  return { canvasName, remoteRev, status, issue, draft, busy, current, actions, fork, download }
 }

@@ -11,15 +11,21 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from . import storage as store
+from .admin_api import router as admin_router
+from .snapshot_schedule import scheduler
 
 
 @asynccontextmanager
 async def lifespan(app):
     store.initialize()
-    yield
+    async with scheduler():
+        yield
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+
+app.include_router(admin_router)
 
 
 @app.exception_handler(store.Missing)
@@ -85,7 +91,8 @@ def catalog():
 def workspace(body: Named):
     key = uuid4().hex
     with store.session(True) as db:
-        db.execute("INSERT INTO workspaces VALUES(?,?,?)", (key, store.name(body.name), store.now()))
+        stamp = store.now()
+        db.execute("INSERT INTO workspaces(id,name,created,updated) VALUES(?,?,?,?)", (key, store.name(body.name), stamp, stamp))
     return {"id": key}
 
 
@@ -95,7 +102,14 @@ def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename):
         row = store.required(db, kind, key)
         if row["name"] != body.previous:
             raise store.Conflict("名稱剛被其他人修改，請重新整理")
-        db.execute(f"UPDATE {kind} SET name=? WHERE id=?", (store.name(body.name), key))
+        name = store.name(body.name)
+        if row["name"] != name:
+            # Also distinguish multiple renames in one millisecond.
+            stamp = store.next_update(row["updated"])
+            revision = ", rev=rev+1" if kind == "canvases" else ""
+            db.execute(f"UPDATE {kind} SET name=?,updated=?{revision} WHERE id=?", (name, stamp, key))
+        if kind == "canvases":
+            return {"id": key, "rev": store.required(db, kind, key)["rev"]}
     return {"id": key}
 
 

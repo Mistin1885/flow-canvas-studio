@@ -86,6 +86,38 @@ docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d --build
 
 An active Access session opens the site directly. When authentication is required, GitHub handles its session, consent and MFA. The web backend validates the signed Access token for HTTP and WebSocket connections. [GitHub identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/github/) · [Instant authentication](https://developers.cloudflare.com/learning-paths/clientless-access/access-application/create-access-app/) · [Access JWT validation](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)
 
+## Scheduled backups and recovery
+
+The database service scans on startup and every 15 minutes while running. The first scan records existing items. Subsequent scans compare workspace update times and canvas update times and revisions. Creating or renaming an item, editing its graph, and applying an import are captured at the next scan. Multiple edits between scans produce one point. A workspace point preserves its name and identity. Each canvas has its own timeline including its name, graph and workspace ID.
+
+Open **備份管理** or visit `/admin` to list active points and restore a selected item. The first user to sign in after installing this feature owns the page and management API. In loopback development, a persistent HTTP-only browser cookie identifies the first browser profile. Clearing it removes that browser's access. When switching to Cloudflare Access, the first verified Access login takes ownership from the development profile. Ownership then follows the Access issuer and subject across devices and restarts. Further logins, including local profiles, cannot claim ownership. Host operators retain CLI access.
+
+Restoring B in an A → B → C timeline keeps A and B visible. C and any newer unsnapshotted edits become cold archives. A subsequent edit creates a new point on the active timeline. A canvas restore preserves its ID and advances its live revision so connected editors can synchronize. A workspace restore changes only its name. If the item changes during confirmation, refresh and review the restore again.
+
+Active points expire seven days after capture. Cold points expire seven days after archiving. Expired points are hidden immediately and their files are collected on the next scan. An idle item can have no retained point after seven days. Each archive is an independent gzip file under `FLOW_DATA_DIR/backups/`; the SQLite database tracks which points are active. Cold files keep their gzip payload and are available to the host operator.
+
+Run these native commands from the repository root with the same `FLOW_DATA_DIR` as the service:
+
+```bash
+.venv/bin/python -m backend.recovery list
+.venv/bin/python -m backend.recovery list --cold
+.venv/bin/python -m backend.recovery restore --canvas CANVAS_ID --at '2026-11-24T09:30:00+08:00'
+.venv/bin/python -m backend.recovery restore --id BACKUP_ID
+```
+
+Time-based restore selects the latest retained active point for that canvas at or before the supplied time. Include a timezone offset. The CLI applies the restore immediately. An already-open canvas receives CLI changes at its next revision check (within about 25 seconds on an idle connection). Use `scan` to run the regular change check on demand. In Compose, run the same module inside the database container:
+
+```bash
+docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.recovery list
+docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.recovery restore --id BACKUP_ID
+```
+
+For an independent copy of a cold canvas, use the filename from `list --cold`. Extract its graph and use **從 JSON 建立** in a workspace:
+
+```bash
+gzip -dc "/path/to/data/backups/ARCHIVE.json.gz" | jq '.graph' > recovered-canvas.json
+```
+
 ## Back up or move to another machine
 
 Create a consistent online snapshot from the database container. It includes committed WAL changes and preserves workspace IDs, canvas IDs, revisions and imported assets.
@@ -96,7 +128,9 @@ docker compose -f deploy/docker/docker-compose.yml exec -T database \
   python -m backend.backup "/data/$snapshot"
 ```
 
-The snapshot appears in the host data directory. To migrate, pause editing, take a final snapshot, and copy **the repo and snapshot separately**. On the new machine, create a **fresh** data directory, copy the snapshot into it as `studio.sqlite3`, set `FLOW_DATA_DIR` to its absolute path, and run the Compose deployment commands. Restore the Access and Tunnel configuration separately if using a public hostname. When copying a live database, use the backup command so pending WAL data travels with the snapshot.
+The snapshot appears in the host data directory. For a complete migration, stop the services and copy the **entire data directory**, including `backups/` and any SQLite sidecars, separately from the repo. On the destination, point `FLOW_DATA_DIR` at that directory and start Compose. Restore the Access and Tunnel configuration separately if using a public hostname.
+
+For a database-only migration, pause editing and take a final online snapshot with the command above. Copy it into a fresh data directory as `studio.sqlite3`. This preserves the current canvases, owners and backup catalog. Restoring a historical catalog entry also requires its corresponding gzip file. Keep an off-machine copy of the data directory to recover from loss of the host disk.
 
 ## Native development
 

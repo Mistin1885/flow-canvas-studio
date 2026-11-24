@@ -36,6 +36,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [user, setUser] = useState('')
   const display = useDisplayPreferences(user)
+  const [admin, setAdmin] = useState(false)
   const [error, setError] = useState('')
   const [[type, id], setRoute] = useState(route)
   const [query, setQuery] = useState('')
@@ -54,8 +55,8 @@ export default function App() {
   }, [])
   useEffect(() => {
     const report = (e: unknown) => setError(errorText(e))
-    void api<{ label: string }>('session')
-      .then((s) => setUser(s.label))
+    void api<{ label: string; admin: boolean }>('session')
+      .then((s) => { setUser(s.label); setAdmin(s.admin) })
       .catch(report)
     void refresh().catch(report)
     const update = () => {
@@ -111,6 +112,7 @@ export default function App() {
           <LayoutDashboard size={15} /> 工作區
         </span>
         <DisplayControls {...display} />
+        {admin && <a className="adminLink" href="/admin">備份管理</a>}
         <span className="account">
           <span className="avatar">{user ? user.slice(0, 1).toUpperCase() : '·'}</span>
           {user || '連線中'}

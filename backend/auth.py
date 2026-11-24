@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 import os
 import re
 from functools import lru_cache
@@ -25,6 +27,11 @@ def authenticate(conn: HTTPConnection):
         ):
             raise HTTPException(403, "本機模式僅開放 loopback")
         origin = "http://" + conn.headers["host"]
+        token = conn.cookies.get("flow_local_identity", "")
+        if not re.fullmatch(r"[a-f0-9]{64}", token):
+            token = secrets.token_hex(32)
+            conn.state.new_local_token = token
+        subject = token
         user = {"label": "本機開發", "expires": None, "mode": mode}
     else:
         issuer = os.getenv("CF_ACCESS_ISSUER", "").rstrip("/")
@@ -55,8 +62,10 @@ def authenticate(conn: HTTPConnection):
                 raise jwt.InvalidTokenError()
         except jwt.PyJWTError as exc:
             raise HTTPException(401, "Access 登入已逾期或無效") from exc
+        subject = issuer + "/" + claims["sub"]
         user = {"label": claims["email"], "expires": claims["exp"], "mode": mode}
     supplied = conn.headers.get("origin")
     if (supplied is not None or conn.scope["type"] == "websocket") and supplied != origin:
         raise HTTPException(403, "請從此網站操作")
+    conn.state.principal = hashlib.sha256(subject.encode()).hexdigest()
     return user

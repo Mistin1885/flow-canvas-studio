@@ -10,7 +10,7 @@ from urllib.parse import quote
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
@@ -46,15 +46,41 @@ async def auth(request: Request, call_next):
     except HTTPException as exc:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
     response = await call_next(request)
+    token = getattr(request.state, "new_local_token", None)
+    if token and request.url.path in ("/", "/admin", "/admin/", "/api/session"):
+        response.set_cookie("flow_local_identity", token, httponly=True, samesite="strict", max_age=31536000)
     response.headers["Cache-Control"] = "private, no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     return response
 
 
+def identity_headers(request):
+    return {"x-flow-principal": request.state.principal, "x-flow-realm": request.state.user["mode"]}
+
+
+async def login(request):
+    return await request.app.state.database.post("/identity/login", headers=identity_headers(request))
+
+
 @app.get("/api/session")
-def identity(request: Request):
-    return request.state.user
+async def identity(request: Request):
+    result = await login(request)
+    if not result.is_success:
+        return Response(content=result.content, status_code=result.status_code, media_type="application/json")
+    return {**request.state.user, "admin": result.json()["admin"]}
+
+
+@app.get("/")
+@app.get("/admin")
+@app.get("/admin/")
+async def site(request: Request):
+    result = await login(request)
+    if not result.is_success:
+        raise HTTPException(result.status_code, "無法讀取登入狀態")
+    if request.url.path != "/" and not result.json()["admin"]:
+        raise HTTPException(403, "此頁面僅開放系統管理員")
+    return FileResponse(dist / "index.html")
 
 
 @app.exception_handler(httpx.RequestError)
@@ -62,6 +88,8 @@ async def database_unavailable(request, exc):
     return JSONResponse({"detail": "資料庫暫時無法連線"}, status_code=503)
 
 
+@app.get("/api/admin/backups")
+@app.post("/api/admin/backups/{point}/restore")
 @app.get("/api/catalog")
 @app.post("/api/workspaces")
 @app.patch("/api/workspaces/{key}")
@@ -80,11 +108,18 @@ async def data_request(request: Request):
         content=await request.body(),
         headers={
             "content-type": "application/json",
+            **identity_headers(request),
             "x-flow-editor": quote(request.state.user["label"], safe=""),
         },
     )
     if response.is_success and request.url.path.endswith(("/changes", "/imports")) and request.method == "POST":
         notify(request.path_params["canvas"], response.json()["rev"])
+    if response.is_success and request.method == "PATCH" and request.url.path.startswith("/api/canvases/"):
+        notify(request.path_params["key"], response.json()["rev"])
+    if response.is_success and request.url.path.endswith("/restore"):
+        restored = response.json()
+        if restored["kind"] == "canvas":
+            notify(restored["item"], restored["rev"])
     return Response(content=response.content, status_code=response.status_code, media_type="application/json")
 
 
