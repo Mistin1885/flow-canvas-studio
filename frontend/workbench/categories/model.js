@@ -1,6 +1,5 @@
 import { unmappedTag } from './constants.js'
 import { graphModel } from '../graph/model.js'
-import { effectiveType } from '../graph/nodeTypes.js'
 import { cloneGraph } from '../graph/json.js'
 
 const legendState = {}
@@ -45,7 +44,6 @@ function normalizedLegend(graph) {
     workbookAudit && graph.sourceData?.sources?.some((s) => s.sha256 === workbookAudit.sha256)
   if (verified && !graph.sourceLegend) graph.sourceLegend = cloneGraph(workbookAudit)
   for (const n of Object.values(graph.nodes)) {
-    n.type = effectiveType(n)
     if (n.legendEvidence || previouslyAudited) continue
     const known = verified && sourceEvidence.get(n.sourceId)
     if (known) {

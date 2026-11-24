@@ -29,14 +29,14 @@ export function useImportTransaction(
       active = false
     }
   }, [path, remoteRev, latest.canvas.rev])
-  async function apply(file: Graph | null, origin: Origin | undefined, choices: Choices) {
+  async function apply(file: Graph | null, origin: Origin | undefined, choices: Choices, protectMissing: boolean) {
     if (!file || busy) return
     setBusy(true)
     setError('')
     try {
       let snapshot = latest
       for (let attempt = 0; attempt < 4; attempt++) {
-        const next = resolve(snapshot, compare(base.graph, file, snapshot, origin), choices)
+        const next = resolve(snapshot, compare(base.graph, file, snapshot, origin, protectMissing), choices)
         if (next.unresolved) return
         validate(next.graph)
         if (!next.ops.length) {

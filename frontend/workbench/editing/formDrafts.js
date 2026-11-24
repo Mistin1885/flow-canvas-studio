@@ -63,7 +63,7 @@ function contentRows() {
   })
 }
 
-function formValues() {
+export function formValues() {
   return {
     adding: nodeForm.adding, node: nodeForm.node, parent: nodeForm.parent,
     fields: Object.fromEntries(valueIds.map(id => [id, $(id).value])),
@@ -95,7 +95,8 @@ function capture() {
         if (!base) return
         baseKey = storeBase(base)
       }
-      localStorage.setItem(active, JSON.stringify({ ...values, baseKey }))
+      const contentSources = [...$('content-editor').children].map(row => row._sourceIndex)
+      localStorage.setItem(active, JSON.stringify({ ...values, contentSources, baseKey }))
       $('form-draft-status').textContent = '草稿已存在此瀏覽器'
       $('recover-form').hidden = false
     }
@@ -132,7 +133,17 @@ function resume(key) {
   editorLegend({ tags: saved.tags })
   for (const i of $('custom-values').querySelectorAll('[data-field]')) i.value = saved.values[i.dataset.field] ?? ''
   $('content-editor').replaceChildren()
-  saved.content.forEach(appendContentBlock)
+  saved.content.forEach((block, index) => {
+    const source = saved.contentSources?.[index] ?? null
+    appendContentBlock(block, source)
+    const row = $('content-editor').lastElementChild
+    if (source !== null) row._block = base.graph.nodes[saved.node].content[source]
+    else if (block.type === 'code') {
+      // Draft controls keep even incomplete radio input. Use the controls to validate it on apply.
+      delete row._block.radio
+      delete row._block['radio-default']
+    }
+  })
   $('edge-editor').replaceChildren()
   for (const { fallbackText, original, ...edge } of saved.edges) {
     appendEditorEdge({ ...original, ...edge })
@@ -151,7 +162,8 @@ function resume(key) {
 export function draftOpened() {
   active = context ? targetKey() : null
   baseKey = null
-  initial = active && JSON.stringify(formValues())
+  initial = JSON.stringify(formValues())
+  nodeForm.initial = JSON.parse(initial)
   lastSaved = initial
   prompt(!!(active && read(active)))
   $('form-draft-status').textContent = ''

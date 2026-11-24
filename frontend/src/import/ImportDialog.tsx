@@ -4,6 +4,7 @@ import { compare, resolve, type Choices } from './merge'
 import { readFile, validate } from './file'
 import { identifyChanges, unpackDocument, type Origin } from './provenance'
 import { useImportTransaction } from './useImportTransaction'
+import { preserveFields } from './preserveFields'
 import { ChangeReview } from './ChangeReview'
 import { ImportHistory } from './ImportHistory'
 
@@ -30,13 +31,18 @@ export function ImportDialog({
   const [label, setLabel] = useState('')
   const [origin, setOrigin] = useState<Origin>()
   const [choices, setChoices] = useState<Choices>({})
+  const [unversionedUpload, setUnversionedUpload] = useState(false)
+  const [allowRemoval, setAllowRemoval] = useState(false)
+  const protectMissing = unversionedUpload && !allowRemoval
+  const hasOmissions = useMemo(() => unversionedUpload && file && preserveFields(file, latest.graph) !== file,
+    [unversionedUpload, file, latest.graph])
   const [team, setTeam] = useState(false)
   useEffect(() => {
     dialog.current?.showModal()
   }, [])
   const groups = useMemo(
-    () => (file ? compare(base.graph, file, latest, origin) : []),
-    [base, file, latest, origin],
+    () => (file ? compare(base.graph, file, latest, origin, protectMissing) : []),
+    [base, file, latest, origin, protectMissing],
   )
   const plan = useMemo(() => resolve(latest, groups, choices), [latest, groups, choices])
   const invalid = useMemo(() => {
@@ -48,7 +54,9 @@ export function ImportDialog({
       return errorText(e)
     }
   }, [file, plan])
-  function review(graph: Graph, name: string, source?: Origin) {
+  function review(graph: Graph, name: string, source?: Origin, upload = false) {
+    setUnversionedUpload(upload && !source)
+    setAllowRemoval(false)
     setOrigin(source)
     setFile(graph)
     setLabel(name)
@@ -60,7 +68,7 @@ export function ImportDialog({
     setBusy(true)
     try {
       const { graph, manifest } = unpackDocument(await readFile(input))
-      review(graph, input.name, await identifyChanges(graph, manifest, latest))
+      review(graph, input.name, await identifyChanges(graph, manifest, latest), true)
     } catch (e) {
       setFile(null)
       setLabel(input.name)
@@ -123,6 +131,15 @@ export function ImportDialog({
                 ? '以此檔案匯出時的 v' + origin.revision + ' 為基準，已保留之後的獨立修改。'
                 : '以開啟比對時的畫布為基準。請確認檔案中缺少的項目是否要移除。'}
             </p>
+            {hasOmissions && (
+              <label className="teamToggle">
+                <input type="checkbox" checked={allowRemoval} onChange={e => {
+                  setAllowRemoval(e.target.checked)
+                  setChoices({})
+                }} />
+                移除 JSON 未提供的負責角色、分流與匯合規則、自訂欄位及其值（預設保留）
+              </label>
+            )}
             <p aria-live="polite">
               新增 {added} · 修改 {items.length - added - deleted} · 移除 {deleted}
               {plan.unresolved > 0 && <strong> · {plan.unresolved} 組衝突待選擇</strong>}
@@ -160,7 +177,7 @@ export function ImportDialog({
         <button
           className="primary"
           disabled={!file || busy || !!invalid || !!plan.unresolved}
-          onClick={() => apply(file, origin, choices)}
+          onClick={() => apply(file, origin, choices, protectMissing)}
         >
           {busy ? '處理中…' : plan.ops.length ? '套用 ' + plan.ops.length + ' 項變更' : '完成比對'}
         </button>

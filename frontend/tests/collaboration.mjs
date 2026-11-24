@@ -10,6 +10,7 @@ import { chromium, expect } from '@playwright/test'
 
 import { verifyAdminBackups } from './admin-backups.mjs'
 import { verifyImport } from './import-review.mjs'
+import { verifyLegacyEdits } from './legacy-edits.mjs'
 import { verifyDraftReview } from './draft-review.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
@@ -89,6 +90,7 @@ try {
   await offline.close()
   await verifyDraftReview(alice, bob)
   await verifyImport(alice, bob, origin)
+  await verifyLegacyEdits(alice, origin)
   await verifyAdminBackups(alice, bob, origin, root, data)
   console.log('Standalone HTML reopened and edited offline.')
   console.log('Two-browser sync, draft recovery after reload, and independent fork passed.')

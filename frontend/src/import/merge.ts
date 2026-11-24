@@ -1,5 +1,6 @@
 import { records, type Graph, type Snapshot, type Table, type Link } from '../api'
 
+import { preserveFields } from './preserveFields'
 import type { Origin } from './provenance'
 
 export type Side = 'team' | 'file'
@@ -10,6 +11,7 @@ export type Row = {
   key: string
   team: unknown
   file: unknown
+  order: number
   intent: boolean
   concurrent: boolean
 }
@@ -64,9 +66,10 @@ function nodeRefs(row: Row, value: unknown): string[] {
   ].filter((id): id is string => typeof id === 'string')
 }
 
-export function compare(base: Graph, incoming: Graph, latest: Snapshot, origin?: Origin): Group[] {
+export function compare(base: Graph, incoming: Graph, latest: Snapshot, origin?: Origin, protectMissing = false): Group[] {
   const original = records(base),
-    file = records(incoming),
+    file = records(protectMissing ? preserveFields(incoming, latest.graph) : incoming),
+    atBase = protectMissing ? records(preserveFields(incoming, base)) : file,
     team = records(latest.graph)
   const rows = new Map<string, Row>()
   const rowId = (table: Table, key: string) => JSON.stringify([table, key])
@@ -80,13 +83,13 @@ export function compare(base: Graph, incoming: Graph, latest: Snapshot, origin?:
         fromTeam = signature(t)
       if (fromFile === fromTeam) continue
       const id = rowId(table, key)
-      const intent = origin ? origin.modified.has(id) : b !== fromFile
+      const intent = origin ? origin.modified.has(id) : b !== (atBase === file ? fromFile : signature(get(atBase)))
       const concurrent = origin
         ? t === undefined
           ? origin.original.has(id)
           : latest.versions[table][key] > origin.revision
         : b !== fromTeam
-      rows.set(id, { id, table, key, team: t, file: f, intent, concurrent })
+      rows.set(id, { id, table, key, order: rows.size, team: t, file: f, intent, concurrent })
     }
   }
 
@@ -136,23 +139,25 @@ export function resolve(latest: Snapshot, groups: Group[], choices: Choices) {
   const result = records(latest.graph)
   result.nodes = { ...result.nodes }
   const ops = []
+  const selected: Row[] = []
   let unresolved = 0
   for (const group of groups) {
     const choice = choices[group.token]
     if (!choice && group.conflict) unresolved++
     if ((choice ?? (group.conflict ? 'team' : group.defaultSide)) !== 'file') continue
-    for (const row of group.rows) {
-      const { table, key, file } = row
-      if (file === undefined) delete result[table][key]
-      else result[table][key] = file
-      ops.push({
-        table,
-        key,
-        value: file,
-        remove: file === undefined,
-        version: latest.versions[table][key] ?? null,
-      })
-    }
+    selected.push(...group.rows)
+  }
+  // Dependency groups are sorted for display. Persist new records in document order.
+  for (const { table, key, file } of selected.sort((a, b) => a.order - b.order)) {
+    if (file === undefined) delete result[table][key]
+    else result[table][key] = file
+    ops.push({
+      table,
+      key,
+      value: file,
+      remove: file === undefined,
+      version: latest.versions[table][key] ?? null,
+    })
   }
   const graph = {
     ...result.meta,

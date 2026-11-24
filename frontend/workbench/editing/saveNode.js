@@ -1,8 +1,9 @@
-import { draftApplied } from './formDrafts.js'
+import { draftApplied, formValues } from './formDrafts.js'
 import { readNodeFields } from '../modeling/fields.js'
 import { editState } from './state.js'
-import { categoryTags, legendState, originalNames, unmappedTag } from '../categories/model.js'
-import { effectiveType } from '../graph/nodeTypes.js'
+import { originalNames, unmappedTag } from '../categories/model.js'
+import { savedBlock } from './contentValues.js'
+import { applyEdgeEdits } from './saveEdges.js'
 import { $ } from '../ui/dom.js'
 import { nodeForm, populateEditor } from './nodeForm.js'
 import { graphModel } from '../graph/model.js'
@@ -20,41 +21,38 @@ function applyEditor() {
   if (nodeForm.adding && Object.hasOwn(graphModel.nodes, id)) throw new Error('節點 ID 已存在')
   const graph = exportGraph(),
     n = nodeForm.adding ? { id } : graph.nodes[id]
-  for (const key of ['group', 'title', 'description', 'where', 'expect', 'note'])
-    n[key] = $('node-' + key).value.trim()
-  readNodeFields(n)
-  const categories = [...$('legend-fields').querySelectorAll('input:checked')].map((input) => input.value)
-  if (n.sourceKind === 'subflow' && !nodeForm.adding) n.sheetId = sheetFor(id)
-  const oldDirections = new Map((graph.layoutGroups || []).map((g) => [g.name, g.direction]))
-  for (const member of Object.values(graph.nodes))
-    if ((oldDirections.get(member.group) || 'auto') !== editState.groupDraft.get(member.group))
-      delete member.layoutOffset
-  graph.layoutGroups = [...editState.groupDraft].map(([name, direction]) => ({
-    ...graph.layoutGroups?.find((g) => g.name === name),
-    name,
-    direction,
-  }))
-  if (!nodeForm.adding && sheetFor(id) !== 'project') n.sheetId = sheetFor(id)
+  const before = nodeForm.initial, after = formValues()
+  const differs = (key) => JSON.stringify(before[key]) !== JSON.stringify(after[key])
+  const edited = (key) => nodeForm.adding || before.fields[key] !== after.fields[key]
+  for (const key of ['group', 'title', 'description', 'where', 'expect', 'note']) {
+    if (edited('node-' + key)) n[key] = after.fields['node-' + key].trim()
+  }
+  readNodeFields(n, nodeForm.adding ? null : before)
+  const categories = after.tags
+  const initialGroups = new Map(before.groups)
+  for (const [name, direction] of editState.groupDraft) {
+    if (initialGroups.get(name) === direction) continue
+    const group = graph.layoutGroups?.find(group => group.name === name)
+    if (group) group.direction = direction
+    else (graph.layoutGroups ??= []).push({ name, direction })
+    for (const member of Object.values(graph.nodes))
+      if (member.group === name) delete member.layoutOffset
+  }
   if (categoryDraft.items.length)
     graph.customCategories = [...(graph.customCategories || []), ...categoryDraft.items]
-  const oldCategories = categoryTags(n)
   if (
     categories.includes(unmappedTag) &&
     categories.some((c) => c !== unmappedTag && originalNames.has(c))
   )
     throw new Error('已選原圖圖例時，請取消「原圖未對應圖例」。')
-  if (
-    nodeForm.adding ||
-    categories.length !== oldCategories.length ||
-    categories.some((c) => !oldCategories.includes(c))
-  )
+  if (nodeForm.adding || differs('tags')) {
     n.legendEdited = true
-  const context = (n.tags || []).filter(
-    (t) => !legendState.legendNames.has(t) && t !== graphModel.nodes[id]?.group,
-  )
-  n.tags = [...new Set([...categories, ...context])]
-  const type = $('node-type').value
-  if (type !== effectiveType(n) || nodeForm.adding) {
+    const retained = (n.tags || []).filter(tag => !before.tags.includes(tag) || categories.includes(tag))
+    n.tags = [...retained, ...categories.filter(tag => !retained.includes(tag))]
+  }
+  const type = after.fields['node-type']
+  if (edited('node-type')) {
+    n.type = type
     if (n.originalDecision === undefined) n.originalDecision = !!n.decision
     delete n.nodeRole
     n.decision = type === 'decision'
@@ -65,80 +63,16 @@ function applyEditor() {
           owner.frameMembers = owner.frameMembers.filter((k) => k !== id)
     }
   }
-  n.type = type
-  n.content = [...$('content-editor').children].map((row) => {
-    const c = { ...row._block, value: row.querySelector('.block-value').value }
-    if (c.type === 'code') {
-      c.label = row.querySelector('.block-label').value
-      const options = row
-        .querySelector('.block-options')
-        .value.split('\n')
-        .map((x) => x.trim())
-        .filter(Boolean)
-      if (options.length) {
-        c.radio = options
-        c['radio-default'] = row.querySelector('.block-default').value.trim() || options[0]
-      } else {
-        delete c.radio
-        delete c['radio-default']
-      }
-    }
-    return c
-  })
+  if (nodeForm.adding || differs('content'))
+    n.content = [...$('content-editor').children].map(savedBlock)
   if (nodeForm.adding && nodeForm.parent && sheetFor(nodeForm.parent) !== 'project') {
     n.sheetId = sheetFor(nodeForm.parent)
     n.sourceKind = 'subflow'
   }
   graph.nodes[id] = n
-  graph.edges = graph.edges.filter((e) => e.from !== id || e.kind === 'spine')
-  for (const row of $('edge-editor').children) {
-    const e = {
-      ...row._edge,
-      from: id,
-      to: row.querySelector('.edge-target').value,
-      kind: row.querySelector('.edge-kind').value,
-      label: row.querySelector('.edge-condition').value.trim(),
-    }
-    if (row._edge.label !== e.label || row._edge.to !== e.to || row._edge.kind !== e.kind) {
-      if (e.sourceAnnotationIds) {
-        e.originalSourceAnnotationIds = e.sourceAnnotationIds
-        delete e.sourceAnnotationIds
-      }
-      e.labelStatus = 'user_edited'
-    }
-    if (e.to === '$caller')
-      e.fallback = row
-        .querySelector('.edge-fallback')
-        .value.split(',')
-        .map((x) => x.trim())
-        .filter(Boolean)
-    else delete e.fallback
-    graph.edges.push(e)
-  }
-  if (nodeForm.adding && nodeForm.parent)
-    graph.edges.push({ from: nodeForm.parent, to: id, label: '', kind: 'next', dashed: false })
-  for (const row of $('added-incoming').children)
-    graph.edges.push({
-      from: row.querySelector('select').value,
-      to: id,
-      label: row.querySelector('.incoming-condition').value.trim(),
-      kind: 'next',
-      dashed: false,
-    })
-  for (const r of graph.review || []) {
-    if (!r.resolved) continue
-    const edge = r.resolution.added
-      ? graph.edges.find((e) => e.reviewedConnectorId === r.id)
-      : graph.edges.find((e) => e.from === r.resolution.from && e.to === r.resolution.to)
-    if (edge) {
-      r.resolution.from = edge.from
-      r.resolution.to = edge.to
-    } else {
-      r.resolved = false
-      delete r.resolution
-    }
-  }
-  replaceGraph(graph)
+  if (differs('edges') || after.incoming.length || nodeForm.parent)
+    applyEdgeEdits(graph, id, after, nodeForm.parent)
+  if (JSON.stringify(graph) !== JSON.stringify(graphModel.document)) replaceGraph(graph)
   draftApplied()
   go(id)
   return id

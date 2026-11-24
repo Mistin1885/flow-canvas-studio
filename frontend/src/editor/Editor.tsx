@@ -35,7 +35,7 @@ export default function Editor({
   const [importResult, setImportResult] = useState('')
   const [exportError, setExportError] = useState('')
   const [importBase, setImportBase] = useState<Snapshot | null>(null)
-  const { canvasName, remoteRev, status, issue, draft, busy, current, actions, fork, download } = useCanvasSession(
+  const { canvasName, remoteRev, status, issue, draft, busy, ready, current, actions, fork, download } = useCanvasSession(
     canvas,
     identity,
     frame,
@@ -102,11 +102,11 @@ export default function Editor({
             <Activity size={14} />
             {status}
           </span>
-          <button disabled={!current.current || !!draft} onClick={()=>setActivity(true)}>變更紀錄</button>
+          <button disabled={!ready || !!draft} onClick={()=>setActivity(true)}>變更紀錄</button>
           {Overview && (
             <button
               onClick={() => current.current && setMap({graph:current.current.graph,rev:current.current.canvas.rev})}
-              disabled={busy || !!draft}
+              disabled={!ready || busy || !!draft}
             >
               <GitFork size={15} />
               節點總覽

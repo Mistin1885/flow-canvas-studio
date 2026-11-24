@@ -16,6 +16,7 @@ export function useCanvasSession(
   const [draft, setDraft] = useState<Draft | null>(null)
   const [canvasName, setCanvasName] = useState(canvas.name)
   const [remoteRev, setRemoteRev] = useState(0)
+  const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const current = useRef<Snapshot | null>(null)
   const recovered = useRef<Draft | null>(null)
@@ -40,11 +41,13 @@ export function useCanvasSession(
       if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ editing: node }))
     })
     current.current = null
+    setReady(false)
     editor.configureDrafts({user:identity,canvas:canvas.id,snapshot:()=>current.current,restore:(snap)=>{
       if(!active)return
       wanted=Math.max(wanted,current.current?.canvas.rev || 0)
       editor.receive(snap.graph)
       current.current=snap
+      setReady(true)
     }})
     function keep(value: Draft | null) {
       recovered.current = value
@@ -73,6 +76,7 @@ export function useCanvasSession(
         if (current.current && snap.canvas.rev <= current.current.canvas.rev) return
         editor.receive(snap.graph)
         current.current = snap
+        setReady(true)
         setCanvasName(snap.canvas.name)
         win.document.body.inert = false
         setIssue('')
@@ -198,6 +202,7 @@ export function useCanvasSession(
       discard: () => {
         keep(null)
         current.current = null
+        setReady(false)
         void refresh()
       },
     }
@@ -259,5 +264,5 @@ export function useCanvasSession(
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  return { canvasName, remoteRev, status, issue, draft, busy, current, actions, fork, download }
+  return { canvasName, remoteRev, status, issue, draft, busy, ready, current, actions, fork, download }
 }

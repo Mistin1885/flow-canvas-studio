@@ -29,17 +29,22 @@ export function showNodeFields(n) {
     $('custom-values').append(label)
   }
 }
-export function readNodeFields(n) {
+export function readNodeFields(n, before) {
   for (const [key,id] of [['ownerRole','node-role'],['gatewayRule','node-gateway']]) {
+    if (before?.fields[id] === $(id).value) continue
     const value = $(id).value.trim()
     if (value) n[key] = value
     else delete n[key]
   }
   const values = { ...n.fieldValues }
+  let changed = false
   for (const input of $('custom-values').querySelectorAll('[data-field]')) {
+    if (before?.values[input.dataset.field] === input.value) continue
+    changed = true
     if (input.value === '') delete values[input.dataset.field]
     else values[input.dataset.field] = input.type === 'number' ? Number(input.value) : input.value
   }
+  if (!changed) return
   if (Object.keys(values).length) n.fieldValues = values
   else delete n.fieldValues
 }

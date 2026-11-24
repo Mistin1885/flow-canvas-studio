@@ -22,9 +22,10 @@ function editorField(tag, label, value, cls) {
   return { wrap, field }
 }
 
-function appendContentBlock(block) {
+function appendContentBlock(block, sourceIndex = null) {
   const row = el('section', 'editor-block')
   row._block = cloneGraph(block)
+  row._sourceIndex = sourceIndex
   const head = el('div', 'block-head')
   head.append(el('strong', '', block.type === 'code' ? '指令' : '說明'))
   for (const [name, action] of [
@@ -191,7 +192,7 @@ function populateEditor(id, add = false) {
   $('node-type').replaceChildren(...Object.entries(nodeTypes).map(([key, name]) => new Option(name, key)))
   $('node-type').value = add && id && sheetFor(id) !== 'project' ? 'shared' : effectiveType(n)
   $('content-editor').replaceChildren()
-  n.content.forEach(appendContentBlock)
+  n.content.forEach((block, index) => appendContentBlock(block, index))
   $('edge-editor').replaceChildren()
   if (!add) (outgoing.get(id) || []).filter((e) => e.kind !== 'spine').forEach(appendEditorEdge)
   setupGroups(n)
