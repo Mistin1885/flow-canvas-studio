@@ -31,7 +31,7 @@ class Recovery(unittest.TestCase):
         self.ws = self.http.get("/api/catalog").json()["workspaces"][0]["id"]
         self.canvas = self.http.post(f"/api/workspaces/{self.ws}/canvases", json={"name": "A"}).json()["id"]
         self.path = "/api/canvases/" + self.canvas
-        self.assertTrue(self.http.get("/api/session").json()["admin"])
+        self.assertTrue(self.http.post("/api/session/login").json()["admin"])
 
     def rename(self, before, after):
         res = self.http.patch(self.path, json={"name": after, "previous": before})
@@ -81,7 +81,7 @@ class Recovery(unittest.TestCase):
 
         with patch("backend.main.authenticate", side_effect=verified):
             for subject, expected in [("first", True), ("second", False), ("first", True)]:
-                self.assertEqual(self.http.get("/api/session", headers={"test-subject": subject}).json()["admin"], expected)
+                self.assertEqual(self.http.post("/api/session/login", headers={"test-subject": subject}).json()["admin"], expected)
                 self.assertEqual(self.http.get("/api/admin/backups", headers={"test-subject": subject}).status_code,
                                  200 if expected else 403)
         self.assertFalse(self.http.get("/api/session").json()["admin"])

@@ -46,3 +46,6 @@
 .backupTable button {
   white-space: nowrap;
 }
+
+.scanSummary { padding: 1rem; margin: 1rem 0; border: 1px solid currentColor; border-radius: .5rem; }
+.scanSummary p { margin: .4rem 0 0; overflow-wrap: anywhere; }

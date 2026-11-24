@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { api, differences, records, errorText, type Canvas, type Graph, type Snapshot } from '../api'
 import type { Workbench } from './WorkbenchWindow'
+import { nodePresence } from './nodePresence'
 import type { Draft } from './draftMerge'
 
 export function useCanvasSession(
@@ -35,6 +36,9 @@ export function useCanvasSession(
       wanted = 0
     let socket: WebSocket | undefined, timer: number | undefined, retryTimer: number | undefined
 
+    const presence = nodePresence(win, node => {
+      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ editing: node }))
+    })
     current.current = null
     editor.configureDrafts({user:identity,canvas:canvas.id,snapshot:()=>current.current,restore:(snap)=>{
       if(!active)return
@@ -100,6 +104,7 @@ export function useCanvasSession(
       statusText()
       try {
         const result = await api<{ rev: number }>('canvases/' + canvas.id + '/changes', 'POST', {
+          operation_id: item.operation_id,
           base: item.base,
           ops: item.ops,
         })
@@ -139,7 +144,7 @@ export function useCanvasSession(
         return
       }
       const originals = records(previous)
-      const item = { graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
+      const item = { operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
       keep(item)
       void save(item)
     }
@@ -148,9 +153,11 @@ export function useCanvasSession(
       const url = new URL('/api/canvases/' + canvas.id + '/live', location.href)
       url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
       socket = new WebSocket(url)
+      socket.onopen = () => presence.connected()
       socket.onmessage = (event) => {
         if (!active) return
         const msg = JSON.parse(event.data)
+        if (Array.isArray(msg.editors)) presence.receive(msg.editing, msg.editors)
         if (msg.rev) {
           setRemoteRev((rev) => Math.max(rev, msg.rev))
           wanted = Math.max(wanted, msg.rev)
@@ -162,6 +169,7 @@ export function useCanvasSession(
       socket.onclose = () => {
         if (!active) return
         connected = false
+        presence.clear()
         statusText()
         timer = window.setTimeout(connect, 1800)
       }
@@ -169,7 +177,9 @@ export function useCanvasSession(
     try {
       const raw = sessionStorage.getItem(cacheKey)
       if (raw) {
-        keep(JSON.parse(raw))
+        const item = JSON.parse(raw)
+        item.operation_id ??= crypto.randomUUID()
+        keep(item)
         setIssue('已找回此分頁上次尚未確認儲存的草稿')
       }
     } catch {
@@ -211,6 +221,7 @@ export function useCanvasSession(
       active = false
       clearTimeout(timer)
       clearTimeout(retryTimer)
+      presence.close()
       socket?.close()
       win.removeEventListener('studio-change', change)
       win.document.removeEventListener('close', resume, true)

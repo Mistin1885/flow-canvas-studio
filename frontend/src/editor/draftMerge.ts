@@ -1,7 +1,7 @@
 import { records, type Graph, type Snapshot, type NodeData, differences } from '../api'
 import { compare, resolve, signature, type Choices } from '../import/merge'
 
-export type Draft = { graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
+export type Draft = { operation_id?: string; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
 type Question = { token: string; label: string; mine: unknown; team: unknown }
 type Fields = Record<string, unknown>
 

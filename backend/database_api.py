@@ -3,14 +3,14 @@
 from contextlib import asynccontextmanager
 import sqlite3
 from typing import Any, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 from urllib.parse import unquote
 
 from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
-from . import activity, storage as store
+from . import activity, operations, storage as store
 from .admin_api import router as admin_router
 from .snapshot_schedule import scheduler
 
@@ -68,6 +68,7 @@ class Operation(BaseModel):
 
 
 class Batch(BaseModel):
+    operation_id: UUID | None = None
     strict: bool = False
     base: int = Field(ge=1)
     ops: list[Operation] = Field(min_length=1, max_length=4000)
@@ -129,36 +130,57 @@ def read(canvas: str):
         return store.snapshot(db, canvas)
 
 
-@app.post("/api/canvases/{canvas}/changes")
-def changes(canvas: str, body: Batch, x_flow_editor: str = Header()):
+def write_batch(canvas, body, editor, principal, route):
     with store.session(True) as db:
-        if body.strict and store.required(db, "canvases", canvas)["rev"] != body.base:
-            raise store.Conflict("團隊版本已更新，請確認最新比對")
-        rev = store.commit(
-            db, canvas, body.base, [op.model_dump() for op in body.ops], unquote(x_flow_editor)
-        )
-    return {"rev": rev}
+        operation = str(body.operation_id) if body.operation_id else None
+        if operation:
+            key = (canvas, principal, operation)
+            digest = operations.fingerprint(route, body)
+            receipt = db.execute("SELECT digest,revision FROM edit_receipts WHERE canvas=? AND principal=? AND operation=?", key).fetchone()
+            if receipt:
+                if receipt["digest"] != digest:
+                    raise store.Conflict("儲存識別碼已用於另一項修改")
+                return {"rev": receipt["revision"]}
+        if route == "imports":
+            result = commit_import(db, canvas, body, editor)
+            if isinstance(result, Response):
+                return result
+            rev = result["rev"]
+        else:
+            if body.strict and store.required(db, "canvases", canvas)["rev"] != body.base:
+                raise store.Conflict("團隊版本已更新，請確認最新比對")
+            rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor)
+        if operation:
+            db.execute("INSERT INTO edit_receipts VALUES(?,?,?,?,?)", (*key, digest, rev))
+        return {"rev": rev}
+
+
+@app.post("/api/canvases/{canvas}/changes")
+def changes(canvas: str, body: Batch, x_flow_editor: str = Header(), x_flow_principal: str = Header()):
+    return write_batch(canvas, body, unquote(x_flow_editor), x_flow_principal, "changes")
 
 
 @app.post("/api/canvases/{canvas}/imports")
-def apply_import(canvas: str, body: Batch, x_flow_editor: str = Header()):
-    editor = unquote(x_flow_editor)
-    with store.session(True) as db:
-        before = store.snapshot(db, canvas)
-        if before["canvas"]["rev"] != body.base:
-            return JSONResponse({"detail": "預覽後畫布已有更新"}, status_code=412)
-        # Never let a cascade remove a connection the reviewer did not see.
-        removed_nodes = {op.key for op in body.ops if op.table == "nodes" and op.remove}
-        removed_edges = {op.key for op in body.ops if op.table == "edges" and op.remove}
-        for edge in before["graph"]["edges"]:
-            loses_endpoint = edge["from"] in removed_nodes or edge["to"] in removed_nodes
-            if loses_endpoint and store.edge_key(edge) not in removed_edges:
-                raise store.Invalid("請確認與移除節點相連的每一條連線")
-        rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor, kind="imported")
-        db.execute(
-            "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(?,?,?,?,?)",
-            (canvas, body.base, store.now(), editor, store.encode(before["graph"])),
-        )
+def apply_import(canvas: str, body: Batch, x_flow_editor: str = Header(), x_flow_principal: str = Header()):
+    return write_batch(canvas, body, unquote(x_flow_editor), x_flow_principal, "imports")
+
+
+def commit_import(db, canvas, body, editor):
+    before = store.snapshot(db, canvas)
+    if before["canvas"]["rev"] != body.base:
+        return JSONResponse({"detail": "預覽後畫布已有更新"}, status_code=412)
+    # Never let a cascade remove a connection the reviewer did not see.
+    removed_nodes = {op.key for op in body.ops if op.table == "nodes" and op.remove}
+    removed_edges = {op.key for op in body.ops if op.table == "edges" and op.remove}
+    for edge in before["graph"]["edges"]:
+        loses_endpoint = edge["from"] in removed_nodes or edge["to"] in removed_nodes
+        if loses_endpoint and store.edge_key(edge) not in removed_edges:
+            raise store.Invalid("請確認與移除節點相連的每一條連線")
+    rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor, kind="imported")
+    db.execute(
+        "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(?,?,?,?,?)",
+        (canvas, body.base, store.now(), editor, store.encode(before["graph"])),
+    )
     return {"rev": rev}
 
 

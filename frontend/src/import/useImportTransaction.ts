@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiError, errorText, type Graph, type Snapshot } from '../api'
 import { compare, resolve, type Choices } from './merge'
 import type { Origin } from './provenance'
+import { useBatchId } from '../editor/useBatchId'
 import { validate } from './file'
 
 export function useImportTransaction(
@@ -12,6 +13,7 @@ export function useImportTransaction(
   const [latest, setLatest] = useState(base)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const identify = useBatchId()
   const path = 'canvases/' + base.canvas.id
   useEffect(() => {
     let active = true
@@ -42,10 +44,10 @@ export function useImportTransaction(
           return
         }
         try {
-          const result = await api<{ rev: number }>(path + '/imports', 'POST', {
+          const result = await api<{ rev: number }>(path + '/imports', 'POST', identify({
             base: snapshot.canvas.rev,
             ops: next.ops,
-          })
+          }))
           applied(result.rev, next.ops.length)
           return
         } catch (e) {

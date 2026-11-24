@@ -9,7 +9,7 @@ import re
 import sqlite3
 from uuid import uuid4
 
-from . import activity
+from . import activity, operations
 from .snapshot_schema import MIGRATION
 
 
@@ -103,7 +103,7 @@ def initialize():
                 PRIMARY KEY(canvas,revision)
             );
             PRAGMA user_version=2;
-        """, MIGRATION, activity.MIGRATION)
+        """, MIGRATION, activity.MIGRATION, operations.MIGRATION)
         if version > len(migrations):
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
         # Keep the version check and schema changes in one write transaction.

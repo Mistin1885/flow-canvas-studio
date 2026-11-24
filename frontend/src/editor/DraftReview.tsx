@@ -2,6 +2,7 @@ import { useState,useEffect,useRef } from 'react'
 import { api, ApiError, errorText, type Snapshot } from '../api'
 import { type Choices } from '../import/merge'
 import { validate } from '../import/file'
+import { useBatchId } from './useBatchId'
 import { draftPlan,type Draft } from './draftMerge'
 
 function readable(value:unknown) {
@@ -9,6 +10,7 @@ function readable(value:unknown) {
   return typeof value==='string'?value:JSON.stringify(value,null,2)
 }
 export function DraftReview({canvas,draft,revision,done,close}:{canvas:string;draft:Draft;revision:number;done:()=>void;close:()=>void}){
+  const identify = useBatchId()
   const ref=useRef<HTMLDialogElement>(null)
   const [latest,setLatest]=useState<Snapshot|null>(null),[choices,setChoices]=useState<Choices>({})
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[retry,setRetry]=useState(0)
@@ -24,7 +26,7 @@ export function DraftReview({canvas,draft,revision,done,close}:{canvas:string;dr
     setBusy(true);setError('')
     try {
       validate(plan.graph)
-      if(plan.ops.length) await api('canvases/'+canvas+'/changes','POST',{base:latest.canvas.rev,ops:plan.ops,strict:true})
+      if(plan.ops.length) await api('canvases/'+canvas+'/changes','POST',identify({base:latest.canvas.rev,ops:plan.ops,strict:true}))
       else {
         const current = await api<Snapshot>('canvases/' + canvas)
         if (current.canvas.rev !== latest.canvas.rev) {

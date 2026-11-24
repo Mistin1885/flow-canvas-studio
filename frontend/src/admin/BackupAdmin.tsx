@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, errorText, type Session } from '../api'
 import { DisplayControls } from '../display/DisplayControls'
 import { useDisplayPreferences } from '../display/useDisplayPreferences'
+import { ScanSummary, type ScanStatus } from './ScanSummary'
 import './backups.css'
 
 type Point = {
@@ -20,6 +21,7 @@ const date = (stamp: string) => new Date(stamp).toLocaleString('zh-TW', { hour12
 export default function BackupAdmin() {
   const [storageKey, setStorageKey] = useState('')
   const display = useDisplayPreferences(storageKey)
+  const [scan, setScan] = useState<ScanStatus | null>(null)
   const [points, setPoints] = useState<Point[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
@@ -31,8 +33,9 @@ export default function BackupAdmin() {
   const refresh = useCallback(async () => {
     const request = ++sequence.current
     try {
-      const rows = await api<Point[]>('admin/backups')
+      const [rows, status] = await Promise.all([api<Point[]>('admin/backups'), api<ScanStatus>('admin/backup-status')])
       if (sequence.current === request) {
+        setScan(status)
         setPoints(rows)
         setReady(true)
         setError('')
@@ -45,10 +48,9 @@ export default function BackupAdmin() {
     }
   }, [])
   useEffect(() => {
-    void api<Session>('session')
-      .then((s) => setStorageKey(s.storage_key))
+    void api<Session>('session/login', 'POST')
+      .then((s) => { setStorageKey(s.storage_key); return refresh() })
       .catch((e) => setError(errorText(e)))
-    void refresh()
     const timer = window.setInterval(refresh, 60000)
     return () => {
       clearInterval(timer)
@@ -91,6 +93,7 @@ export default function BackupAdmin() {
           </button>
         </div>
         <p>每 15 分鐘檢查更新，保留最近 7 天的備份。時間依此裝置的時區顯示。</p>
+        {ready && scan && <ScanSummary scan={scan} />}
         {error && <p role="alert">{error}</p>}
         {message && <p role="status">{message}</p>}
         {ready && points.length > 0 ? (

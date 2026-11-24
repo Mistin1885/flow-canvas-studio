@@ -19,6 +19,13 @@ def owns(db, user):
     return row is not None and row[0] == user[1]
 
 
+@router.get("/identity/session")
+def session(user=Depends(identity)):
+    with storage.session() as db:
+        row = db.execute("SELECT realm FROM admin_owner").fetchone()
+        return {"admin": owns(db, user), "first_login": row is None or (row[0] == "local" and user[0] == "cloudflare")}
+
+
 @router.post("/identity/login")
 def login(user=Depends(identity)):
     with storage.session(True) as db:
@@ -39,6 +46,12 @@ def require_admin(user=Depends(identity)):
 def backups():
     with storage.session() as db:
         return snapshots.listing(db)
+
+
+@router.get("/api/admin/backup-status", dependencies=[Depends(require_admin)])
+def backup_status():
+    with storage.session() as db:
+        return dict(db.execute("SELECT attempted,succeeded,failed,state,captured,error FROM scan_status").fetchone())
 
 
 class Expected(BaseModel):

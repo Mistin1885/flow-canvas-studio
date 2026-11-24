@@ -200,6 +200,7 @@ function populateEditor(id, add = false) {
   $('editor-main-note').textContent = ''
   $('editor-error').textContent = ''
   $('new-node').hidden = add
+  window.dispatchEvent(new Event('studio-edit-target'))
   draftOpened()
 }
 

@@ -67,7 +67,7 @@ def mark_head(db, kind, key, updated, rev, point):
         VALUES(?,?,?,?,?)""", (kind, key, updated, rev, point))
 
 
-def scan(instant=None):
+def scan(instant=None, *, scheduled=False):
     clock = instant or datetime.now(timezone.utc)
     timestamp = times(clock)[0]
     with store.session(True) as db:
@@ -83,7 +83,10 @@ def scan(instant=None):
     for kind, key in changed:
         # Re-read under the write lock. Release between items so editors can interleave.
         with store.session(True) as db:
+            writes_before = db.total_changes
             capture(db, kind, store.required(db, TABLE[kind], key), instant or datetime.now(timezone.utc))
+            if scheduled and db.total_changes > writes_before:
+                db.execute("UPDATE scan_status SET captured=captured+1 WHERE id=1")
     collect_files(clock)
 
 

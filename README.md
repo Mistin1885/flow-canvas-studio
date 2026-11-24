@@ -155,7 +155,9 @@ If Access omits both the GitHub ID and login, an operator can set `FLOW_GITHUB_I
 
 The database service scans on startup and every 15 minutes while running. The first scan records existing items. Subsequent scans compare workspace update times and canvas update times and revisions. Creating or renaming an item, editing its graph, and applying an import are captured at the next scan. Multiple edits between scans produce one point. A workspace point preserves its name and identity. Each canvas has its own timeline including its name, graph and workspace ID.
 
-Open **備份管理** or visit `/admin` to list active points and restore a selected item. The first user to sign in after installing this feature owns the page and management API. In loopback development, a persistent HTTP-only browser cookie identifies the first browser profile. Clearing it removes that browser's access. When switching to Cloudflare Access, the first verified Access login takes ownership from the development profile. Ownership then follows the Access issuer and subject across devices and restarts. Further logins, including local profiles, cannot claim ownership. Host operators retain CLI access.
+Open **備份管理** or visit `/admin` to list active points and restore a selected item. The first authenticated browser to open the app completes a session login and owns the page and management API. The browser sends `POST /api/session/login` automatically. HTTP GET requests to the homepage, the admin shell, or `/api/session` do not register an owner. Monitor the minimal `GET /healthz` endpoint for web and database readiness (200 or 503). In loopback development, a persistent HTTP-only browser cookie identifies the first browser profile. Clearing it removes that browser's access. When switching to Cloudflare Access, the first verified Access login takes ownership from the development profile. Ownership then follows the Access issuer and subject across devices and restarts. Further logins, including local profiles, cannot claim ownership. Host operators retain CLI access.
+
+The admin page displays the last scheduled attempt, last successful and failed checks, failure reason, and number of snapshots actually committed in the current or last run. A successful check with zero changes is visible. The status survives restarts. The page refreshes every minute and flags attempts older than 20 minutes. Manual CLI scans do not change scheduled health.
 
 Restoring B in an A → B → C timeline keeps A and B visible. C and any newer unsnapshotted edits become cold archives. A subsequent edit creates a new point on the active timeline. A canvas restore preserves its ID and advances its live revision so connected editors can synchronize. A workspace restore changes only its name. If the item changes during confirmation, refresh and review the restore again.
 
@@ -185,17 +187,46 @@ gzip -dc "/path/to/data/backups/ARCHIVE.json.gz" | jq '.graph' > recovered-canva
 
 ## Back up or move to another machine
 
-Create a consistent online snapshot from the database container. It includes committed WAL changes and preserves workspace IDs, canvas IDs, revisions and imported assets.
+A migration bundle contains a consistent SQLite database, all indexed active and cold recovery files, and a SHA-256 manifest. Creation pins one database revision and its recovery files together. Edits can continue while the ZIP is written. For a final cutover, pause editing before creating the last bundle.
+
+**Docker on the source host** (run from the repo root with your deployment environment):
 
 ```bash
-snapshot="backup-$(date +%Y%m%d-%H%M%S).sqlite3"
-docker compose -f deploy/docker/docker-compose.yml exec -T database \
-  python -m backend.backup "/data/$snapshot"
+archive="flow-$(date -u +%Y%m%dT%H%M%SZ).zip"
+docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.bundle create "/data/$archive"
+docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.bundle verify "/data/$archive"
 ```
 
-The snapshot appears in the host data directory. For a complete migration, stop the services and copy the **entire data directory**, including `backups/` and any SQLite sidecars, separately from the repo. On the destination, point `FLOW_DATA_DIR` at that directory and start Compose. Restore the Access and Tunnel configuration separately if using a public hostname.
+Copy the ZIP from the host data directory to the destination. Clone the matching application version there. The following commands assume the ZIP is in the current directory. Set `archive` to its filename and use a new destination data directory. The mount used for restoration must be writable by the configured database UID.
 
-For a database-only migration, pause editing and take a final online snapshot with the command above. Copy it into a fresh data directory as `studio.sqlite3`. This preserves the current canvases, owners and backup catalog. Restoring a historical catalog entry also requires its corresponding gzip file. Keep an off-machine copy of the data directory to recover from loss of the host disk.
+```bash
+archive=flow-YYYYMMDDTHHMMSSZ.zip
+mkdir -p ../flow-migration
+docker compose -f deploy/docker/docker-compose.yml build database
+FLOW_DATA_DIR="$(realpath ../flow-migration)" docker compose -f deploy/docker/docker-compose.yml run --rm --no-deps \
+  -v "$(realpath "$archive"):/incoming.zip:ro" \
+  database python -m backend.bundle restore /incoming.zip /data/data
+export FLOW_DATA_DIR="$(realpath ../flow-migration/data)"
+docker compose -f deploy/docker/docker-compose.yml up -d --build
+```
+
+Keep the deployment environment and Cloudflare Tunnel configuration separately.
+
+**Native CLI** (or any machine with the repo and Python 3.12):
+
+```bash
+FLOW_DATA_DIR=/path/to/live-data python3 -m backend.bundle create /path/to/migration.zip
+python3 -m backend.bundle verify /path/to/migration.zip
+python3 -m backend.bundle restore /path/to/migration.zip /path/to/new-data
+```
+
+Verify performs a full rehearsal in a temporary directory. Restore performs the same checks before publishing into a new or empty directory. Both check file hashes, gzip integrity, SQLite integrity and foreign keys, the archive catalog, and workspace, canvas, active and cold backup counts. Allow disk space for the extracted bundle. The original seven-day expiry dates carry over. The existing `python -m backend.backup /path/to/new.sqlite3` command remains available for a database-only copy.
+
+## Collaborative editing
+
+Each saved edit batch carries an operation ID. If a response is lost, retrying the same batch returns its original committed revision, including after a restart. Receipts contain the request digest and revision and are stored with the canvas data. A changed payload must use a new operation ID.
+
+Opening an existing node form announces that node over the canvas's existing WebSocket. Editors of the same node see each other's verified display names. Closing the form, switching nodes, or disconnecting clears the hint. Presence lives in memory and does not acquire an edit lock.
 
 ## Native development
 

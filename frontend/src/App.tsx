@@ -55,7 +55,7 @@ export default function App() {
   }, [])
   useEffect(() => {
     const report = (e: unknown) => setError(errorText(e))
-    void api<Session>('session')
+    void api<Session>('session/login', 'POST')
       .then(setSession)
       .catch(report)
     void refresh().catch(report)
