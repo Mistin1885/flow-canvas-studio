@@ -76,9 +76,12 @@ export function CanvasCollection({
         >
           <Pencil size={15} />
         </button>
-        <button className="primary createCanvas" onClick={() => form('canvas')}>
-          <Plus size={17} /> 建立畫布
-        </button>
+        <div className="canvasActions">
+          <button onClick={() => form('import')}>從 JSON 建立</button>
+          <button className="primary" onClick={() => form('canvas')}>
+            <Plus size={17} /> 建立畫布
+          </button>
+        </div>
       </section>
       <div className="collectionHeading">
         <h2>

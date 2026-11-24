@@ -29,6 +29,10 @@ function bindExports() {
   window.T1Workbench = { saveHtml: saveWorkspaceHtml, snapshot: snapshotWorkspace }
   $('workspace-save').onclick = saveWorkspaceHtml
   $('debug-export').onclick = () => {
+    if (studioFrame) {
+      const event = new CustomEvent('studio-export', { cancelable: true })
+      if (!window.dispatchEvent(event)) return
+    }
     downloadFile(safeData(exportGraph()), 'dfx-project-flow.json', 'application/json;charset=utf-8')
     say('已匯出節點詳情與完整流程連線')
   }

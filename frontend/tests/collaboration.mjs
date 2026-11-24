@@ -8,6 +8,8 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { chromium, expect } from '@playwright/test'
 
+import { verifyImport } from './import-review.mjs'
+
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const data = await mkdtemp(join(tmpdir(), 'flow-canvas-e2e-'))
 const server = spawn(
@@ -80,6 +82,7 @@ try {
   await page.getByRole('button', { name: '套用變更' }).click()
   await expect(page.locator('.node-title').first()).toHaveText('離線編輯')
   await offline.close()
+  await verifyImport(alice, bob, origin)
   console.log('Standalone HTML reopened and edited offline.')
   console.log('Two-browser sync, draft recovery after reload, and independent fork passed.')
 } finally {

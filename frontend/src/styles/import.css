@@ -1,0 +1,121 @@
+.importDialog {
+  background: var(--surface);
+  width: min(790px, 95vw);
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+.importDialog h3,
+.importDialog p,
+.importDiff summary {
+  overflow-wrap: anywhere;
+}
+.importDialog > p,
+.importRows small {
+  color: var(--muted);
+}
+.importDialog fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.importDialog label {
+  margin-top: 8px;
+}
+.importHistory {
+  margin: 14px 0;
+}
+.importHistory div,
+.importChoices {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.importHistory div {
+  margin: 8px 0;
+}
+.importDialog summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.importRows {
+  display: grid;
+  gap: 10px;
+}
+.importRows section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.importRows section.conflict {
+  border-inline-start: 4px solid light-dark(#ac6420, #e8a65e);
+}
+.importRows section > small {
+  display: block;
+}
+.importChoices {
+  margin-top: 7px;
+}
+.importChoices button[aria-pressed='true'] {
+  background: var(--soft);
+  border-color: var(--green);
+  font-weight: 700;
+}
+.importChoices button[aria-pressed='true']::before {
+  content: '✓';
+}
+.importColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.importColumns > div {
+  background: var(--soft);
+  border-radius: 5px;
+  padding: 8px;
+  min-width: 0;
+}
+.importColumns pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 12rem;
+  overflow-y: auto;
+  margin: 3px 0 8px;
+}
+.importDialog .teamToggle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.teamToggle input {
+  width: auto;
+}
+.importDialog footer {
+  position: sticky;
+  bottom: -23px;
+  background: var(--surface);
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 540px) {
+  .importColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.importResult {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  margin: 0;
+  padding: 9px 16px;
+  color: var(--ink);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  pointer-events: none;
+}

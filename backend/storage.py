@@ -87,7 +87,19 @@ def initialize():
         version = db.execute("PRAGMA user_version").fetchone()[0]
         if version == 0:
             db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + "COMMIT;")
-        elif version != 1:
+            version = 1
+        if version == 1:
+            db.executescript('''
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS import_history(
+                    canvas TEXT NOT NULL REFERENCES canvases(id), revision INTEGER NOT NULL,
+                    created TEXT NOT NULL, editor TEXT NOT NULL, graph TEXT NOT NULL,
+                    PRIMARY KEY(canvas,revision)
+                );
+                PRAGMA user_version=2;
+                COMMIT;
+            ''')
+        elif version != 2:
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
 
 

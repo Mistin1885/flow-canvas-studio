@@ -6,6 +6,14 @@ Flow Canvas Studio is a self-hosted flowchart editor for teams. Create workspace
 - **Collaborate on a canvas.** Changes are saved per node or edge and announced to other editors after the database transaction commits. If two people change the same item, the second editor can recover their draft or save it as a separate canvas.
 - **Personalize the display.** Theme, reading size and cursor effects follow the signed-in user across workspaces and canvases in the same browser.
 
+## Updating a canvas from JSON
+
+In a workspace, **從 JSON 建立** creates an independent canvas from a workflow file. Inside an existing canvas, open **工具 → 從 JSON 更新** to preview additions, edits and removals. Expand an item to see the team and file values. JSON exported from this canvas over HTTPS or localhost includes its revision and per-item fingerprints. This lets the preview distinguish offline edits from changes made by teammates since export. For older files or files from another canvas, the comparison starts with the canvas you opened for review. Check the listed removals before applying.
+
+Teammates can keep editing during review. Unrelated edits are kept automatically. If a teammate changes the same item or adds a connection to a node marked for deletion, the preview asks you to choose **保留團隊版本** or **採用 JSON**. Related nodes and connections are reviewed together. A new edit to an already reviewed conflict reopens that choice. Apply the finished selection in one transaction.
+
+Every successful update saves the previous graph in SQLite. From **匯入前的版本**, compare a saved version against the current canvas or open it as an independent copy. These versions travel with the database backup.
+
 ## Architecture
 
 ```mermaid
@@ -26,6 +34,7 @@ The **web** container serves the built frontend, verifies the user's identity, a
 | Path | Responsibility |
 | --- | --- |
 | `frontend/src/catalog/` | Workspace and canvas catalog, creation, renaming and duplication |
+| `frontend/src/import/` | JSON file validation, live change comparison, conflict resolution and import history |
 | `frontend/src/editor/`, `frontend/src/display/` | Canvas session, draft recovery, graph overview and personal display preferences |
 | `frontend/workbench/markup/`, `frontend/workbench/styles/` | Workbench interface fragments and feature stylesheets |
 | `frontend/workbench/` | JavaScript modules for graph validation, editing, layout, rendering, import and export |

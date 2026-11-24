@@ -1,3 +1,4 @@
+import { studioFrame } from '../display/preferences.js'
 import { $, el } from '../ui/dom.js'
 import { replaceGraph } from '../graph/replace.js'
 import { say } from '../ui/toast.js'
@@ -14,6 +15,11 @@ importHistory.previousGraph = null
 const undoImport = el('button', '', '復原匯入')
 
 function bindImportDialog() {
+  if (studioFrame) {
+    $('debug-import').textContent = '從 JSON 更新'
+    $('debug-import').onclick = () => window.dispatchEvent(new Event('studio-import'))
+    return
+  }
   undoImport.id = 'debug-undo'
   undoImport.hidden = true
   $('debug-help').before(undoImport)

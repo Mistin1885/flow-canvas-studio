@@ -1,10 +1,9 @@
+import { unmappedTag } from './constants.js'
 import { graphModel } from '../graph/model.js'
 import { effectiveType } from '../graph/nodeTypes.js'
 import { cloneGraph } from '../graph/json.js'
 
 const legendState = {}
-
-const unmappedTag = '原圖未對應圖例'
 
 let originalNames = new Set()
 
@@ -56,10 +55,7 @@ function normalizedLegend(graph) {
       )
       if (
         canonical &&
-        (!n.group ||
-          n.group === '未分組' ||
-          n.group === 'Source notes' ||
-          /^#[0-9a-f]{6}$/i.test(n.group))
+        (!n.group || n.group === '未分組' || n.group === 'Source notes' || /^#[0-9a-f]{6}$/i.test(n.group))
       )
         n.group = canonical
       n.tags = [

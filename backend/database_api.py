@@ -7,7 +7,7 @@ from uuid import uuid4
 from urllib.parse import unquote
 
 from fastapi import FastAPI, Header
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from . import storage as store
@@ -119,6 +119,48 @@ def changes(canvas: str, body: Batch, x_flow_editor: str = Header()):
             db, canvas, body.base, [op.model_dump() for op in body.ops], unquote(x_flow_editor)
         )
     return {"rev": rev}
+
+
+@app.post("/api/canvases/{canvas}/imports")
+def apply_import(canvas: str, body: Batch, x_flow_editor: str = Header()):
+    editor = unquote(x_flow_editor)
+    with store.session(True) as db:
+        before = store.snapshot(db, canvas)
+        if before["canvas"]["rev"] != body.base:
+            return JSONResponse({"detail": "預覽後畫布已有更新"}, status_code=412)
+        # Never let a cascade remove a connection the reviewer did not see.
+        removed_nodes = {op.key for op in body.ops if op.table == "nodes" and op.remove}
+        removed_edges = {op.key for op in body.ops if op.table == "edges" and op.remove}
+        for edge in before["graph"]["edges"]:
+            loses_endpoint = edge["from"] in removed_nodes or edge["to"] in removed_nodes
+            if loses_endpoint and store.edge_key(edge) not in removed_edges:
+                raise store.Invalid("請確認與移除節點相連的每一條連線")
+        rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor)
+        db.execute(
+            "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(?,?,?,?,?)",
+            (canvas, body.base, store.now(), editor, store.encode(before["graph"])),
+        )
+    return {"rev": rev}
+
+
+@app.get("/api/canvases/{canvas}/imports")
+def import_history(canvas: str):
+    with store.session() as db:
+        store.required(db, "canvases", canvas)
+        return [dict(r) for r in db.execute(
+            "SELECT revision,created,editor FROM import_history WHERE canvas=? ORDER BY revision DESC",
+            (canvas,),
+        )]
+
+
+@app.get("/api/canvases/{canvas}/imports/{revision}")
+def before_import(canvas: str, revision: int):
+    with store.session() as db:
+        row = db.execute("SELECT graph FROM import_history WHERE canvas=? AND revision=?",
+                         (canvas, revision)).fetchone()
+        if row is None:
+            raise store.Missing(revision)
+        return Response(content=row[0], media_type="application/json")
 
 
 @app.get("/revision")

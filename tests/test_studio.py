@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 import tempfile
 import threading
 import unittest
@@ -99,6 +100,51 @@ class Studio(unittest.TestCase):
         )
         self.assertNotIn("C", self.http.get(self.path).json()["graph"]["nodes"])
         self.assertEqual(self.change(3, operation("nodes", "A", 2, remove=True)).status_code, 200)
+        self.assertEqual(self.http.get(self.path).json()["graph"]["edges"], [])
+
+    def test_import_history_upgrade_preserves_existing_canvas(self):
+        folder = Path(self.temp.name) / "old-installation"
+        folder.mkdir()
+        with patch.dict(os.environ, FLOW_DATA_DIR=str(folder)):
+            with sqlite3.connect(storage.location()) as db:
+                db.executescript(storage.SCHEMA)
+            with storage.session(True) as db:
+                workspace = db.execute("SELECT id FROM workspaces").fetchone()[0]
+                canvas = storage.create_canvas(db, workspace, "Existing canvas", "Editor")
+                storage.commit(db, canvas, 1, [operation("nodes", "A", None, node("A"))], "Editor")
+            storage.initialize()
+            storage.initialize()
+            with storage.session() as db:
+                self.assertEqual(storage.snapshot(db, canvas)["graph"]["nodes"], {"A": node("A")})
+                self.assertEqual(db.execute("SELECT count(*) FROM import_history").fetchone()[0], 0)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 2)
+
+    def test_import_precondition_recovery_and_atomicity(self):
+        self.change(1, *(operation("nodes", i, None, node(i)) for i in "AB"))
+        edge = {"from": "A", "to": "B", "kind": "next", "label": "peer"}
+        self.change(2, operation("edges", storage.edge_key(edge), None, edge))
+        before = self.http.get(self.path).json()["graph"]
+        history = self.path + "/imports"
+
+        def apply(base, *ops):
+            return self.http.post(history, json={"base": base, "ops": ops})
+
+        remove = operation("nodes", "A", 2, remove=True)
+        self.assertEqual(apply(2, remove).status_code, 412)
+        self.assertEqual(apply(3, remove).status_code, 422)
+        self.assertEqual(apply(3, operation("meta", "navigation", None, ["Z"])).status_code, 409)
+        self.assertEqual(self.http.get(history).json(), [])
+        self.assertEqual(self.http.get(self.path).json()["graph"], before)
+
+        ops = [remove, operation("edges", storage.edge_key(edge), 3, remove=True)]
+        with self.http.websocket_connect(BASE.replace("http:", "ws:") + self.path + "/live",
+                                         headers={"origin": BASE}) as peer:
+            self.assertEqual(peer.receive_json(), {"rev": 3})
+            self.assertEqual(apply(3, *ops).json(), {"rev": 4})
+            self.assertEqual(peer.receive_json(), {"rev": 4})
+        self.assertEqual(apply(3, *ops).status_code, 412)
+        self.assertEqual([r["revision"] for r in self.http.get(history).json()], [3])
+        self.assertEqual(self.http.get(history + "/3").json(), before)
         self.assertEqual(self.http.get(self.path).json()["graph"]["edges"], [])
 
     def test_backup_and_clone(self):

@@ -87,7 +87,9 @@
 .cardTitle p span {
   margin: 0 4px;
 }
-.createCanvas {
+.canvasActions {
+  display: flex;
+  gap: 8px;
   margin-left: auto;
   white-space: nowrap;
 }

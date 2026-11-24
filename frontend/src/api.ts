@@ -20,6 +20,15 @@ export type Catalog = { workspaces: Workspace[]; canvases: Canvas[] }
 export type Table = 'nodes' | 'edges' | 'meta'
 export type Snapshot = { canvas: Canvas; graph: Graph; versions: Record<Table, Record<string, number>> }
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch('/api/' + path, {
     method,
@@ -29,7 +38,8 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
   if (!response.headers.get('content-type')?.includes('application/json'))
     throw new Error('登入可能已逾期，請重新開啟網站')
   const value = await response.json()
-  if (!response.ok) throw new Error(typeof value.detail === 'string' ? value.detail : '資料格式無效')
+  if (!response.ok)
+    throw new ApiError(response.status, typeof value.detail === 'string' ? value.detail : '資料格式無效')
   return value
 }
 
@@ -37,7 +47,7 @@ export function edgeKey(e: Link) {
   return JSON.stringify([e.from, e.to, e.kind, e.label])
 }
 
-function records(graph: Graph): Record<Table, Record<string, unknown>> {
+export function records(graph: Graph): Record<Table, Record<string, unknown>> {
   const { nodes, edges, ...meta } = graph
   return { nodes, meta, edges: Object.fromEntries(edges.map((e) => [edgeKey(e), e])) }
 }

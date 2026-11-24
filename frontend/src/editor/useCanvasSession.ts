@@ -13,10 +13,11 @@ export function useCanvasSession(
   const [status, setStatus] = useState('連線中')
   const [issue, setIssue] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [remoteRev, setRemoteRev] = useState(0)
   const [busy, setBusy] = useState(false)
   const current = useRef<Snapshot | null>(null)
   const recovered = useRef<Draft | null>(null)
-  const actions = useRef({ retry: () => {}, discard: () => {} })
+  const actions = useRef({ retry: () => {}, discard: () => {}, refreshTo: (_rev: number) => {} })
   const cacheKey = 'flow-draft:' + identity + ':' + canvas.id
   useEffect(() => {
     if (!loaded) return
@@ -142,6 +143,7 @@ export function useCanvasSession(
         if (!active) return
         const msg = JSON.parse(event.data)
         if (msg.rev) {
+          setRemoteRev((rev) => Math.max(rev, msg.rev))
           wanted = Math.max(wanted, msg.rev)
           void refresh()
         }
@@ -165,6 +167,10 @@ export function useCanvasSession(
       setIssue('無法讀取本機草稿')
     }
     actions.current = {
+      refreshTo: (rev) => {
+        wanted = Math.max(wanted, rev)
+        void refresh()
+      },
       retry: () => {
         if (recovered.current) {
           void save(recovered.current)
@@ -233,5 +239,5 @@ export function useCanvasSession(
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  return { status, issue, draft, busy, current, actions, fork, download }
+  return { remoteRev, status, issue, draft, busy, current, actions, fork, download }
 }

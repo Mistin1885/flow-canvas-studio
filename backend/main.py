@@ -68,6 +68,9 @@ async def database_unavailable(request, exc):
 @app.patch("/api/canvases/{key}")
 @app.get("/api/canvases/{canvas}")
 @app.post("/api/workspaces/{workspace}/canvases")
+@app.get("/api/canvases/{canvas}/imports")
+@app.get("/api/canvases/{canvas}/imports/{revision}")
+@app.post("/api/canvases/{canvas}/imports")
 @app.post("/api/canvases/{canvas}/changes")
 async def data_request(request: Request):
     # Forward only the matched data operation and the identity verified by this server.
@@ -80,7 +83,7 @@ async def data_request(request: Request):
             "x-flow-editor": quote(request.state.user["label"], safe=""),
         },
     )
-    if response.is_success and request.url.path.endswith("/changes") and request.method == "POST":
+    if response.is_success and request.url.path.endswith(("/changes", "/imports")) and request.method == "POST":
         notify(request.path_params["canvas"], response.json()["rev"])
     return Response(content=response.content, status_code=response.status_code, media_type="application/json")
 

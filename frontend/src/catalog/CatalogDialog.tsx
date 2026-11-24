@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { X } from 'lucide-react'
 import { api, errorText, type Workspace, type Canvas } from '../api'
+import { unpackDocument } from '../import/provenance'
+import { readFile } from '../import/file'
 export type Modal = {
-  action: 'space' | 'canvas' | 'copy' | 'renameSpace' | 'renameCanvas'
+  action: 'import' | 'space' | 'canvas' | 'copy' | 'renameSpace' | 'renameCanvas'
   item?: Workspace
 }
 
@@ -28,6 +30,7 @@ export function CatalogDialog({
         ? modal.item?.name || ''
         : '',
   )
+  const [file, setFile] = useState<File | null>(null)
   const [target, setTarget] = useState(workspaceId)
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -54,6 +57,7 @@ export function CatalogDialog({
       } else {
         const result = await api<Canvas>('workspaces/' + target + '/canvases', 'POST', {
           name: clean,
+          graph: modal.action === 'import' && file ? unpackDocument(await readFile(file)).graph : undefined,
           source: modal.action === 'copy' ? modal.item?.id : undefined,
         })
         navigate = ['canvas', result.id]
@@ -68,6 +72,7 @@ export function CatalogDialog({
     }
   }
   const formTitle = {
+    import: '從 JSON 建立畫布',
     space: '建立工作區',
     canvas: '建立畫布',
     copy: '複製畫布',
@@ -96,6 +101,22 @@ export function CatalogDialog({
             <X size={18} />
           </button>
         </header>
+        {modal.action === 'import' && (
+          <label>
+            流程 JSON
+            <input
+              type="file"
+              accept=".json,application/json"
+              required
+              disabled={saving}
+              onChange={(e) => {
+                const selected = e.target.files?.[0] ?? null
+                setFile(selected)
+                if (!name && selected) setName(selected.name.replace(/\.json$/i, '').slice(0, 120))
+              }}
+            />
+          </label>
+        )}
         {modal.action === 'copy' && (
           <label>
             目的工作區
