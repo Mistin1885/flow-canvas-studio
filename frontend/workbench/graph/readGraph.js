@@ -244,6 +244,11 @@ function readGraph(value) {
   for (const n of Object.values(value.nodes))
     if (n.layoutOrder !== undefined && (!Number.isSafeInteger(n.layoutOrder) || n.layoutOrder < 0))
       bad(n.id, '拖曳順序無效')
+  for (const key of ['ownerRoleOptions', 'locationOptions']) {
+    const options = value[key]
+    if (options !== undefined && (!Array.isArray(options) || options.some(s => typeof s !== 'string' || !s.trim())))
+      bad(key, '選項必須是非空白文字')
+  }
   validateFrameData(value)
   checkNodeStyles(value.nodeStyle, '全圖', true)
   for (const g of value.layoutGroups || []) checkNodeStyles(g.nodeStyle, g.name, true)

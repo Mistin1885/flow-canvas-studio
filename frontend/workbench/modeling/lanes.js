@@ -50,7 +50,7 @@ export function bindLanes() {
     board.replaceChildren()
     dialog.showModal()
     const nodes = Object.values(graphModel.nodes), edges = graphModel.edges
-    if (!nodes.length) {board.append(el('p','','新增節點並指定負責角色後，即可在此查看流程。'));return}
+    if (!nodes.length) {board.append(el('p','','新增節點並指定負責角色/負責人後，即可在此查看流程。'));return}
     const depths = steps(nodes,edges), buttons = new Map()
     const roles = [...new Set(nodes.map(n=>n.ownerRole || '未指定角色'))]
     for (const [r,role] of roles.entries()) {

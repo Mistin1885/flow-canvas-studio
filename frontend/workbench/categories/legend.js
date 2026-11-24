@@ -108,35 +108,7 @@ function setLegendOpen(open) {
   $('legend-toggle').setAttribute('aria-expanded', String(open))
 }
 
-function drawLegendEvidence(n, frag) {
-  const audit = n.legendEvidence
-  if (!audit && !categoryTags(n).length) return
-  const details = el('details', 'incoming-details category-evidence')
-  details.append(el('summary', '', '原圖分類依據'))
-  if (audit) {
-    details.append(
-      el(
-        'p',
-        '',
-        audit.image
-          ? '子圖 ' + audit.image.split('/').pop() + ' · 黑框步驟，原圖未個別標色。'
-          : 'Excel ' +
-              audit.sourceId +
-              ' · ' +
-              (audit.categories.length
-                ? audit.categories.join(' · ')
-                : '框線使用 Excel 主題色，圖例未定義此色。'),
-      ),
-    )
-    if (audit.noteText) for (const line of audit.noteText) details.append(el('p', '', line))
-  }
-  if (!audit || n.legendEdited)
-    details.append(el('p', '', '目前手動分類：' + (categoryTags(n).join(' · ') || '無')))
-  frag.append(details)
-}
-
 export {
-  drawLegendEvidence,
   legendMatches,
   legendSelection,
   renderLegend,

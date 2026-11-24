@@ -3,10 +3,13 @@ import { nodeForm, populateEditor, appendContentBlock, appendEditorEdge, appendI
 import { categoryDraft, editorLegend } from '../categories/editor.js'
 import { editState } from './state.js'
 
+import { pendingOptions, showAssignments } from '../modeling/assignmentOptions.js'
+import { suggestNodeId } from '../graph/nodeIds.js'
+
 let context, active, baseKey, initial, lastSaved, pending
 const valueIds = [
   'node-id', 'node-title', 'node-type', 'node-description', 'node-where', 'node-expect', 'node-note',
-  'node-role', 'node-gateway', 'node-group', 'group-name', 'category-name', 'category-color',
+  'node-role', 'role-name', 'where-name', 'node-gateway', 'node-group', 'group-name', 'category-name', 'category-color',
 ]
 
 function scope() { return JSON.stringify([context.user, context.canvas]) }
@@ -67,6 +70,7 @@ export function formValues() {
   return {
     adding: nodeForm.adding, node: nodeForm.node, parent: nodeForm.parent,
     fields: Object.fromEntries(valueIds.map(id => [id, $(id).value])),
+    options: pendingOptions, autoId: nodeForm.autoId,
     groups: [...editState.groupDraft], categories: categoryDraft.items,
     tags: [...$('legend-fields').querySelectorAll('input')].filter(i => i.checked).map(i => i.value),
     values: Object.fromEntries([...$('custom-values').querySelectorAll('[data-field]')].map(i => [i.dataset.field, i.value])),
@@ -126,9 +130,12 @@ function resume(key) {
   populateEditor(saved.adding ? saved.parent : saved.node, saved.adding)
   editState.groupDraft = new Map(saved.groups)
   $('node-group').replaceChildren(...saved.groups.map(([name]) => new Option(name, name)))
+  showAssignments({ ownerRole: saved.fields['node-role'], where: saved.fields['node-where'] }, saved.options)
+  if (saved.adding) nodeForm.suggestion = suggestNodeId(saved.fields['node-type'], base.graph.nodes)
   for (const id of valueIds) $(id).value = saved.fields[id] ?? ''
   $('group-direction').value = editState.groupDraft.get($('node-group').value) || 'auto'
   $('node-id').dispatchEvent(new Event('input'))
+  nodeForm.autoId = saved.autoId ?? (saved.adding && saved.fields['node-id'] === nodeForm.suggestion)
   categoryDraft.items = saved.categories
   editorLegend({ tags: saved.tags })
   for (const i of $('custom-values').querySelectorAll('[data-field]')) i.value = saved.values[i.dataset.field] ?? ''

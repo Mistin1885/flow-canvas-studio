@@ -206,11 +206,7 @@ html[data-theme='dark'] .legend-swatch.text b + b {
   display: block;
   font-size: 12px;
 }
-.category-evidence p {
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
+
 @media (max-width: 850px) {
   #legend-panel {
     max-height: 34dvh;

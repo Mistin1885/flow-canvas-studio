@@ -1,4 +1,6 @@
 import { draftOpened } from './formDrafts.js'
+import { suggestNodeId } from '../graph/nodeIds.js'
+import { showAssignments } from '../modeling/assignmentOptions.js'
 import { showNodeFields } from '../modeling/fields.js'
 import { legendState } from '../categories/model.js'
 import { selectionState, editState } from './state.js'
@@ -156,12 +158,12 @@ function populateEditor(id, add = false) {
   nodeForm.adding = add
   nodeForm.parent = add ? id : null
   nodeForm.node = add ? null : id
-  let nextId = 'NODE1',
-    counter = 1
-  while (graphModel.nodes[nextId]) nextId = 'NODE' + ++counter
+  const type = add && id && sheetFor(id) !== 'project' ? 'shared' : 'action'
+  nodeForm.autoId = add
+  nodeForm.suggestion = add ? suggestNodeId(type, graphModel.nodes) : ''
   const n = add
     ? {
-        id: nextId,
+        id: nodeForm.suggestion,
         title: '',
         group: graphModel.nodes[id]?.group || 'Custom',
         decision: false,
@@ -188,14 +190,16 @@ function populateEditor(id, add = false) {
   for (const key of ['id', 'group', 'title', 'description', 'where', 'expect', 'note'])
     $('node-' + key).value = n[key] || ''
   $('node-id').readOnly = !add
+  $('suggest-id').hidden = !add
   checkNodeId()
   $('node-type').replaceChildren(...Object.entries(nodeTypes).map(([key, name]) => new Option(name, key)))
-  $('node-type').value = add && id && sheetFor(id) !== 'project' ? 'shared' : effectiveType(n)
+  $('node-type').value = add ? type : effectiveType(n)
   $('content-editor').replaceChildren()
   n.content.forEach((block, index) => appendContentBlock(block, index))
   $('edge-editor').replaceChildren()
   if (!add) (outgoing.get(id) || []).filter((e) => e.kind !== 'spine').forEach(appendEditorEdge)
   setupGroups(n)
+  showAssignments(n)
   showNodeFields(n)
   $('delete-node').hidden = add
   $('editor-main-note').textContent = ''
@@ -235,7 +239,20 @@ function openNodeEditor() {
 }
 
 function bindNodeForm() {
-  $('node-id').oninput = checkNodeId
+  $('node-id').oninput = () => {
+    nodeForm.autoId = !$('node-id').value
+    checkNodeId()
+  }
+  function updateSuggestion(force) {
+    if (!nodeForm.adding) return
+    const field = $('node-id')
+    if (force) nodeForm.autoId = true
+    nodeForm.suggestion = suggestNodeId($('node-type').value, graphModel.nodes)
+    if (nodeForm.autoId) field.value = nodeForm.suggestion
+    checkNodeId()
+  }
+  $('node-type').onchange = () => updateSuggestion(false)
+  $('suggest-id').onclick = () => updateSuggestion(true)
   $('create-node').onclick = () => {
     populateEditor(null, true)
     $('node-editor').showModal()

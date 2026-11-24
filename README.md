@@ -6,6 +6,16 @@ Flow Canvas Studio is a self-hosted flowchart editor for teams. Create workspace
 - **Collaborate on a canvas.** Changes are saved per node or edge and announced to other editors after the database transaction commits. If two people change the same item, the second editor can recover their draft or save it as a separate canvas.
 - **Personalize the display.** Theme, reading size and cursor effects follow the signed-in user across workspaces and canvases in the same browser.
 
+## Node IDs and assignments
+
+The node form suggests the first available number for its type, such as `STEP1`, `DEC1` or `FRAME1`. You can enter your own ID before creating the node. If another editor claims it first, open the draft comparison and confirm the suggested replacement to keep both nodes and their connections.
+
+Each canvas has reusable owner and location options. The dropdowns include values already used by imported nodes. Add an option in the node form and apply the form to share it with other editors.
+
+## Canvas activity
+
+The activity panel keeps up to 200 summaries per active canvas. Consecutive routine saves by the same editor within a five-minute clock interval share a summary, with up to 12 detailed items. Node additions and deletions, canvas renames, imports and restores start separate entries. Each graph transaction still advances its own revision for conflict detection. The activity limit applies to the display history independently of backup retention.
+
 ## Updating a canvas from JSON
 
 In a workspace, **從 JSON 建立** creates an independent canvas from a workflow file. Inside an existing canvas, open **工具 → 從 JSON 更新** to preview additions, edits and removals. Expand an item to see the team and file values. JSON exported from this canvas over HTTPS or localhost includes its revision and per-item fingerprints. This lets the preview distinguish offline edits from changes made by teammates since export. For older files or files from another canvas, the comparison starts with the canvas you opened for review. Check the listed removals before applying.

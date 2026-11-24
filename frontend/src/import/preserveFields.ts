@@ -22,6 +22,13 @@ export function preserveFields(file: Graph, team: Graph): Graph {
     if (graph === file) graph = { ...file, nodes: { ...file.nodes } }
     graph.nodes[id] = { ...incoming, ...patch }
   }
+  for (const key of ['ownerRoleOptions', 'locationOptions']) {
+    const current = team[key], incoming = file[key]
+    if (!Array.isArray(current)) continue
+    if (incoming === undefined) graph = { ...graph, [key]: current }
+    else if (Array.isArray(incoming) && current.some(value => !incoming.includes(value)))
+      graph = { ...graph, [key]: [...new Set([...incoming, ...current])] }
+  }
   if (!Object.hasOwn(file, 'fieldDefinitions') && Object.hasOwn(team, 'fieldDefinitions'))
     return { ...graph, fieldDefinitions: team.fieldDefinitions }
   if (Array.isArray(file.fieldDefinitions) && Array.isArray(team.fieldDefinitions)) {

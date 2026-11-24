@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { api, differences, records, errorText, type Canvas, type Graph, type Snapshot } from '../api'
+import { api, ApiError, differences, records, errorText, type Canvas, type Graph, type Snapshot } from '../api'
 import type { Workbench } from './WorkbenchWindow'
 import { nodePresence } from './nodePresence'
 import type { Draft } from './draftMerge'
@@ -20,7 +20,7 @@ export function useCanvasSession(
   const [busy, setBusy] = useState(false)
   const current = useRef<Snapshot | null>(null)
   const recovered = useRef<Draft | null>(null)
-  const actions = useRef({ retry: () => {}, discard: () => {}, refreshTo: (_rev: number) => {} })
+  const actions = useRef({ submitReview: (_item: Draft) => {}, retry: () => {}, discard: () => {}, refreshTo: (_rev: number) => {} })
   const cacheKey = 'flow-draft:' + identity + ':' + canvas.id
   useEffect(() => {
     if (!loaded) return
@@ -109,12 +109,17 @@ export function useCanvasSession(
       try {
         const result = await api<{ rev: number }>('canvases/' + canvas.id + '/changes', 'POST', {
           operation_id: item.operation_id,
+          strict: item.strict,
           base: item.base,
           ops: item.ops,
         })
         if (!active) return
         const base = current.current
-        if (base) {
+        if (item.strict) {
+          // The review may include remote records that were never loaded into the iframe.
+          current.current = null
+          setReady(false)
+        } else if (base) {
           for (const op of item.ops) {
             if (op.remove) delete base.versions[op.table][op.key]
             else base.versions[op.table][op.key] = result.rev
@@ -129,7 +134,11 @@ export function useCanvasSession(
         keep(null)
         setIssue('')
       } catch (err) {
-        if (active) setIssue(errorText(err))
+        if (active) {
+          if (err instanceof ApiError && err.status === 409)
+            keep({ ...item, confirmedConflict: true })
+          setIssue(errorText(err))
+        }
       } finally {
         writing = false
         if (active) {
@@ -141,14 +150,14 @@ export function useCanvasSession(
     }
     function change(event: Event) {
       if (!current.current || writing || recovered.current) return
-      const { previous, next } = (event as CustomEvent<{ previous: Graph; next: Graph }>).detail
+      const { previous, next, createdNode } = (event as CustomEvent<{ previous: Graph; next: Graph; createdNode?: string }>).detail
       const ops = differences(previous, next, current.current.versions)
       if (!ops.length) {
         editor.saved()
         return
       }
       const originals = records(previous)
-      const item = { operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
+      const item = { createdNode, operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
       keep(item)
       void save(item)
     }
@@ -190,6 +199,11 @@ export function useCanvasSession(
       setIssue('無法讀取本機草稿')
     }
     actions.current = {
+      submitReview: item => {
+        if (writing) return
+        keep(item)
+        void save(item)
+      },
       refreshTo: (rev) => {
         wanted = Math.max(wanted, rev)
         void refresh()

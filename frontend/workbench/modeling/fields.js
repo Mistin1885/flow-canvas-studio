@@ -14,8 +14,6 @@ export function properties(node, graph = graphModel.document) {
     [f.name, String(node.fieldValues[f.id]) + (f.unit ? ' ' + f.unit : '')])
 }
 export function showNodeFields(n) {
-  $('node-role').value = n.ownerRole || ''
-  $('role-suggestions').replaceChildren(...[...new Set(Object.values(graphModel.nodes).map(n => n.ownerRole).filter(Boolean))].map(role => new Option(role,role)))
   $('node-gateway').value = n.gatewayRule || ''
   $('custom-values').replaceChildren()
   for (const f of definitions(graphModel.document)) {

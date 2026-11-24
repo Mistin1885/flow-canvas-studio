@@ -7,6 +7,7 @@ export async function verifyLegacyEdits(page, origin) {
     schemaVersion: 1, documentType: 'dfx-project-flow',
     nodes: { A: { ...node('A'), tags: ['QA', 'Review'] }, Z: node('Z'), B: node('B') },
     edges: ['Z', 'B'].map(to => ({ from: 'A', to, kind: 'next', label: '' })),
+    ownerRoleOptions: ['Reviewer', 'Temporary'],
     customCategories: [{ name: 'Review', color: '#616161' }],
   }
   const catalog = await (await page.request.get(origin + '/api/catalog')).json()
@@ -46,7 +47,7 @@ export async function verifyLegacyEdits(page, origin) {
   await expect(frame.locator('#history-undo')).toBeDisabled()
   assert.deepEqual(await snapshot(), initial)
   await edit()
-  await frame.locator('#node-role').fill('Reviewer')
+  await frame.locator('#node-role').selectOption('Reviewer')
   await submit.click()
   await expect.poll(async () => (await snapshot()).canvas.rev).toBe(initial.canvas.rev + 1)
   const edited = await snapshot()
@@ -54,8 +55,8 @@ export async function verifyLegacyEdits(page, origin) {
   expected.nodes.A.ownerRole = 'Reviewer'
   assert.deepEqual(edited.graph, expected)
   await edit()
-  await frame.locator('#node-role').fill('Temporary')
-  await frame.locator('#node-role').fill('Reviewer')
+  await frame.locator('#node-role').selectOption('Temporary')
+  await frame.locator('#node-role').selectOption('Reviewer')
   await submit.click()
   assert.deepEqual(await snapshot(), edited)
   await upload()
@@ -64,7 +65,7 @@ export async function verifyLegacyEdits(page, origin) {
   await expect(review.locator('.importDiff summary')).toContainText('ownerRole')
   await review.getByRole('button', { name: '取消' }).click()
   await edit()
-  await frame.locator('#node-role').fill('')
+  await frame.locator('#node-role').selectOption('')
   await submit.click()
   await expect.poll(async () => (await snapshot()).canvas.rev).toBe(edited.canvas.rev + 1)
   assert.deepEqual((await snapshot()).graph, legacy)

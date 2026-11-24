@@ -124,7 +124,7 @@ class Studio(unittest.TestCase):
             with storage.session() as db:
                 self.assertEqual(storage.snapshot(db, canvas)["graph"]["nodes"], {"A": node("A")})
                 self.assertEqual(db.execute("SELECT count(*) FROM import_history").fetchone()[0], 0)
-                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 5)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 6)
             with storage.session(True) as db:
                 storage.commit(db, canvas, 2, [operation("nodes", "B", None, node("B"))], "Editor")
                 self.assertEqual(db.execute("SELECT rev FROM canvas_activity").fetchone()[0], 3)

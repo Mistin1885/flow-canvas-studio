@@ -13,7 +13,6 @@ import { expandedFlows, sheetFor, tagList } from '../diagram/visibleGraph.js'
 import { flowKey, groupKey, sourceMembers } from '../frames/membership.js'
 
 import { editMembers } from '../frames/memberDialog.js'
-import { drawLegendEvidence } from '../categories/legend.js'
 import { toggleInlineFlow } from '../layout/inlineFlows.js'
 import { relatedLinks } from '../frames/mutations.js'
 import { openSourceReview } from '../ui/sourceReview.js'
@@ -181,7 +180,7 @@ function renderDetail() {
   }
   const layout = el('p', 'source-meta', '排版群組 · ' + n.group)
   frag.append(layout)
-  for (const [label, value] of [['負責角色', n.ownerRole], ['規則', rules[n.gatewayRule]], ...properties(n)]) {
+  for (const [label, value] of [['負責角色/負責人', n.ownerRole], ['規則', rules[n.gatewayRule]], ...properties(n)]) {
     if (value) frag.append(el('p','detail-property', label + ' · ' + value))
   }
   const meta = el('div', 'detail-meta')
@@ -189,7 +188,6 @@ function renderDetail() {
   if (n.where && !/^來源 S\d+$/.test(n.where) && !tagList(n).includes(n.where))
     meta.append(el('span', 'meta-chip', n.where))
   frag.append(meta)
-  drawLegendEvidence(n, frag)
   if (n.expect) frag.append(el('div', 'callout', '預期結果：' + n.expect))
   if (n.note) frag.append(el('div', 'callout note', n.note))
   if (n.content?.length) {

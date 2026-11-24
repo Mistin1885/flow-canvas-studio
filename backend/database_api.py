@@ -151,7 +151,7 @@ def write_batch(canvas, body, editor, principal, route):
         else:
             if body.strict and store.required(db, "canvases", canvas)["rev"] != body.base:
                 raise store.Conflict("團隊版本已更新，請確認最新比對")
-            rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor)
+            rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor, actor=principal)
         if operation:
             db.execute("INSERT INTO edit_receipts VALUES(?,?,?,?,?)", (*key, digest, rev))
         return {"rev": rev}

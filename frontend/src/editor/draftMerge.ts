@@ -1,13 +1,13 @@
 import { records, type Graph, type Snapshot, type NodeData, differences } from '../api'
 import { compare, resolve, signature, type Choices } from '../import/merge'
 
-export type Draft = { operation_id?: string; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
+export type Draft = { operation_id?: string; strict?: boolean; createdNode?: string; confirmedConflict?: boolean; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
 type Question = { token: string; label: string; mine: unknown; team: unknown }
 type Fields = Record<string, unknown>
 
 const fieldNames: Record<string, string> = {
   title: '名稱', description: '說明', content: '步驟內容', note: '備註', expect: '預期結果',
-  where: '位置', ownerRole: '負責角色', fieldValues: '自訂欄位', group: '群組', gatewayRule: '分流與匯合',
+  where: '位置', ownerRole: '負責角色/負責人', fieldValues: '自訂欄位', group: '群組', gatewayRule: '分流與匯合',
 }
 
 function isFields(value: unknown): value is Fields {
@@ -67,7 +67,18 @@ export function draftPlan(draft: Draft, latest: Snapshot, choices: Choices) {
   for (const group of groups) {
     if (group.rows.some(r => legacyConflicts.has(r.id))) group.conflict = true
     if (!group.conflict) continue
-    const row = group.rows[0], old = original[row.table][row.key] as NodeData
+    const row = group.rows[0]
+    if (draft.originals && group.rows.length === 1 && row.table === 'meta' &&
+        ['ownerRoleOptions', 'locationOptions'].includes(row.key) && Array.isArray(row.file)) {
+      const prior = original.meta[row.key] ?? [], teamOptions = row.team ?? []
+      const mine = row.file
+      if (Array.isArray(prior) && Array.isArray(teamOptions) && prior.every(name => mine.includes(name))) {
+        row.file = [...new Set([...teamOptions, ...mine.filter(name => !prior.includes(name))])]
+        automatic[group.token] = 'file'
+        continue
+      }
+    }
+    const old = original[row.table][row.key] as NodeData
     if (draft.originals && group.rows.length === 1 && row.table === 'nodes' && old && row.file && row.team) {
       const local = row.file as NodeData
       row.file = mergeFields(old, local, row.team as NodeData, [row.key], local.title, choices, questions, customNames)

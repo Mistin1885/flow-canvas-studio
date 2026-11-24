@@ -25,7 +25,7 @@ export async function verifyDraftReview(alice, bob) {
   await expect(review).toContainText('1 項待套用')
   await apply.click()
   await expect(review).toHaveCount(0)
-  await expect.poll(() => alice.frames()[1].evaluate(() => window.T1Playbook.data.nodes.NODE1.note))
+  await expect.poll(() => alice.frames()[1].evaluate(() => window.T1Playbook.data.nodes.STEP1.note))
     .toBe('Shared note')
   await expect(b.locator('.node-title').first()).toHaveText('Team title')
 

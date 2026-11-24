@@ -1,3 +1,4 @@
+import { suggestNodeId } from '../graph/nodeIds.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { $, el } from '../ui/dom.js'
 import { flowKey, frameObjects, getMembers } from './membership.js'
@@ -144,11 +145,11 @@ function editMembers(initial) {
       $('member-new').focus()
       return
     }
-    let k = 1
-    while (draft.nodes['NODE' + k]) k++
-    const id = 'NODE' + k
+    const memberType = type() === 'flow' ? 'shared' : 'action'
+    const id = suggestNodeId(memberType, draft.nodes)
     draft.nodes[id] = {
       id,
+      type: memberType,
       title,
       group:
         type() === 'group'

@@ -1,4 +1,5 @@
 import { draftApplied, formValues } from './formDrafts.js'
+import { saveAssignmentOptions } from '../modeling/assignmentOptions.js'
 import { readNodeFields } from '../modeling/fields.js'
 import { editState } from './state.js'
 import { originalNames, unmappedTag } from '../categories/model.js'
@@ -27,6 +28,7 @@ function applyEditor() {
   for (const key of ['group', 'title', 'description', 'where', 'expect', 'note']) {
     if (edited('node-' + key)) n[key] = after.fields['node-' + key].trim()
   }
+  saveAssignmentOptions(graph)
   readNodeFields(n, nodeForm.adding ? null : before)
   const categories = after.tags
   const initialGroups = new Map(before.groups)
@@ -72,7 +74,7 @@ function applyEditor() {
   graph.nodes[id] = n
   if (differs('edges') || after.incoming.length || nodeForm.parent)
     applyEdgeEdits(graph, id, after, nodeForm.parent)
-  if (JSON.stringify(graph) !== JSON.stringify(graphModel.document)) replaceGraph(graph)
+  if (JSON.stringify(graph) !== JSON.stringify(graphModel.document)) replaceGraph(graph, { createdNode: nodeForm.adding ? id : undefined })
   draftApplied()
   go(id)
   return id

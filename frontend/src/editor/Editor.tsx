@@ -125,7 +125,8 @@ export default function Editor({
           {draft && (
             <div>
               <span>你的草稿已保留。</span>
-              <button disabled={busy} onClick={()=>setReview(true)}>比對並合併草稿</button>
+              {(!(draft.createdNode || draft.strict) || draft.confirmedConflict) &&
+                <button disabled={busy} onClick={()=>setReview(true)}>比對並合併草稿</button>}
               <button disabled={busy} onClick={fork}>
                 <Copy size={15} />
                 另存草稿畫布
@@ -162,7 +163,7 @@ export default function Editor({
       )}
       {showActivity && <ActivityDialog canvas={canvas.id} after={visit.last} close={()=>setActivity(false)}
         exists={id=>!!current.current?.graph.nodes[id]} locate={id=>{setActivity(false);(frame.current?.contentWindow as Workbench).T1Playbook.go(id,true)}}/>}
-      {review && draft && <DraftReview canvas={canvas.id} draft={draft} revision={remoteRev} close={()=>setReview(false)}
+      {review && draft && <DraftReview submit={actions.current.submitReview} canvas={canvas.id} draft={draft} revision={remoteRev} close={()=>setReview(false)}
         done={()=>{setReview(false);actions.current.discard()}}/>}
       {importBase && (
         <ImportDialog

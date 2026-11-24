@@ -103,7 +103,7 @@ def initialize():
                 PRIMARY KEY(canvas,revision)
             );
             PRAGMA user_version=2;
-        """, MIGRATION, activity.MIGRATION, operations.MIGRATION)
+        """, MIGRATION, activity.MIGRATION, operations.MIGRATION, activity.SUMMARY_MIGRATION)
         if version > len(migrations):
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
         # Keep the version check and schema changes in one write transaction.
@@ -131,6 +131,10 @@ def check_graph(graph):
     nodes, edges = graph.get("nodes"), graph.get("edges")
     if not isinstance(nodes, dict) or not isinstance(edges, list) or len(nodes) > 300 or len(edges) > 800:
         raise Invalid("畫布最多支援 300 個節點及 800 條連線")
+    for key in ("ownerRoleOptions", "locationOptions"):
+        if key in graph and (not isinstance(graph[key], list) or
+                             any(not isinstance(v, str) or not v.strip() for v in graph[key])):
+            raise Invalid("選項必須是非空白文字")
     for key, node in nodes.items():
         if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", key) or key in RESERVED:
             raise Invalid("節點 ID 無效")
@@ -255,7 +259,7 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None):
     return canvas
 
 
-def commit(db, canvas, base, ops, editor, kind="edited"):
+def commit(db, canvas, base, ops, editor, kind="edited", actor=None):
     before = {}
     after = {}
     current = required(db, "canvases", canvas)["rev"]
@@ -308,6 +312,6 @@ def commit(db, canvas, base, ops, editor, kind="edited"):
     for table, label in (("edges", "connections"), ("meta", "settings")):
         if any(op["table"] == table for op in ops):
             items.append({"action": label})
-    activity.record(db, canvas, stamp, updated, editor, kind, items)
+    activity.record(db, canvas, stamp, updated, editor, kind, items, actor)
     db.execute("UPDATE canvases SET rev=?,updated=?,editor=? WHERE id=?", (stamp, updated, editor, canvas))
     return stamp

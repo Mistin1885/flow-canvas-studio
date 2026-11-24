@@ -13,8 +13,8 @@
       <p role="status" id="form-draft-status"></p>
       <p class="editor-tip" id="editor-context"></p>
       <div class="editor-grid">
-        <label>
-          節點 ID
+        <div class="node-id-field">
+          <label for="node-id">節點 ID</label>
           <input
             id="node-id"
             required
@@ -22,8 +22,9 @@
             maxlength="64"
             aria-describedby="id-check"
           />
+          <button type="button" id="suggest-id" hidden>使用建議 ID</button>
           <small id="id-check" role="status"></small>
-        </label>
+        </div>
         <label>
           節點類型
           <select id="node-type" required></select>
@@ -68,7 +69,15 @@
           </div>
           <small id="category-error" role="status"></small>
         </fieldset>
-        <label>負責角色<input id="node-role" maxlength="80" list="role-suggestions"><datalist id="role-suggestions"></datalist></label>
+        <fieldset class="layout-fields">
+          <legend>負責角色/負責人</legend>
+          <select id="node-role" aria-label="負責角色/負責人"></select>
+          <div class="edit-row">
+            <input id="role-name" maxlength="80" aria-label="新負責角色/負責人" placeholder="新負責角色/負責人" />
+            <button id="add-role" type="button">新增</button>
+          </div>
+          <small id="role-message" role="status"></small>
+        </fieldset>
         <label>分流與匯合<select id="node-gateway"><option value="">無</option></select></label>
         <div id="custom-values" class="editor-grid wide"></div>
         <label class="wide">
@@ -79,10 +88,15 @@
           說明
           <textarea id="node-description" rows="3"></textarea>
         </label>
-        <label>
-          操作位置
-          <input id="node-where" maxlength="500" />
-        </label>
+        <fieldset class="layout-fields">
+          <legend>操作位置</legend>
+          <select id="node-where" aria-label="操作位置"></select>
+          <div class="edit-row">
+            <input id="where-name" maxlength="500" aria-label="新操作位置" placeholder="新操作位置" />
+            <button id="add-where" type="button">新增</button>
+          </div>
+          <small id="where-message" role="status"></small>
+        </fieldset>
         <label class="wide">
           預期結果
           <textarea id="node-expect" rows="2"></textarea>

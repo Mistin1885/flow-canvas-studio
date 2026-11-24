@@ -231,3 +231,6 @@ dialog code {
   display: block;
   font: 700 calc(25px * var(--reading-scale, 1)) var(--mono);
 }
+
+.node-id-field { display: grid; align-content: start; gap: 4px; }
+.node-id-field button { justify-self: start; }
