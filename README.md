@@ -45,6 +45,40 @@ The **web** container serves the built frontend, verifies the user's identity, a
 | `deploy/native/` | Shell scripts to install dependencies, build the frontend and start the native server |
 | `deploy/docker/` | Multi-stage Dockerfile, build-context allowlist and Compose configuration |
 
+## Configure authentication with `FLOW_AUTH`
+
+Choose the mode in the repo-root `.env`. Run the deployment commands from that directory.
+
+| Mode | When to use it | How to verify |
+| --- | --- | --- |
+| `local` | Development in a browser on the same host. The backend accepts direct loopback requests and rejects forwarded requests. | Open `http://127.0.0.1:8768/api/session` in your browser and check for `"mode": "local"`. |
+| `cloudflare` | Team access through a public HTTPS hostname protected by Cloudflare Access with GitHub. | Open `/api/session` on the public hostname after sign-in and check for `"mode": "cloudflare"` and your GitHub `username`. |
+
+**Local development.** Set one authentication variable in `.env`.
+
+```dotenv
+FLOW_AUTH=local
+```
+
+**Cloudflare with GitHub.** Start from `.env.example` and replace the three placeholders with your deployment values.
+
+```dotenv
+FLOW_AUTH=cloudflare
+CF_ACCESS_ISSUER=https://your-team.cloudflareaccess.com
+CF_ACCESS_AUD=your-application-audience-tag
+FLOW_ORIGIN=https://flow.example.com
+```
+
+`CF_ACCESS_ISSUER` is your Zero Trust team URL. Copy `CF_ACCESS_AUD` from the existing Access application that protects the site. Set `FLOW_ORIGIN` to the exact public HTTPS origin users open, including a nonstandard port if applicable, with no path. For Tunnel routing and first-admin setup, see [Enable GitHub sign-in through Cloudflare Access](#enable-github-sign-in-through-cloudflare-access).
+
+**Apply a mode change.** On an existing Docker deployment, run the following after editing `.env`. If you previously exported `FLOW_AUTH` in this shell, run `unset FLOW_AUTH` first so Compose uses the file's value.
+
+```bash
+docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d --wait web
+```
+
+For a native deployment, stop the running server and run `./deploy/native/start.sh` to reload `.env`. The `--local` flag overrides the file for one run. With `FLOW_AUTH` unset, Compose defaults to `local` and the native backend defaults to `cloudflare`. The supplied `.env.example` explicitly selects `cloudflare`.
+
 ## Deploy with Docker Compose
 
 Run these commands **from the repo root** on Linux with Docker Engine and the Compose plugin. For Docker Desktop, enable host networking first. [Docker host networking](https://docs.docker.com/engine/network/drivers/host/)
@@ -56,7 +90,7 @@ docker compose -f deploy/docker/docker-compose.yml up -d --build --wait
 docker compose -f deploy/docker/docker-compose.yml ps
 ```
 
-Open **[Flow Canvas Studio](http://127.0.0.1:8768/)**. Compose defaults to local mode. An existing native installation can use the same database directory, schema and canvas URLs. **Stop the native server before switching to Compose with the same database** so one web process owns the live editing sessions. To test alongside the native server, use a separate directory **and** port. Run this in a separate terminal so the test settings stay isolated:
+In local mode, open **[Flow Canvas Studio](http://127.0.0.1:8768/)**. An existing native installation can use the same database directory, schema and canvas URLs. **Stop the native server before switching to Compose with the same database** so one web process owns the live editing sessions. To test alongside the native server, use a separate directory **and** port. Run this in a separate terminal so the test settings stay isolated:
 
 ```bash
 export FLOW_DATA_DIR="$(mktemp -d)" FLOW_PORT=8769 COMPOSE_PROJECT_NAME=flow-canvas-preview
@@ -77,7 +111,7 @@ The default database path is **`../flow-canvas-studio-data/studio.sqlite3`**, ou
 
 **1. Configure GitHub and Access.** If your Zero Trust account already has a working GitHub identity provider, reuse it. Otherwise, register an OAuth App in GitHub under **Settings → Developer settings → OAuth Apps**. Set its homepage to `https://TEAM.cloudflareaccess.com` and its authorization callback to `https://TEAM.cloudflareaccess.com/cdn-cgi/access/callback`. In **Zero Trust → Integrations → Identity providers**, add GitHub, enter the client ID and secret, then finish authorization and test the provider. The OAuth secret belongs in Cloudflare. [GitHub identity provider setup](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/github/)
 
-Create a **Self-hosted** Access application covering the whole public hostname (for example, `flow.example.com`, with the path empty). Select GitHub as its only login method and enable **Apply instant authentication**. Add an **Allow** policy with an **Include → GitHub Organization** rule and select the intended organization and team. For a new deployment, temporarily add **Require → Emails** for the intended first administrator in that same policy. Copy the application's **Audience (AUD) Tag**. [Access application settings](https://developers.cloudflare.com/learning-paths/clientless-access/access-application/create-access-app/)
+Use an existing **Self-hosted** Access application or create one covering the whole public hostname (for example, `flow.example.com`, with the path empty). Select GitHub as its only login method and enable **Apply instant authentication**. Add an **Allow** policy with an **Include → GitHub Organization** rule and select the intended organization and team. For a new deployment, temporarily add **Require → Emails** for the intended first administrator in that same policy. Copy the application's **Audience (AUD) Tag**. [Access application settings](https://developers.cloudflare.com/learning-paths/clientless-access/access-application/create-access-app/)
 
 **2. Start the app on the remote Linux server.** From the root of this version of the repo, create the host data directory and edit the environment file. Keep an existing data directory and its ownership when migrating an installation.
 
@@ -87,13 +121,7 @@ test -f .env || install -m 600 .env.example .env
 nano .env
 ```
 
-```dotenv
-FLOW_AUTH=cloudflare
-CF_ACCESS_ISSUER=https://TEAM.cloudflareaccess.com
-CF_ACCESS_AUD=APPLICATION_AUDIENCE_TAG
-FLOW_ORIGIN=https://flow.example.com
-FLOW_PORT=8768
-```
+Enter the four settings from [Configure authentication with `FLOW_AUTH`](#configure-authentication-with-flow_auth) for Cloudflare mode. `FLOW_PORT` defaults to `8768` and controls the loopback port used by the Tunnel.
 
 ```bash
 export FLOW_UID="$(id -u)" FLOW_GID="$(id -g)"
