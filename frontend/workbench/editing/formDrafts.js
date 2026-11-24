@@ -1,6 +1,6 @@
 import { badgeDraft, showBadges } from '../badges/editor.js'
 import { $, el } from '../ui/dom.js'
-import { nodeForm, populateEditor, appendContentBlock, appendEditorEdge, appendIncoming } from './nodeForm.js'
+import { nodeForm, populateEditor, syncReturnField, appendContentBlock, appendEditorEdge, appendIncoming } from './nodeForm.js'
 import { categoryDraft, editorLegend } from '../categories/editor.js'
 import { editState } from './state.js'
 
@@ -9,7 +9,7 @@ import { suggestNodeId } from '../graph/nodeIds.js'
 
 let context, active, baseKey, initial, lastSaved, pending
 const valueIds = [
-  'node-id', 'node-title', 'node-type', 'node-description', 'node-where', 'node-expect', 'node-note',
+  'node-id', 'node-title', 'node-type', 'node-return-target', 'node-description', 'node-where', 'node-expect', 'node-note',
   'node-role', 'role-name', 'where-name', 'node-gateway', 'node-group', 'group-name', 'category-name', 'category-color',
 ]
 
@@ -134,7 +134,8 @@ function resume(key) {
   $('node-group').replaceChildren(...saved.groups.map(([name]) => new Option(name, name)))
   showAssignments({ ownerRole: saved.fields['node-role'], where: saved.fields['node-where'] }, saved.options)
   if (saved.adding) nodeForm.suggestion = suggestNodeId(saved.fields['node-type'], base.graph.nodes)
-  for (const id of valueIds) $(id).value = saved.fields[id] ?? ''
+  for (const id of valueIds) if (id in saved.fields) $(id).value = saved.fields[id]
+  syncReturnField()
   $('group-direction').value = editState.groupDraft.get($('node-group').value) || 'auto'
   $('node-id').dispatchEvent(new Event('input'))
   nodeForm.autoId = saved.autoId ?? (saved.adding && saved.fields['node-id'] === nodeForm.suggestion)

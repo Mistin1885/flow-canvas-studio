@@ -1,6 +1,6 @@
 const prefixes = {
   action: 'STEP', decision: 'DEC', frame: 'FRAME', main: 'MAIN',
-  fault: 'FAULT', note: 'NOTE', shared: 'SUB',
+  return: 'RET', fault: 'FAULT', note: 'NOTE', shared: 'SUB',
 }
 
 export function suggestNodeId(type, nodes) {

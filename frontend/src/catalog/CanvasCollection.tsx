@@ -9,9 +9,10 @@ import {
   GitFork,
   Pencil,
   Search,
-  Copy,
+  Copy, Trash2,
 } from 'lucide-react'
-import type { Canvas, Workspace } from '../api'
+import { useState } from 'react'
+import { api, errorText, type Canvas, type Workspace } from '../api'
 import type { Modal } from './CatalogDialog'
 import { Pagination } from '../paging/Pagination'
 import type { Page } from '../paging/useListing'
@@ -34,7 +35,7 @@ function Thumbnail({ item, index }: { item: Canvas; index: number }) {
 export function CanvasCollection({
   workspace,
   result, nodeCount, changePage,
-  form,
+  form, refresh,
   open,
   query,
   setQuery,
@@ -46,6 +47,7 @@ export function CanvasCollection({
   workspace: Workspace & { canvases: number }
   result?: Page<Canvas>
   nodeCount: number
+  refresh: () => Promise<void>
   changePage: (page: number) => void
   form: (action: Modal['action'], item?: Workspace) => void
   open: (id: string) => void
@@ -56,6 +58,21 @@ export function CanvasCollection({
   query: string
   setQuery: (query: string) => void
 }) {
+  const [deleting, setDeleting] = useState('')
+  const [error, setError] = useState('')
+  async function remove(canvas: Canvas) {
+    if (!window.confirm('刪除「' + canvas.name + '」？所有使用者都將無法開啟這張畫布。管理員可在 7 天內從備份管理還原。')) return
+    setDeleting(canvas.id)
+    setError('')
+    try {
+      await api('canvases/' + canvas.id, 'DELETE', { base: canvas.rev })
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      await refresh()
+      setDeleting('')
+    }
+  }
   return (
     <>
       <section className="hero">
@@ -125,6 +142,7 @@ export function CanvasCollection({
           </button>
         </div>
       </div>
+      {error && <p className="warning" role="alert">{error}</p>}
       {!result ? <p>正在載入畫布…</p> : result.items.length ? (
         <div className={list ? 'cards rows' : 'cards'}>
           {result.items.map((c, i) => (
@@ -156,6 +174,10 @@ export function CanvasCollection({
                   onClick={() => form('copy', c)}
                 >
                   <Copy size={15} />
+                </button>
+                <button className="icon" aria-label={'刪除 ' + c.name} title="刪除畫布"
+                  disabled={!!deleting} onClick={() => void remove(c)}>
+                  <Trash2 size={15} />
                 </button>
               </footer>
             </article>

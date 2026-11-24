@@ -179,6 +179,7 @@ export default function App() {
             nodeCount={catalog.nodes ?? 0}
             changePage={setPage}
             form={form}
+            refresh={refresh}
             open={(id) => go('canvas', id)}
             sort={sort}
             setSort={value => { setSort(value); setPage(1) }}

@@ -3,6 +3,7 @@ const nodeTypes = {
   decision: '決策節點',
   frame: '外框',
   main: '流程入口',
+  return: '返回節點',
   fault: '異常處理',
   note: '註記',
   shared: '子流程步驟',

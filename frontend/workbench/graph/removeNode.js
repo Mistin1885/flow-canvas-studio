@@ -36,6 +36,7 @@ function removeGraphNode(graph, id) {
   }
   for (const item of [...Object.values(graph.nodes), ...graph.edges]) {
     if (item.jumpTo === id) {
+      if (item.type === 'return') item.type = 'note'
       delete item.jumpTo
       delete item.jumpScope
     }

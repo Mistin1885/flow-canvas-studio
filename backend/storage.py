@@ -103,7 +103,12 @@ def initialize():
                 PRIMARY KEY(canvas,revision)
             );
             PRAGMA user_version=2;
-        """, MIGRATION, activity.MIGRATION, operations.MIGRATION, activity.SUMMARY_MIGRATION)
+        """, MIGRATION, activity.MIGRATION, operations.MIGRATION, activity.SUMMARY_MIGRATION, """
+            ALTER TABLE canvases ADD COLUMN deleted_until TEXT;
+            ALTER TABLE canvases ADD COLUMN write_floor INTEGER NOT NULL DEFAULT 1;
+            CREATE VIEW active_canvases AS SELECT * FROM canvases WHERE deleted_until IS NULL;
+            PRAGMA user_version=7;
+        """)
         if version > len(migrations):
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
         # Keep the version check and schema changes in one write transaction.
@@ -115,7 +120,8 @@ def initialize():
 
 
 def required(db, table, key):
-    row = db.execute(f"SELECT * FROM {table} WHERE id=?", (key,)).fetchone()
+    source = "active_canvases" if table == "canvases" else table
+    row = db.execute(f"SELECT * FROM {source} WHERE id=?", (key,)).fetchone()
     if row is None:
         raise Missing(key)
     return dict(row)
@@ -174,6 +180,11 @@ def check_graph(graph):
             raise Invalid("醒目標籤不存在或位置無效")
         if any(i not in nodes for i in node.get("frameMembers", [])):
             raise Conflict("框內節點已變更")
+    for key, node in nodes.items():
+        target = node.get("jumpTo")
+        if node.get("type") == "return" or target is not None:
+            if not isinstance(target, str) or target not in nodes or target == key or nodes[target].get("jumpTo"):
+                raise Conflict("返回目標必須為同一畫布中存在且非跳轉入口的其他節點")
     seen = set()
     for edge in edges:
         if (
@@ -245,10 +256,22 @@ def put(db, canvas, table, key, value, version):
     )
 
 
+def empty_graph(title):
+    return {
+        "schemaVersion": 1,
+        "documentType": "dfx-project-flow",
+        "title": title,
+        "nodes": {},
+        "edges": [],
+        "navigation": [],
+        "subflows": [],
+    }
+
+
 def create_canvas(db, workspace, title, editor, graph=None, source=None):
     required(db, "workspaces", workspace)
     canvas = uuid4().hex
-    db.execute("INSERT INTO canvases VALUES(?,?,?,?,?,?)", (canvas, workspace, name(title), 1, now(), editor))
+    db.execute("INSERT INTO canvases(id,workspace,name,rev,updated,editor) VALUES(?,?,?,?,?,?)", (canvas, workspace, name(title), 1, now(), editor))
     if source:
         required(db, "canvases", source)
         for table in ("nodes", "edges", "meta"):
@@ -259,15 +282,7 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None):
             )
     else:
         if graph is None:
-            graph = {
-                "schemaVersion": 1,
-                "documentType": "dfx-project-flow",
-                "title": title,
-                "nodes": {},
-                "edges": [],
-                "navigation": [],
-                "subflows": [],
-            }
+            graph = empty_graph(title)
         check_graph(graph)
         for key, value in graph.items():
             if key not in ("nodes", "edges"):
@@ -283,7 +298,10 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None):
 def commit(db, canvas, base, ops, editor, kind="edited", actor=None):
     before = {}
     after = {}
-    current = required(db, "canvases", canvas)["rev"]
+    info = required(db, "canvases", canvas)
+    if base < info["write_floor"]:
+        raise Conflict("畫布已清空或還原，請比對最新版本")
+    current = info["rev"]
     stamp = current + 1
     visited = set()
     for op in ops:

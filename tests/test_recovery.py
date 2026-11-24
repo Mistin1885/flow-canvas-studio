@@ -141,6 +141,53 @@ class Recovery(unittest.TestCase):
         self.assertGreater(restored["canvas"]["rev"], 2)
         self.assertNotEqual(restored["versions"]["meta"]["title"], 1)
 
+    def test_deleted_canvas_recovery_and_expiry(self):
+        snapshots.scan()
+        before = self.http.get(self.path).json()
+        self.rename("A", "Latest")
+        remove = lambda base: self.http.request("DELETE", self.path, json={"base": base})
+        self.assertEqual(remove(1).status_code, 409)
+        with patch.object(snapshots, "write_payload", side_effect=OSError("backup unavailable")):
+            self.assertEqual(remove(2).status_code, 503)
+        self.assertEqual(remove(2).status_code, 200)
+        self.assertEqual(self.http.get(self.path).status_code, 404)
+        self.assertEqual(self.http.get("/api/catalog").json()["canvases"], [])
+        self.assertEqual(self.http.get("/api/catalog/page").json()["listing"]["total"], 0)
+        self.assertIsNone(self.http.get("/api/catalog/page", params={"canvas": self.canvas}).json()["opened"])
+        snapshots.scan()
+        page = self.http.get("/api/admin/backups/page", params={"canvas": self.canvas}).json()
+        latest, older = page["items"]
+        self.assertTrue(latest["deleted"])
+        self.assertEqual(latest["name"], "Latest")
+        self.assertEqual(self.restore(older).status_code, 200)
+        result = self.http.get(self.path).json()
+        self.assertEqual(result["graph"], before["graph"])
+        self.assertEqual(result["canvas"]["name"], "A")
+        self.assertEqual(result["canvas"]["workspace"], self.ws)
+        self.assertEqual(self.restore(latest).status_code, 404)
+        self.assertEqual(remove(result["canvas"]["rev"]).status_code, 200)
+        snapshots.scan(datetime.now(timezone.utc) + timedelta(days=8))
+        with storage.session() as db:
+            self.assertIsNone(db.execute("SELECT id FROM canvases WHERE id=?", (self.canvas,)).fetchone())
+        self.assertEqual(self.points(), [])
+
+    def test_clear_and_restore_do_not_replay_old_edits(self):
+        node = {"id": "A", "group": "Example", "title": "Start", "decision": False, "content": []}
+        create = lambda base: self.http.post(self.path + "/changes", json={"base": base, "ops": [
+            {"table": "nodes", "key": "A", "version": None, "value": node}]})
+        create(1).raise_for_status()
+        self.assertEqual(self.http.post(self.path + "/clear", json={"base": 1}).status_code, 409)
+        with self.http.websocket_connect(ORIGIN.replace("http:", "ws:") + self.path + "/live", headers={"origin": ORIGIN}) as peer:
+            peer.receive_json()
+            resp = self.http.post(self.path + "/clear", json={"base": 2})
+            resp.raise_for_status()
+            self.assertEqual(peer.receive_json(), resp.json())
+        self.assertEqual(self.http.get(self.path).json()["graph"], storage.empty_graph("A"))
+        self.assertEqual(create(2).status_code, 409)
+        point = next(p for p in self.points() if p["kind"] == "canvas")
+        self.restore(point).raise_for_status()
+        self.assertEqual(self.http.get(self.path).json()["graph"]["nodes"], {"A": node})
+
     def test_corrupt_archive_leaves_current_branch_intact(self):
         snapshots.scan()
         self.rename("A", "B")

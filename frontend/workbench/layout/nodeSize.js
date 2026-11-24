@@ -29,7 +29,7 @@ function sizeReadableNodes() {
       'px'
     body.append(
       el('span', 'node-kicker', (nodeKind(i) === 'decision' ? '◇ 決策 · ' : '') + tagList(n).join(' · ')),
-      el('span', 'node-title', (n.jumpTo ? '↗ ' : nodeKind(i) === 'return' ? '↩ ' : '') + n.title),
+      el('span', 'node-title', (nodeKind(i) === 'return' ? '↩ ' : n.jumpTo ? '↗ ' : '') + n.title),
     )
     paintCard(card, effectiveStyle(graphModel.document, n))
     card.append(body)
@@ -42,7 +42,7 @@ function sizeReadableNodes() {
   diagramState.instances.forEach((i, k) => {
     const card = samples[k]
     const railHeight = side => {
-      const rail = card.querySelector('.badge-rail.' + side)
+      const rail = card.querySelector('.badge-rail-' + side)
       return rail ? rail.offsetHeight + 3 : 0
     }
     i.badgeTop = railHeight('top')

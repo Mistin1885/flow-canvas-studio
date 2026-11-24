@@ -56,6 +56,11 @@ function applyEditor() {
     n.tags = [...retained, ...categories.filter(tag => !retained.includes(tag))]
   }
   const type = after.fields['node-type']
+  if (type === 'return') n.jumpTo = after.fields['node-return-target']
+  else if (before.fields['node-type'] === 'return') {
+    delete n.jumpTo
+    delete n.jumpScope
+  }
   if (edited('node-type')) {
     n.type = type
     if (n.originalDecision === undefined) n.originalDecision = !!n.decision

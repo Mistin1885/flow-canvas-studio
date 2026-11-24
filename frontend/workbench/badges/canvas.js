@@ -44,9 +44,9 @@ export function renderBadges(card, node, interactive = true) {
   for (const rail of card.querySelectorAll('.badge-rail')) rail.remove()
   const styles = graphModel.document.badgeStyles
   for (const [name, side] of Object.entries(node.badges || {})) {
-    let rail = card.querySelector('.badge-rail.' + side)
+    let rail = card.querySelector('.badge-rail-' + side)
     if (!rail) {
-      rail = el('div', 'badge-rail ' + side)
+      rail = el('div', 'badge-rail badge-rail-' + side)
       card.append(rail)
     }
     const chip = badgeChip(name, styles[name])

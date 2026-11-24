@@ -34,6 +34,7 @@ function readGraph(value) {
     const n = value.nodes[id]
     obj(n, id)
     if (n.id !== id) bad(id + '.id', '必須與 nodes 的索引一致')
+    if (n.type === 'return' && !n.jumpTo) bad(id, '返回節點需要目標')
     if (n.jumpTo !== undefined) {
       if (!has(n.jumpTo) || n.jumpTo === id || value.nodes[n.jumpTo].jumpTo)
         bad(id + '.jumpTo', '請指向存在且非跳轉入口的節點')

@@ -94,7 +94,7 @@ export function renderCards(oldPositions, pathSet) {
     dom.querySelector('.node-kicker').textContent =
       [rules[n.gatewayRule], type === 'decision' ? '◇ 決策' : '', n.ownerRole, ...tags].filter(Boolean).join(' · ')
     dom.querySelector('.node-title').textContent =
-      (n.jumpTo ? '↗ ' : type === 'return' ? '↩ ' : '') + n.title
+      (type === 'return' ? '↩ ' : n.jumpTo ? '↗ ' : '') + n.title
     dom
       .querySelector('.node-body')
       .setAttribute(

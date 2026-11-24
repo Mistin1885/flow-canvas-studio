@@ -13,6 +13,7 @@ type Point = {
   kind: 'workspace' | 'canvas'
   item: string
   name: string
+  deleted: boolean
   workspace_name: string
   revision: number
   captured: string
@@ -103,7 +104,7 @@ export default function BackupAdmin() {
                     <td>{date(p.captured)} <small>#{p.id}</small></td>
                     <td>{p.workspace_name}</td>
                     <td>
-                      {p.kind === 'canvas' ? '畫布' : '工作區'} · {p.name}
+                      {p.kind === 'canvas' ? '畫布' : '工作區'} · {p.name} {p.deleted && <small>已刪除</small>}
                     </td>
                     <td>{p.kind === 'canvas' ? 'v' + p.revision : '—'}</td>
                     <td>

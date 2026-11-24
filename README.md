@@ -10,6 +10,8 @@ Flow Canvas Studio is a self-hosted flowchart editor for teams. Create workspace
 
 The node form suggests the first available number for its type, such as `STEP1`, `DEC1` or `FRAME1`. You can enter your own ID before creating the node. If another editor claims it first, open the draft comparison and confirm the suggested replacement to keep both nodes and their connections.
 
+Choose **返回節點** in the node form and select a destination by ID and title. In reading mode, clicking the return node centers the destination and opens its details. Drag-edit mode lets you select and edit the return node itself.
+
 Each canvas has reusable owner and location options. The dropdowns include values already used by imported nodes. Add an option in the node form and apply the form to share it with other editors.
 
 ## Canvas activity
@@ -164,6 +166,8 @@ If Access omits both the GitHub ID and login, an operator can set `FLOW_GITHUB_I
 ## Scheduled backups and recovery
 
 The database service scans on startup and every 15 minutes while running. The first scan records existing items. Subsequent scans compare workspace update times and canvas update times and revisions. Creating or renaming an item, editing its graph, and applying an import are captured at the next scan. Multiple edits between scans produce one point. A workspace point preserves its name and identity. Each canvas has its own timeline including its name, graph and workspace ID.
+
+Use the trash button on a canvas card to remove it from its workspace. **工具 → 清空畫布** resets the graph and keeps the canvas in place. Both operations check the displayed revision and save a recovery point before changing data. An administrator can restore the content within seven days, including a deleted canvas at its original URL.
 
 Open **備份管理** or visit `/admin` to list active points and restore a selected item. The first authenticated browser to open the app completes a session login and owns the page and management API. The browser sends `POST /api/session/login` automatically. HTTP GET requests to the homepage, the admin shell, or `/api/session` do not register an owner. Monitor the minimal `GET /healthz` endpoint for web and database readiness (200 or 503). In loopback development, a persistent HTTP-only browser cookie identifies the first browser profile. Clearing it removes that browser's access. When switching to Cloudflare Access, the first verified Access login takes ownership from the development profile. Ownership then follows the Access issuer and subject across devices and restarts. Further logins, including local profiles, cannot claim ownership. Host operators retain CLI access.
 

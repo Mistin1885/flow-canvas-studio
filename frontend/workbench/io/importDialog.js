@@ -15,6 +15,16 @@ importHistory.previousGraph = null
 const undoImport = el('button', '', '復原匯入')
 
 function bindImportDialog() {
+  $('clear-canvas').onclick = () => {
+    if (studioFrame) {
+      window.dispatchEvent(new Event('studio-clear'))
+      return
+    }
+    if (!confirm('清空此畫布的所有節點、連線與畫布設定？')) return
+    replaceGraph({ schemaVersion: 1, documentType: 'dfx-project-flow',
+      title: graphModel.document.title, nodes: {}, edges: [], navigation: [], subflows: [] })
+    say('已清空畫布')
+  }
   if (studioFrame) {
     $('debug-import').textContent = '從 JSON 更新'
     $('debug-import').onclick = () => window.dispatchEvent(new Event('studio-import'))

@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from . import activity, operations, storage as store
+from .canvas_lifecycle import router as lifecycle_router
 from .admin_api import router as admin_router
 from .catalog_pages import router as catalog_router
 from .snapshot_schedule import scheduler
@@ -26,6 +27,7 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 
+app.include_router(lifecycle_router)
 app.include_router(admin_router)
 app.include_router(catalog_router)
 
@@ -85,7 +87,7 @@ def catalog():
                 dict(r)
                 for r in db.execute("""
                     SELECT c.*, (SELECT count(*) FROM nodes WHERE canvas=c.id) AS nodes,
-                    (SELECT count(*) FROM edges WHERE canvas=c.id) AS edges FROM canvases c
+                    (SELECT count(*) FROM edges WHERE canvas=c.id) AS edges FROM active_canvases c
                     ORDER BY updated DESC,id""")
             ],
         }
@@ -135,6 +137,7 @@ def read(canvas: str):
 def write_batch(canvas, body, editor, principal, route):
     with store.session(True) as db:
         operation = str(body.operation_id) if body.operation_id else None
+        store.required(db, "canvases", canvas)
         if operation:
             key = (canvas, principal, operation)
             digest = operations.fingerprint(route, body)
@@ -199,6 +202,7 @@ def import_history(canvas: str):
 @app.get("/api/canvases/{canvas}/imports/{revision}")
 def before_import(canvas: str, revision: int):
     with store.session() as db:
+        store.required(db, "canvases", canvas)
         row = db.execute("SELECT graph FROM import_history WHERE canvas=? AND revision=?",
                          (canvas, revision)).fetchone()
         if row is None:
@@ -216,7 +220,10 @@ def canvas_activity(canvas: str, after: int):
 @app.get("/revision")
 def revision(canvas: str):
     with store.session() as db:
-        return {"rev": store.required(db, "canvases", canvas)["rev"]}
+        row = db.execute("SELECT rev FROM canvases WHERE id=?", (canvas,)).fetchone()
+        if row is None:
+            raise store.Missing(canvas)
+        return {"rev": row["rev"]}
 
 
 @app.get("/ready")

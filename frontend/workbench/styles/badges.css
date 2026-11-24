@@ -9,8 +9,8 @@
   flex-wrap: wrap;
   pointer-events: none;
 }
-.badge-rail.top { bottom: calc(100% + 3px); }
-.badge-rail.bottom { top: calc(100% + 3px); }
+.badge-rail-top { bottom: calc(100% + 3px); }
+.badge-rail-bottom { top: calc(100% + 3px); }
 .edit-mode .badge-rail .highlight-badge {
   pointer-events: auto;
   cursor: grab;

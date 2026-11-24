@@ -45,10 +45,10 @@ def write_payload(payload):
     return name
 
 
-def capture(db, kind, info, clock):
+def capture(db, kind, info, clock, *, force=False):
     key, rev = info["id"], info.get("rev", 0)
     head = db.execute("SELECT * FROM snapshot_heads WHERE kind=? AND item=?", (kind, key)).fetchone()
-    if head and (head["updated"], head["revision"]) == (info["updated"], rev):
+    if not force and head and (head["updated"], head["revision"]) == (info["updated"], rev):
         return head["snapshot"]
     captured, expires = times(clock)
     payload = {"kind": kind, "item": info, "captured": captured}
@@ -73,8 +73,16 @@ def scan(instant=None, *, scheduled=False):
     with store.session(True) as db:
         db.execute("INSERT OR IGNORE INTO snapshot_garbage SELECT file FROM recovery_points WHERE expires<=?", (timestamp,))
         db.execute("DELETE FROM recovery_points WHERE expires<=?", (timestamp,))
+        for row in db.execute("SELECT id FROM canvases WHERE deleted_until<=?", (timestamp,)).fetchall():
+            key = row["id"]
+            for table in ("edges", "nodes", "meta", "import_history", "canvas_activity", "edit_receipts"):
+                db.execute(f"DELETE FROM {table} WHERE canvas=?", (key,))
+            db.execute("DELETE FROM snapshot_heads WHERE kind='canvas' AND item=?", (key,))
+            db.execute("DELETE FROM canvases WHERE id=?", (key,))
         changed = []
         for kind, table in TABLE.items():
+            if kind == "canvas":
+                table = "active_canvases"
             revision = "i.rev" if kind == "canvas" else "0"
             keys = db.execute(f"""SELECT i.id FROM {table} i LEFT JOIN snapshot_heads h
                 ON h.kind=? AND h.item=i.id
@@ -84,7 +92,11 @@ def scan(instant=None, *, scheduled=False):
         # Re-read under the write lock. Release between items so editors can interleave.
         with store.session(True) as db:
             writes_before = db.total_changes
-            capture(db, kind, store.required(db, TABLE[kind], key), instant or datetime.now(timezone.utc))
+            try:
+                info = store.required(db, TABLE[kind], key)
+            except store.Missing:  # A canvas can be deleted between scan transactions.
+                continue
+            capture(db, kind, info, instant or datetime.now(timezone.utc))
             if scheduled and db.total_changes > writes_before:
                 db.execute("UPDATE scan_status SET captured=captured+1 WHERE id=1")
     collect_files(clock)
@@ -127,7 +139,12 @@ def restore(db, point, editor, expected=None):
     if row is None:
         raise store.Missing(point)
     kind, key = row["kind"], row["item"]
-    live = store.required(db, TABLE[kind], key)
+    # Deleted canvases retain their identity and history during the recovery window.
+    live = db.execute(f"SELECT * FROM {TABLE[kind]} WHERE id=?", (key,)).fetchone()
+    if live is None:
+        raise store.Missing(key)
+    live = dict(live)
+    deleted = bool(live.get("deleted_until"))
     if expected and (live["updated"], live.get("rev")) != expected:
         raise store.Conflict("此項目在確認期間已有更新，請重新整理後再還原")
     try:
@@ -138,8 +155,7 @@ def restore(db, point, editor, expected=None):
     if payload["kind"] != kind or payload["item"]["id"] != key:
         raise store.Invalid("備份內容與項目不符")
     # Capture edits made since the last tick before retiring this branch.
-    current = capture(db, kind, live, clock)
-    if current == point:
+    if not deleted and capture(db, kind, live, clock) == point:
         return {"kind": kind, "item": key, "rev": live.get("rev")}
     stamp = store.next_update(live["updated"])
     rev = live.get("rev", 0)
@@ -148,6 +164,8 @@ def restore(db, point, editor, expected=None):
         db.execute("UPDATE workspaces SET name=?,updated=? WHERE id=?", (name, stamp, key))
     else:
         graph = payload["graph"]
+        if deleted:
+            db.execute("UPDATE canvases SET deleted_until=NULL WHERE id=?", (key,))
         before_nodes = store.snapshot(db, key)["graph"]["nodes"]
         store.check_graph(graph)
         rev += 1
@@ -160,7 +178,7 @@ def restore(db, point, editor, expected=None):
         for field, value in graph.items():
             if field not in ("edges", "nodes"):
                 store.put(db, key, "meta", field, value, rev)
-        db.execute("UPDATE canvases SET name=?,updated=?,rev=?,editor=? WHERE id=?", (name, stamp, rev, editor, key))
+        db.execute("UPDATE canvases SET name=?,updated=?,rev=?,editor=?,write_floor=? WHERE id=?", (name, stamp, rev, editor, rev, key))
         store.activity.record(db, key, rev, stamp, editor, "restored", store.activity.node_changes(before_nodes, graph["nodes"]))
     db.execute("UPDATE recovery_points SET cold=1,expires=? WHERE kind=? AND item=? AND cold=0 AND id>?",
                (expiry, kind, key, point))

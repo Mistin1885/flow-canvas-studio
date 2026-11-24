@@ -32,8 +32,8 @@ function activateNode(key) {
     setEditTarget({ node: i.id })
     return
   }
-  if (i.isExit) {
-    go(i.id, true)
+  if (i.isExit || nodeFor(i).jumpTo) {
+    go(i.isExit ? i.id : nodeFor(i).jumpTo, true)
     return
   }
   select(key)

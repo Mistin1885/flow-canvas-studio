@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, errorText } from '../api'
 
 type Entry = { rev:number; first_rev:number|null; editor:string; created:string; kind:string; items:{id?:string;title?:string;action:string;count?:number}[] }
-const labels:Record<string,string> = {added:'新增',removed:'刪除',edited:'修改',connections:'連線變更',settings:'畫布設定',created:'建立畫布',renamed:'重新命名',imported:'套用匯入',restored:'還原快照'}
+const labels:Record<string,string> = {added:'新增',removed:'刪除',edited:'修改',connections:'連線變更',settings:'畫布設定',cleared:'清空畫布',created:'建立畫布',renamed:'重新命名',imported:'套用匯入',restored:'還原快照'}
 
 export function useLastVisit(canvas:string, user:string) {
   const key='flow-visit:'+JSON.stringify([user,canvas])

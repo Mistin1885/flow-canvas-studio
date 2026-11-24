@@ -115,6 +115,8 @@ async def database_unavailable(request, exc):
 @app.post("/api/workspaces")
 @app.patch("/api/workspaces/{key}")
 @app.patch("/api/canvases/{key}")
+@app.delete("/api/canvases/{canvas}")
+@app.post("/api/canvases/{canvas}/clear")
 @app.get("/api/canvases/{canvas}")
 @app.post("/api/workspaces/{workspace}/canvases")
 @app.get("/api/canvases/{canvas}/imports")
@@ -134,7 +136,10 @@ async def data_request(request: Request):
             "x-flow-editor": quote(request.state.user["label"], safe=""),
         },
     )
-    if response.is_success and request.url.path.endswith(("/changes", "/imports")) and request.method == "POST":
+    canvas_changed = request.method == "DELETE" or (
+        request.method == "POST" and request.url.path.endswith(("/changes", "/imports", "/clear"))
+    )
+    if response.is_success and canvas_changed:
         notify(request.path_params["canvas"], response.json()["rev"])
     if response.is_success and request.method == "PATCH" and request.url.path.startswith("/api/canvases/"):
         notify(request.path_params["key"], response.json()["rev"])

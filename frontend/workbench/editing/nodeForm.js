@@ -155,6 +155,12 @@ function appendIncoming(id = '', condition = '') {
   $('added-incoming').append(row)
 }
 
+export function syncReturnField() {
+  const enabled = $('node-type').value === 'return'
+  $('return-target-field').hidden = !enabled
+  $('node-return-target').required = enabled
+}
+
 function populateEditor(id, add = false) {
   nodeForm.adding = add
   nodeForm.parent = add ? id : null
@@ -194,7 +200,12 @@ function populateEditor(id, add = false) {
   $('suggest-id').hidden = !add
   checkNodeId()
   $('node-type').replaceChildren(...Object.entries(nodeTypes).map(([key, name]) => new Option(name, key)))
-  $('node-type').value = add ? type : effectiveType(n)
+  $('node-type').value = add ? type : n.jumpTo ? 'return' : effectiveType(n)
+  const targets = Object.values(graphModel.nodes).filter(target => target.id !== n.id && !target.jumpTo)
+  $('node-return-target').replaceChildren(new Option('選擇返回目標', ''),
+    ...targets.map(target => new Option(target.id + ' · ' + target.title, target.id)))
+  $('node-return-target').value = n.jumpTo || ''
+  syncReturnField()
   $('content-editor').replaceChildren()
   n.content.forEach((block, index) => appendContentBlock(block, index))
   $('edge-editor').replaceChildren()
@@ -254,7 +265,7 @@ function bindNodeForm() {
     if (nodeForm.autoId) field.value = nodeForm.suggestion
     checkNodeId()
   }
-  $('node-type').onchange = () => updateSuggestion(false)
+  $('node-type').onchange = () => { syncReturnField(); updateSuggestion(false) }
   $('suggest-id').onclick = () => updateSuggestion(true)
   $('create-node').onclick = () => {
     populateEditor(null, true)

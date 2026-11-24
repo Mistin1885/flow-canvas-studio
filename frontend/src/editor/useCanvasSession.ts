@@ -34,7 +34,8 @@ export function useCanvasSession(
       fetching = false,
       writing = false,
       connected = false,
-      wanted = 0
+      wanted = 0,
+      missingAt = -1
     let socket: WebSocket | undefined, timer: number | undefined, retryTimer: number | undefined
 
     const presence = nodePresence(win, node => {
@@ -62,18 +63,19 @@ export function useCanvasSession(
     function statusText() {
       if (!active) return
       setStatus(
-        writing ? '儲存中' : recovered.current ? '草稿待處理' : connected ? '即時同步' : '重新連線中',
+        missingAt >= 0 ? '畫布已刪除' : writing ? '儲存中' : recovered.current ? '草稿待處理' : connected ? '即時同步' : '重新連線中',
       )
     }
     async function refresh() {
       if (!active || fetching || writing || recovered.current || (current.current && editor.editing()))
         return
-      if (current.current && current.current.canvas.rev >= wanted) return
+      if (missingAt >= wanted || (current.current && current.current.canvas.rev >= wanted)) return
       fetching = true
       try {
         const snap = await api<Snapshot>('canvases/' + canvas.id)
         if (!active || writing || recovered.current || (current.current && editor.editing())) return
         if (current.current && snap.canvas.rev <= current.current.canvas.rev) return
+        missingAt = -1
         editor.receive(snap.graph)
         current.current = snap
         setReady(true)
@@ -83,6 +85,14 @@ export function useCanvasSession(
         statusText()
       } catch (err) {
         if (active) {
+          if (err instanceof ApiError && err.status === 404) {
+            missingAt = wanted
+            setReady(false)
+            win.document.body.inert = true
+            setIssue('這張畫布已刪除，管理員可在備份管理中還原。')
+            statusText()
+            return
+          }
           setIssue(errorText(err))
           clearTimeout(retryTimer)
           retryTimer = window.setTimeout(refresh, 3500)
@@ -92,7 +102,7 @@ export function useCanvasSession(
         if (
           active &&
           current.current &&
-          current.current.canvas.rev < wanted &&
+          missingAt < wanted && current.current.canvas.rev < wanted &&
           !editor.editing() &&
           !recovered.current &&
           !writing
@@ -144,6 +154,27 @@ export function useCanvasSession(
         if (active) {
           setBusy(false)
           statusText()
+          void refresh()
+        }
+      }
+    }
+    async function clearCanvas() {
+      const snap = current.current
+      if (!snap || writing || recovered.current || editor.editing() || missingAt >= 0) return
+      if (!window.confirm('清空「' + snap.canvas.name + '」的所有節點、連線與畫布設定？畫布名稱會保留，管理員可在 7 天內還原。')) return
+      writing = true
+      setBusy(true)
+      win.document.body.inert = true
+      try {
+        const result = await api<{ rev: number }>('canvases/' + canvas.id + '/clear', 'POST', { base: snap.canvas.rev })
+        wanted = Math.max(wanted, result.rev)
+      } catch (err) {
+        if (active) setIssue(errorText(err))
+      } finally {
+        writing = false
+        if (active) {
+          setBusy(false)
+          win.document.body.inert = false
           void refresh()
         }
       }
@@ -230,6 +261,7 @@ export function useCanvasSession(
       if (active) void refresh()
     }
     win.document.body.inert = true
+    win.addEventListener('studio-clear', clearCanvas)
     win.addEventListener('studio-change', change)
     win.document.addEventListener('close', resume, true)
     win.document.addEventListener('pointerup', resume)
@@ -242,6 +274,7 @@ export function useCanvasSession(
       clearTimeout(retryTimer)
       presence.close()
       socket?.close()
+      win.removeEventListener('studio-clear', clearCanvas)
       win.removeEventListener('studio-change', change)
       win.document.removeEventListener('close', resume, true)
       win.document.removeEventListener('pointerup', resume)

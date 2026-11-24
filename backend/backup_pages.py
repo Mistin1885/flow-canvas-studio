@@ -28,7 +28,7 @@ def backup_page(db, page, size, q, workspace, canvas, kind):
                      OR instr(casefold(coalesce(c.name,'')),?) OR cast(p.id AS TEXT)=?)"""
         params.extend([needle, needle, needle, needle.removeprefix('#')])
     columns = """p.id,p.kind,p.item,p.name,p.revision,p.captured,w.name AS workspace_name,
-                 coalesce(c.updated,w.updated) AS live_updated,c.rev AS live_revision"""
+                 coalesce(c.updated,w.updated) AS live_updated,c.rev AS live_revision, c.deleted_until IS NOT NULL AS deleted"""
     result = read_page(db, columns, source, params, "p.id DESC", page, size)
     spaces = db.execute(f"""SELECT DISTINCT w.id,w.name FROM recovery_points p JOIN workspaces w
         ON w.id=p.workspace WHERE {active} ORDER BY w.name,w.id""", (now,))
