@@ -16,7 +16,6 @@ export type Canvas = Workspace & {
   nodes: number
   edges: number
 }
-export type Catalog = { workspaces: Workspace[]; canvases: Canvas[] }
 export type Table = 'nodes' | 'edges' | 'meta'
 export type Snapshot = { canvas: Canvas; graph: Graph; versions: Record<Table, Record<string, number>> }
 

@@ -1,11 +1,15 @@
 """Private authorization boundary for management operations."""
 
 from urllib.parse import unquote
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from . import snapshots, storage
+
+from .backup_pages import backup_page
+from .paging import PageNumber, PageSize
 
 router = APIRouter()
 
@@ -46,6 +50,13 @@ def require_admin(user=Depends(identity)):
 def backups():
     with storage.session() as db:
         return snapshots.listing(db)
+
+
+@router.get("/api/admin/backups/page", dependencies=[Depends(require_admin)])
+def paged_backups(page: PageNumber = 1, size: PageSize = 20, q: str = "", workspace: str = "",
+                  canvas: str = "", kind: Literal["", "canvas", "workspace"] = ""):
+    with storage.session() as db:
+        return backup_page(db, page, size, q, workspace, canvas, kind)
 
 
 @router.get("/api/admin/backup-status", dependencies=[Depends(require_admin)])

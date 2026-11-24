@@ -105,6 +105,8 @@ async def database_unavailable(request, exc):
     return JSONResponse({"detail": "資料庫暫時無法連線"}, status_code=503)
 
 
+@app.get("/api/catalog/page")
+@app.get("/api/admin/backups/page")
 @app.get("/api/admin/backup-status")
 @app.get("/api/admin/backups")
 @app.post("/api/admin/backups/{point}/restore")
@@ -124,6 +126,7 @@ async def data_request(request: Request):
     response = await request.app.state.database.request(
         request.method,
         request.scope["raw_path"].decode("ascii"),
+        params=request.query_params.multi_items(),
         content=await request.body(),
         headers={
             "content-type": "application/json",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Boxes,
   ChevronRight,
@@ -9,12 +9,22 @@ import {
   Plus,
   Waypoints,
 } from 'lucide-react'
-import { api, errorText, type Catalog, type Session, type Workspace } from './api'
+import { api, errorText, type Canvas, type Session, type Workspace } from './api'
 import Editor from './editor/Editor'
 import { DisplayControls } from './display/DisplayControls'
 import { useDisplayPreferences } from './display/useDisplayPreferences'
 import { CatalogDialog, type Modal } from './catalog/CatalogDialog'
 import { CanvasCollection } from './catalog/CanvasCollection'
+import { useListing, type Page } from './paging/useListing'
+
+type Directory = {
+  workspaces: (Workspace & { canvases: number })[]
+  opened?: Canvas | null
+  workspace?: string
+  nodes?: number
+  listing?: Page<Canvas>
+}
+
 function route() {
   return location.hash.slice(1).split('/')
 }
@@ -32,8 +42,6 @@ function Brand() {
   )
 }
 export default function App() {
-  const [catalog, setCatalog] = useState<Catalog>({ workspaces: [], canvases: [] })
-  const [ready, setReady] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const user = session?.label || ''
   const display = useDisplayPreferences(session?.storage_key || '')
@@ -43,51 +51,45 @@ export default function App() {
   const [sort, setSort] = useState('updated')
   const [list, setList] = useState(false)
   const [modal, setModal] = useState<Modal | null>(null)
-  const sequence = useRef(0)
-  const refresh = useCallback(async () => {
-    const lookup = ++sequence.current
-    const data = await api<Catalog>('catalog')
-    if (lookup === sequence.current) {
-      setCatalog(data)
-      setReady(true)
-      setError('')
+  const [page, setPage] = useState(1)
+  const params = type === 'canvas' && id
+    ? new URLSearchParams({ canvas: id })
+    : new URLSearchParams({ workspace: type === 'workspace' ? id : '', page: String(page), q: query, sort })
+  const listing = useListing<Directory>('catalog/page?' + params, type === 'canvas' ? 0 : 12000)
+  const { data: catalog, refresh } = listing
+  const lastWorkspace = useRef('')
+  const firstWorkspace = useRef('')
+  useEffect(() => {
+    if (!catalog) return
+    firstWorkspace.current = catalog.workspaces[0]?.id ?? ''
+    if (catalog.workspace) lastWorkspace.current = catalog.workspace
+  }, [catalog])
+  useEffect(() => {
+    void api<Session>('session/login', 'POST').then(setSession).catch(e => setError(errorText(e)))
+    const update = () => {
+      const next = route()
+      setRoute(next)
+      if (next[0] !== 'canvas' && (next[1] || firstWorkspace.current) !== lastWorkspace.current) {
+        setQuery('')
+        setPage(1)
+        lastWorkspace.current = next[1] || firstWorkspace.current
+      }
     }
+    window.addEventListener('hashchange', update)
+    return () => window.removeEventListener('hashchange', update)
   }, [])
   useEffect(() => {
-    const report = (e: unknown) => setError(errorText(e))
-    void api<Session>('session/login', 'POST')
-      .then(setSession)
-      .catch(report)
-    void refresh().catch(report)
-    const update = () => {
-      setRoute(route())
-      setQuery('')
-      void refresh().catch(report)
-    }
-    const focus = () => {
-      void refresh().catch(report)
-    }
-    const timer = window.setInterval(() => {
-      if (!document.hidden && route()[0] !== 'canvas') focus()
-    }, 12000)
-    window.addEventListener('hashchange', update)
-    window.addEventListener('focus', focus)
-    return () => {
-      clearInterval(timer)
-      window.removeEventListener('hashchange', update)
-      window.removeEventListener('focus', focus)
-    }
-  }, [refresh])
-  const opened = type === 'canvas' ? catalog.canvases.find((c) => c.id === id) : undefined
+    if (listing.current && catalog?.listing && catalog.listing.page !== page) setPage(catalog.listing.page)
+  }, [listing.current, catalog, page])
+  const opened = type === 'canvas' && catalog?.opened?.id === id ? catalog.opened : undefined
   const workspace = opened
-    ? catalog.workspaces.find((w) => w.id === opened.workspace)
+    ? catalog?.workspaces.find((w) => w.id === opened.workspace)
     : type === 'workspace'
-      ? catalog.workspaces.find((w) => w.id === id)
-      : catalog.workspaces[0]
+      ? catalog?.workspaces.find((w) => w.id === id)
+      : catalog?.workspaces[0]
 
   const badRoute =
-    ready && !!id && ((type === 'workspace' && !workspace) || (type === 'canvas' && !opened))
-  const canvases = catalog.canvases.filter((c) => c.workspace === workspace?.id)
+    listing.current && !!id && ((type === 'workspace' && !workspace) || (type === 'canvas' && !opened))
   function form(action: Modal['action'], item?: Workspace) {
     setModal({ action, item })
   }
@@ -126,7 +128,7 @@ export default function App() {
           </button>
         </div>
         <nav>
-          {catalog.workspaces.map((w) => (
+          {catalog?.workspaces.map((w) => (
             <button
               key={w.id}
               className={'workspaceItem ' + (workspace?.id === w.id ? 'selected' : '')}
@@ -134,7 +136,7 @@ export default function App() {
             >
               {workspace?.id === w.id ? <FolderOpen size={17} /> : <Folder size={17} />}
               <span>{w.name}</span>
-              <small>{catalog.canvases.filter((c) => c.workspace === w.id).length}</small>
+              <small>{w.canvases}</small>
             </button>
           ))}
         </nav>
@@ -147,9 +149,9 @@ export default function App() {
           <Boxes size={14} /> 工作區 <ChevronRight size={13} />
           {workspace?.name || '總覽'}
         </div>
-        {error && (
+        {(error || listing.error) && (
           <p className="warning" role="alert">
-            {error} <button onClick={() => location.reload()}>重新載入</button>
+            {error || listing.error} <button onClick={() => location.reload()}>重新載入</button>
           </p>
         )}
         {badRoute ? (
@@ -157,7 +159,7 @@ export default function App() {
             <h1>找不到此項目</h1>
             <button onClick={() => (location.hash = '')}>返回工作區</button>
           </section>
-        ) : !ready ? (
+        ) : !catalog || (type === 'canvas' && !opened) || (!listing.current && catalog.workspace !== workspace?.id) ? (
           <p>正在載入工作區…</p>
         ) : !workspace ? (
           <section className="empty">
@@ -173,22 +175,24 @@ export default function App() {
         ) : (
           <CanvasCollection
             workspace={workspace}
-            canvases={canvases}
+            result={listing.current ? catalog.listing : undefined}
+            nodeCount={catalog.nodes ?? 0}
+            changePage={setPage}
             form={form}
             open={(id) => go('canvas', id)}
             sort={sort}
-            setSort={setSort}
+            setSort={value => { setSort(value); setPage(1) }}
             list={list}
             setList={setList}
             query={query}
-            setQuery={setQuery}
+            setQuery={value => { setQuery(value); setPage(1) }}
           />
         )}
       </main>
       {modal && (
         <CatalogDialog
           modal={modal}
-          workspaces={catalog.workspaces}
+          workspaces={catalog?.workspaces ?? []}
           workspaceId={workspace?.id || ''}
           refresh={refresh}
           close={() => setModal(null)}

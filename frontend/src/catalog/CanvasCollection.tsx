@@ -13,6 +13,9 @@ import {
 } from 'lucide-react'
 import type { Canvas, Workspace } from '../api'
 import type { Modal } from './CatalogDialog'
+import { Pagination } from '../paging/Pagination'
+import type { Page } from '../paging/useListing'
+
 function Thumbnail({ item, index }: { item: Canvas; index: number }) {
   return (
     <div className={'thumb hue' + (index % 4)} aria-hidden="true">
@@ -30,7 +33,7 @@ function Thumbnail({ item, index }: { item: Canvas; index: number }) {
 
 export function CanvasCollection({
   workspace,
-  canvases,
+  result, nodeCount, changePage,
   form,
   open,
   query,
@@ -40,8 +43,10 @@ export function CanvasCollection({
   sort,
   setSort,
 }: {
-  workspace: Workspace
-  canvases: Canvas[]
+  workspace: Workspace & { canvases: number }
+  result?: Page<Canvas>
+  nodeCount: number
+  changePage: (page: number) => void
   form: (action: Modal['action'], item?: Workspace) => void
   open: (id: string) => void
   list: boolean
@@ -51,11 +56,6 @@ export function CanvasCollection({
   query: string
   setQuery: (query: string) => void
 }) {
-  const shown = canvases
-    .filter((c) => c.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
-    .sort((a, b) =>
-      sort === 'name' ? a.name.localeCompare(b.name, 'zh-TW') : b.updated.localeCompare(a.updated),
-    )
   return (
     <>
       <section className="hero">
@@ -65,7 +65,7 @@ export function CanvasCollection({
         <div className="heroTitle">
           <h1>{workspace.name}</h1>
           <p>
-            {canvases.length} 張畫布 <span>·</span> {canvases.reduce((n, c) => n + c.nodes, 0)} 個節點
+            {workspace.canvases} 張畫布 <span>·</span> {nodeCount} 個節點
           </p>
         </div>
         <button
@@ -86,7 +86,7 @@ export function CanvasCollection({
       <div className="collectionHeading">
         <h2>
           <Layers3 size={17} />
-          全部畫布 <span className="pill">{canvases.length}</span>
+          全部畫布 <span className="pill">{workspace.canvases}</span>
         </h2>
       </div>
       <div className="toolbar">
@@ -125,9 +125,9 @@ export function CanvasCollection({
           </button>
         </div>
       </div>
-      {shown.length ? (
+      {!result ? <p>正在載入畫布…</p> : result.items.length ? (
         <div className={list ? 'cards rows' : 'cards'}>
-          {shown.map((c, i) => (
+          {result.items.map((c, i) => (
             <article key={c.id} className="card">
               <button className="cardOpen" onClick={() => open(c.id)}>
                 <Thumbnail item={c} index={i} />
@@ -171,6 +171,7 @@ export function CanvasCollection({
           </button>
         </section>
       )}
+      {result && <Pagination result={result} change={changePage} label="畫布分頁" />}
     </>
   )
 }

@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from . import activity, operations, storage as store
 from .admin_api import router as admin_router
+from .catalog_pages import router as catalog_router
 from .snapshot_schedule import scheduler
 
 
@@ -26,6 +27,7 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 
 
 app.include_router(admin_router)
+app.include_router(catalog_router)
 
 
 @app.exception_handler(store.Missing)
