@@ -1,3 +1,4 @@
+import { overviewLabel } from './OverviewBadges'
 import { useEffect, useState } from 'react'
 import { ReactFlow, Controls, Background, Position, type Node } from '@xyflow/react'
 import ELK from 'elkjs/lib/elk.bundled.js'
@@ -20,10 +21,11 @@ export default function Overview({
   useEffect(() => {
     let active = true
     const layout = new ELK()
+    const labels = new Map(Object.values(graph.nodes).map(n => [n.id, overviewLabel(n, graph)]))
     const children = Object.values(graph.nodes).map((n) => ({
       id: n.id,
       width: 190 * scale,
-      height: 64 * scale,
+      height: (64 + 24 * labels.get(n.id)!.count) * scale,
     }))
     const edges = graph.edges.map((e) => ({ id: edgeKey(e), sources: [e.from], targets: [e.to] }))
     layout
@@ -41,7 +43,7 @@ export default function Overview({
               sourcePosition: Position.Right,
               targetPosition: Position.Left,
               position: { x: n.x || 0, y: n.y || 0 },
-              data: { label: graph.nodes[n.id].title },
+              data: { label: labels.get(n.id)!.label },
               style: { width: 190 * scale, minHeight: 56 * scale, fontSize: 12 * scale, borderRadius: 8 },
             })),
           )

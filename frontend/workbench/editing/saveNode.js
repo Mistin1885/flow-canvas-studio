@@ -1,3 +1,4 @@
+import { finishBadgeEditor, saveBadges } from '../badges/editor.js'
 import { draftApplied, formValues } from './formDrafts.js'
 import { saveAssignmentOptions } from '../modeling/assignmentOptions.js'
 import { readNodeFields } from '../modeling/fields.js'
@@ -22,12 +23,14 @@ function applyEditor() {
   if (nodeForm.adding && Object.hasOwn(graphModel.nodes, id)) throw new Error('節點 ID 已存在')
   const graph = exportGraph(),
     n = nodeForm.adding ? { id } : graph.nodes[id]
+  finishBadgeEditor()
   const before = nodeForm.initial, after = formValues()
   const differs = (key) => JSON.stringify(before[key]) !== JSON.stringify(after[key])
   const edited = (key) => nodeForm.adding || before.fields[key] !== after.fields[key]
   for (const key of ['group', 'title', 'description', 'where', 'expect', 'note']) {
     if (edited('node-' + key)) n[key] = after.fields['node-' + key].trim()
   }
+  saveBadges(graph, n, before.badges)
   saveAssignmentOptions(graph)
   readNodeFields(n, nodeForm.adding ? null : before)
   const categories = after.tags

@@ -42,7 +42,7 @@ function exposeStudioApi() {
       }
     },
     editing() {
-      return !!document.querySelector('dialog[open]') || !!editState.gesture
+      return !!document.querySelector('dialog[open], .node[data-badge-drop]') || !!editState.gesture
     },
     saved() {
       diagramState.debugDirty = false

@@ -66,3 +66,9 @@
 .activityDialog ul {padding-inline-start:1.3rem}
 .activityDialog time {font-size:.85em}
 .importDialog pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:12rem;overflow:auto}
+
+.overviewNodeBadges {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}

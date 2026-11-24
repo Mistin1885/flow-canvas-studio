@@ -125,12 +125,28 @@ def edge_key(edge):
     return encode([edge.get(k) for k in ("from", "to", "kind", "label")])
 
 
+def check_badge_styles(graph):
+    styles = graph.get("badgeStyles", {})
+    if not isinstance(styles, dict):
+        raise Invalid("醒目標籤樣式表格式無效")
+    for name, style in styles.items():
+        if (not name.strip() or name != name.strip() or len(name) > 32 or name in RESERVED
+                or not isinstance(style, dict)
+                or not isinstance(style.get("color"), str)
+                or not re.fullmatch(r"#[0-9a-fA-F]{6}", style["color"])
+                or style.get("style") not in ("solid", "outline")
+                or style.get("icon") not in ("none", "warning", "time", "info", "star")):
+            raise Invalid("醒目標籤樣式無效")
+    return styles
+
+
 def check_graph(graph):
     if graph.get("schemaVersion") != 1 or graph.get("documentType") != "dfx-project-flow":
         raise Invalid("請使用工作台的流程 JSON")
     nodes, edges = graph.get("nodes"), graph.get("edges")
     if not isinstance(nodes, dict) or not isinstance(edges, list) or len(nodes) > 300 or len(edges) > 800:
         raise Invalid("畫布最多支援 300 個節點及 800 條連線")
+    badge_styles = check_badge_styles(graph)
     for key in ("ownerRoleOptions", "locationOptions"):
         if key in graph and (not isinstance(graph[key], list) or
                              any(not isinstance(v, str) or not v.strip() for v in graph[key])):
@@ -151,6 +167,11 @@ def check_graph(graph):
             for c in node["content"]
         ):
             raise Invalid("節點內容格式無效")
+        badges = node.get("badges", {})
+        if not isinstance(badges, dict) or any(
+            name not in badge_styles or side not in ("top", "bottom") for name, side in badges.items()
+        ):
+            raise Invalid("醒目標籤不存在或位置無效")
         if any(i not in nodes for i in node.get("frameMembers", [])):
             raise Conflict("框內節點已變更")
     seen = set()

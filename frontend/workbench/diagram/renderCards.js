@@ -1,3 +1,4 @@
+import { renderBadges } from '../badges/canvas.js'
 import { rules } from '../modeling/fields.js'
 import { editState } from '../editing/state.js'
 import { effectiveStyle } from '../appearance/schema.js'
@@ -111,7 +112,7 @@ export function renderCards(oldPositions, pathSet) {
     let toggle = dom.querySelector('.toggle')
     const sf = graphModel.document.subflows?.find((s) => s.parent === i.id)
     dom.ondblclick = (e) => {
-      if (editState.enabled && !e.target.closest('.connect-port,.toggle')) {
+      if (editState.enabled && !e.target.closest('.connect-port,.toggle,.highlight-badge')) {
         setEditTarget({ node: i.id })
         editContext()
       }
@@ -133,6 +134,7 @@ export function renderCards(oldPositions, pathSet) {
       toggle.title = toggle.ariaLabel = (open ? '收合 ' : '展開 ') + sf.title + ' 子流程'
       toggle.onclick = () => toggleInlineFlow(sf)
     } else toggle?.remove()
+    renderBadges(dom, n)
     paintCard(dom, effectiveStyle(graphModel.document, n))
     const start = oldPositions.get(i.key) || { x: i.x, y: i.y }
     dom.style.transform = `translate(${start.x}px,${start.y}px)`

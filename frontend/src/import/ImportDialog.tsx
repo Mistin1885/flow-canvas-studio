@@ -137,7 +137,7 @@ export function ImportDialog({
                   setAllowRemoval(e.target.checked)
                   setChoices({})
                 }} />
-                移除 JSON 未提供的負責角色/負責人、選單選項、分流與匯合規則、自訂欄位及其值（預設保留）
+                移除 JSON 未提供的負責角色/負責人、選單選項、醒目標籤與樣式、分流與匯合規則、自訂欄位及其值（預設保留）
               </label>
             )}
             <p aria-live="polite">

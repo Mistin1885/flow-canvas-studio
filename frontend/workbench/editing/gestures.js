@@ -33,7 +33,7 @@ function initGestures() {
   canvas.addEventListener(
     'pointerdown',
     (e) => {
-      if (!editState.enabled || e.button !== 0 || e.target.closest('.edit-dock,#group-empty')) return
+      if (!editState.enabled || e.button !== 0 || e.target.closest('.edit-dock,#group-empty,.highlight-badge')) return
       swallowClick = false
       const card = e.target.closest('.node,.graph-handle'),
         port = e.target.closest('.connect-port,.group-port')

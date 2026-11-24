@@ -11,7 +11,7 @@ export function preserveFields(file: Graph, team: Graph): Graph {
     const current = team.nodes[id]
     if (!current) continue
     const patch: Record<string, unknown> = {}
-    for (const field of ['ownerRole', 'gatewayRule', 'fieldValues']) {
+    for (const field of ['ownerRole', 'gatewayRule', 'fieldValues', 'badges']) {
       if (!Object.hasOwn(incoming, field) && Object.hasOwn(current, field)) patch[field] = current[field]
     }
     const values = incoming.fieldValues
@@ -28,6 +28,14 @@ export function preserveFields(file: Graph, team: Graph): Graph {
     if (incoming === undefined) graph = { ...graph, [key]: current }
     else if (Array.isArray(incoming) && current.some(value => !incoming.includes(value)))
       graph = { ...graph, [key]: [...new Set([...incoming, ...current])] }
+  }
+  if (isRecord(team.badgeStyles)) {
+    if (!Object.hasOwn(file, 'badgeStyles')) graph = { ...graph, badgeStyles: team.badgeStyles }
+    else if (isRecord(file.badgeStyles)) {
+      const incoming = file.badgeStyles
+      if (Object.keys(team.badgeStyles).some(name => !Object.hasOwn(incoming, name)))
+        graph = { ...graph, badgeStyles: { ...team.badgeStyles, ...incoming } }
+    }
   }
   if (!Object.hasOwn(file, 'fieldDefinitions') && Object.hasOwn(team, 'fieldDefinitions'))
     return { ...graph, fieldDefinitions: team.fieldDefinitions }

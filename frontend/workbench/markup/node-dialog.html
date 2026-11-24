@@ -70,6 +70,28 @@
           <small id="category-error" role="status"></small>
         </fieldset>
         <fieldset class="layout-fields">
+          <legend>醒目標籤</legend>
+          <div class="edit-row">
+            <select id="badge-picker" aria-label="選擇醒目標籤"></select>
+            <button type="button" id="badge-new">＋ 新增標籤</button>
+          </div>
+          <div id="badge-assignments"></div>
+          <p>點選標籤可編輯共用樣式。在畫布編輯模式中可拖曳標籤到節點上方或下方。</p>
+          <div id="badge-style-editor" hidden>
+            <label>標籤文字<input id="badge-name" maxlength="32" placeholder="例如：影響整櫃" /></label>
+            <div class="badge-style-fields">
+              <label>顏色<input type="color" id="badge-color" /></label>
+              <label>樣式<select id="badge-style"><option value="solid">實心</option><option value="outline">外框</option></select></label>
+              <label>圖示<select id="badge-icon"><option value="none">無</option><option value="warning">⚠ 警示</option><option value="time">◷ 時間</option><option value="info">ⓘ 提示</option><option value="star">★ 重點</option></select></label>
+            </div>
+            <div class="edit-row"><span id="badge-preview"></span>
+              <button type="button" id="badge-style-apply">建立並加入</button>
+              <button type="button" id="badge-style-cancel">取消</button>
+            </div>
+          </div>
+          <small id="badge-message" role="status"></small>
+        </fieldset>
+        <fieldset class="layout-fields">
           <legend>負責角色/負責人</legend>
           <select id="node-role" aria-label="負責角色/負責人"></select>
           <div class="edit-row">

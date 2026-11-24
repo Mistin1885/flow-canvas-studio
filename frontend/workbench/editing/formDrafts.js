@@ -1,3 +1,4 @@
+import { badgeDraft, showBadges } from '../badges/editor.js'
 import { $, el } from '../ui/dom.js'
 import { nodeForm, populateEditor, appendContentBlock, appendEditorEdge, appendIncoming } from './nodeForm.js'
 import { categoryDraft, editorLegend } from '../categories/editor.js'
@@ -70,7 +71,7 @@ export function formValues() {
   return {
     adding: nodeForm.adding, node: nodeForm.node, parent: nodeForm.parent,
     fields: Object.fromEntries(valueIds.map(id => [id, $(id).value])),
-    options: pendingOptions, autoId: nodeForm.autoId,
+    badges: badgeDraft(), options: pendingOptions, autoId: nodeForm.autoId,
     groups: [...editState.groupDraft], categories: categoryDraft.items,
     tags: [...$('legend-fields').querySelectorAll('input')].filter(i => i.checked).map(i => i.value),
     values: Object.fromEntries([...$('custom-values').querySelectorAll('[data-field]')].map(i => [i.dataset.field, i.value])),
@@ -128,6 +129,7 @@ function resume(key) {
   }
   context.restore(base)
   populateEditor(saved.adding ? saved.parent : saved.node, saved.adding)
+  if (saved.badges) showBadges({}, saved.badges)
   editState.groupDraft = new Map(saved.groups)
   $('node-group').replaceChildren(...saved.groups.map(([name]) => new Option(name, name)))
   showAssignments({ ownerRole: saved.fields['node-role'], where: saved.fields['node-where'] }, saved.options)

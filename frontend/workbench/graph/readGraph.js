@@ -1,3 +1,4 @@
+import { checkBadges } from '../badges/model.js'
 import { directions } from '../editing/state.js'
 import { unmappedTag } from '../categories/constants.js'
 import { checkNodeStyles } from '../appearance/schema.js'
@@ -249,6 +250,7 @@ function readGraph(value) {
     if (options !== undefined && (!Array.isArray(options) || options.some(s => typeof s !== 'string' || !s.trim())))
       bad(key, '選項必須是非空白文字')
   }
+  checkBadges(value, bad)
   validateFrameData(value)
   checkNodeStyles(value.nodeStyle, '全圖', true)
   for (const g of value.layoutGroups || []) checkNodeStyles(g.nodeStyle, g.name, true)

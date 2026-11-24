@@ -6,7 +6,7 @@ type Question = { token: string; label: string; mine: unknown; team: unknown }
 type Fields = Record<string, unknown>
 
 const fieldNames: Record<string, string> = {
-  title: '名稱', description: '說明', content: '步驟內容', note: '備註', expect: '預期結果',
+  badges: '醒目標籤', title: '名稱', description: '說明', content: '步驟內容', note: '備註', expect: '預期結果',
   where: '位置', ownerRole: '負責角色/負責人', fieldValues: '自訂欄位', group: '群組', gatewayRule: '分流與匯合',
 }
 
@@ -22,7 +22,7 @@ function mergeFields(
   for (const field of new Set([...Object.keys(old), ...Object.keys(local)])) {
     if (signature(old[field]) === signature(local[field]) || signature(local[field]) === signature(remote[field])) continue
     const itemPath = [...path, field]
-    if (path.length === 1 && field === 'fieldValues' &&
+    if (path.length === 1 && ['fieldValues', 'badges'].includes(field) &&
         [old[field], local[field], remote[field]].every(value => value === undefined || isFields(value))) {
       const values = mergeFields((old[field] ?? {}) as Fields, (local[field] ?? {}) as Fields,
         (remote[field] ?? {}) as Fields, itemPath, label, choices, questions, customNames)
@@ -32,7 +32,7 @@ function mergeFields(
     }
     if (signature(remote[field]) !== signature(old[field])) {
       const token = signature([itemPath, local[field], remote[field]])
-      const name = path.length === 1 ? fieldNames[field] : customNames.get(field)
+      const name = path.length === 1 ? fieldNames[field] : path[1] === 'fieldValues' ? customNames.get(field) : field
       questions.push({ token, label: label + ' · ' + (name || field), mine: local[field], team: remote[field] })
       if (choices[token] !== 'file') continue
     }
@@ -77,6 +77,13 @@ export function draftPlan(draft: Draft, latest: Snapshot, choices: Choices) {
         automatic[group.token] = 'file'
         continue
       }
+    }
+    if (draft.originals && group.rows.length === 1 && row.table === 'meta' && row.key === 'badgeStyles' &&
+        isFields(row.file) && isFields(row.team)) {
+      row.file = mergeFields((original.meta.badgeStyles ?? {}) as Fields, row.file, row.team,
+        ['badgeStyles', 'styles'], '醒目標籤樣式', choices, questions, customNames)
+      automatic[group.token] = 'file'
+      continue
     }
     const old = original[row.table][row.key] as NodeData
     if (draft.originals && group.rows.length === 1 && row.table === 'nodes' && old && row.file && row.team) {

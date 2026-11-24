@@ -1,3 +1,4 @@
+import { renderBadges } from '../badges/canvas.js'
 import { effectiveStyle } from '../appearance/schema.js'
 import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
@@ -33,12 +34,19 @@ function sizeReadableNodes() {
     paintCard(card, effectiveStyle(graphModel.document, n))
     card.append(body)
     if (parents.has(i.id)) card.append(el('button', 'toggle', '＋'))
+    if (n.badges) renderBadges(card, n, false)
     probe.append(card)
     return card
   })
   $('nodes').append(probe)
   diagramState.instances.forEach((i, k) => {
     const card = samples[k]
+    const railHeight = side => {
+      const rail = card.querySelector('.badge-rail.' + side)
+      return rail ? rail.offsetHeight + 3 : 0
+    }
+    i.badgeTop = railHeight('top')
+    i.badgeBottom = railHeight('bottom')
     i.w = card.offsetWidth
     i.h = Math.max(Math.ceil((i.scope === 'project' ? 64 : 54) * s), card.offsetHeight + 2)
   })

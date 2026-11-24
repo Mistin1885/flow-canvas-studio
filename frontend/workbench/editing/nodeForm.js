@@ -1,3 +1,4 @@
+import { showBadges, bindBadges } from '../badges/editor.js'
 import { draftOpened } from './formDrafts.js'
 import { suggestNodeId } from '../graph/nodeIds.js'
 import { showAssignments } from '../modeling/assignmentOptions.js'
@@ -200,6 +201,7 @@ function populateEditor(id, add = false) {
   if (!add) (outgoing.get(id) || []).filter((e) => e.kind !== 'spine').forEach(appendEditorEdge)
   setupGroups(n)
   showAssignments(n)
+  showBadges(n)
   showNodeFields(n)
   $('delete-node').hidden = add
   $('editor-main-note').textContent = ''
@@ -239,6 +241,7 @@ function openNodeEditor() {
 }
 
 function bindNodeForm() {
+  bindBadges()
   $('node-id').oninput = () => {
     nodeForm.autoId = !$('node-id').value
     checkNodeId()

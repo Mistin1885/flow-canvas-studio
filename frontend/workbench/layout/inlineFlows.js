@@ -56,10 +56,10 @@ function prepareInlineFlow(sf) {
     let y = 0
     for (let k = 0; k < order.length; k += 2) {
       const row = order.slice(k, k + 2),
-        height = Math.max(...row.map((i) => i.h))
+        height = Math.max(...row.map((i) => i.h + i.badgeTop + i.badgeBottom))
       for (const i of row) {
         i.x = (i.column ? widths[0] + gap : 0) + (widths[i.column] - i.w) / 2
-        i.y = y + (height - i.h) / 2
+        i.y = y + i.badgeTop + (height - i.h - i.badgeTop - i.badgeBottom) / 2
       }
       y += height + gap
     }
@@ -88,7 +88,7 @@ function prepareInlineFlow(sf) {
     bounds = editedBounds
     dockProjectLinks(editedBounds.affected)
   }
-  const headerSpace = host.h + gap
+  const headerSpace = host.badgeTop + host.h + host.badgeBottom + gap
   host.inlineFlow = {
     nodes,
     links,
@@ -125,7 +125,7 @@ function positionFootprint(i, x, y) {
     f.x = x
     f.y = y
     i.x = x + (f.w - i.w) / 2
-    i.y = y + f.pad
+    i.y = y + f.pad + i.badgeTop
   } else {
     i.x = x
     i.y = y

@@ -16,7 +16,7 @@ function layoutGraph(nodes, links, direction = 'LR', reserveFlows = false) {
     .setDefaultEdgeLabel(() => ({}))
   for (const i of nodes) {
     const box = (reserveFlows && i.inlineFlow) || i
-    g.setNode(i.key, { width: box.w, height: box.h })
+    g.setNode(i.key, { width: box.w, height: box.h + (box.badgeTop || 0) + (box.badgeBottom || 0) })
   }
   for (const [k, l] of links.entries()) {
     l.lines = edgeLabelLines(l.edge.label || '')
@@ -36,7 +36,7 @@ function layoutGraph(nodes, links, direction = 'LR', reserveFlows = false) {
   for (const i of nodes) {
     const pos = g.node(i.key)
     i.x = pos.x - pos.width / 2
-    i.y = pos.y - pos.height / 2
+    i.y = pos.y - pos.height / 2 + (reserveFlows && i.inlineFlow ? 0 : (i.badgeTop || 0))
   }
   for (const [k, l] of links.entries()) {
     const pos = g.edge(l.from.key, l.to.key, String(k))

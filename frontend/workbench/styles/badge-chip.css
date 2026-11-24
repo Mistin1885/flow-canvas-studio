@@ -1,0 +1,20 @@
+.highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .32em;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: .15em .55em;
+  border: 1px solid var(--badge-color);
+  border-radius: .55em;
+  background: var(--badge-color);
+  color: var(--badge-ink);
+  font: 650 calc(12px * var(--reading-scale, 1))/1.35 var(--ui, system-ui);
+  vertical-align: middle;
+}
+.highlight-badge.outline {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--badge-color) 12%, var(--paper, var(--surface)));
+}
+.badge-symbol { flex: none; }
+.badge-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
