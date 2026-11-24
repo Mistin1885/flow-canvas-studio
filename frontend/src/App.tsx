@@ -9,7 +9,7 @@ import {
   Plus,
   Waypoints,
 } from 'lucide-react'
-import { api, errorText, type Catalog, type Workspace } from './api'
+import { api, errorText, type Catalog, type Session, type Workspace } from './api'
 import Editor from './editor/Editor'
 import { DisplayControls } from './display/DisplayControls'
 import { useDisplayPreferences } from './display/useDisplayPreferences'
@@ -34,9 +34,9 @@ function Brand() {
 export default function App() {
   const [catalog, setCatalog] = useState<Catalog>({ workspaces: [], canvases: [] })
   const [ready, setReady] = useState(false)
-  const [user, setUser] = useState('')
-  const display = useDisplayPreferences(user)
-  const [admin, setAdmin] = useState(false)
+  const [session, setSession] = useState<Session | null>(null)
+  const user = session?.label || ''
+  const display = useDisplayPreferences(session?.storage_key || '')
   const [error, setError] = useState('')
   const [[type, id], setRoute] = useState(route)
   const [query, setQuery] = useState('')
@@ -55,8 +55,8 @@ export default function App() {
   }, [])
   useEffect(() => {
     const report = (e: unknown) => setError(errorText(e))
-    void api<{ label: string; admin: boolean }>('session')
-      .then((s) => { setUser(s.label); setAdmin(s.admin) })
+    void api<Session>('session')
+      .then(setSession)
       .catch(report)
     void refresh().catch(report)
     const update = () => {
@@ -91,13 +91,13 @@ export default function App() {
   function form(action: Modal['action'], item?: Workspace) {
     setModal({ action, item })
   }
-  if (opened && workspace && user)
+  if (opened && workspace && session)
     return (
       <Editor
         key={opened.id}
         canvas={opened}
         workspace={workspace.name}
-        identity={user}
+        identity={session.storage_key}
         display={display}
         open={(key) => go('canvas', key)}
         back={() => go('workspace', workspace.id)}
@@ -112,7 +112,7 @@ export default function App() {
           <LayoutDashboard size={15} /> 工作區
         </span>
         <DisplayControls {...display} />
-        {admin && <a className="adminLink" href="/admin">備份管理</a>}
+        {session?.admin && <a className="adminLink" href="/admin">備份管理</a>}
         <span className="account">
           <span className="avatar">{user ? user.slice(0, 1).toUpperCase() : '·'}</span>
           {user || '連線中'}

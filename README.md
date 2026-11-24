@@ -75,16 +75,53 @@ The default database path is **`../flow-canvas-studio-data/studio.sqlite3`**, ou
 
 ### Enable GitHub sign-in through Cloudflare Access
 
-1. Create a GitHub identity provider in Cloudflare Zero Trust. Use the callback URL supplied by Cloudflare, then enter the OAuth client ID and secret in the identity provider settings.
-2. Protect the entire hostname with a self-hosted Access application. Select GitHub as the sole provider, enable instant authentication, and configure an Allow policy for your GitHub organization and team.
-3. From the repo root, copy `.env.example` to `.env`. Set `FLOW_AUTH=cloudflare`, `CF_ACCESS_ISSUER`, `CF_ACCESS_AUD` and `FLOW_ORIGIN` to the values for your application. Use your public HTTPS origin for `FLOW_ORIGIN`.
-4. Route the hostname through a host-installed Cloudflare Tunnel to `http://127.0.0.1:8768`. Start the stack with the explicit environment file and verify access with an account inside the team and one outside it.
+**1. Configure GitHub and Access.** If your Zero Trust account already has a working GitHub identity provider, reuse it. Otherwise, register an OAuth App in GitHub under **Settings → Developer settings → OAuth Apps**. Set its homepage to `https://TEAM.cloudflareaccess.com` and its authorization callback to `https://TEAM.cloudflareaccess.com/cdn-cgi/access/callback`. In **Zero Trust → Integrations → Identity providers**, add GitHub, enter the client ID and secret, then finish authorization and test the provider. The OAuth secret belongs in Cloudflare. [GitHub identity provider setup](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/github/)
+
+Create a **Self-hosted** Access application covering the whole public hostname (for example, `flow.example.com`, with the path empty). Select GitHub as its only login method and enable **Apply instant authentication**. Add an **Allow** policy with an **Include → GitHub Organization** rule and select the intended organization and team. For a new deployment, temporarily add **Require → Emails** for the intended first administrator in that same policy. Copy the application's **Audience (AUD) Tag**. [Access application settings](https://developers.cloudflare.com/learning-paths/clientless-access/access-application/create-access-app/)
+
+**2. Start the app on the remote Linux server.** From the root of this version of the repo, create the host data directory and edit the environment file. Keep an existing data directory and its ownership when migrating an installation.
 
 ```bash
-docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d --build --wait
+install -d -m 700 ../flow-canvas-studio-data
+test -f .env || install -m 600 .env.example .env
+nano .env
 ```
 
-An active Access session opens the site directly. When authentication is required, GitHub handles its session, consent and MFA. The web backend validates the signed Access token for HTTP and WebSocket connections. [GitHub identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/github/) · [Instant authentication](https://developers.cloudflare.com/learning-paths/clientless-access/access-application/create-access-app/) · [Access JWT validation](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)
+```dotenv
+FLOW_AUTH=cloudflare
+CF_ACCESS_ISSUER=https://TEAM.cloudflareaccess.com
+CF_ACCESS_AUD=APPLICATION_AUDIENCE_TAG
+FLOW_ORIGIN=https://flow.example.com
+FLOW_PORT=8768
+```
+
+```bash
+export FLOW_UID="$(id -u)" FLOW_GID="$(id -g)"
+docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d --build --wait
+docker compose --env-file .env -f deploy/docker/docker-compose.yml ps
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8768/api/session
+```
+
+Both services should be healthy. The loopback probe should return **401** because it has no Access credential. For an existing data directory with a different owner, set `FLOW_UID` and `FLOW_GID` to its numeric owner and group instead. The web service needs outbound HTTPS to the team domain and `api.github.com`.
+
+**3. Connect the hostname.** In **Networking → Tunnels**, select a healthy tunnel running on this server. Add a **Published application** route with the same hostname as the Access application, type **HTTP**, and service URL **127.0.0.1:8768**. A host-installed connector can reach this loopback address directly. If creating a new tunnel, use its dashboard installation instructions on the server. For a new Docker-based connector on Linux, you can instead run the following in Bash with the new tunnel's token. Host networking lets this connector reach the web service. [Tunnel setup](https://developers.cloudflare.com/tunnel/get-started/) · [Tunnel token file](https://developers.cloudflare.com/tunnel/reference/run-parameters/)
+
+```bash
+install -d -m 700 "$HOME/.config/flow-tunnel"
+(umask 077
+ read -rsp 'Tunnel token: ' flow_tunnel_token && echo &&
+ printf '%s' "$flow_tunnel_token" > "$HOME/.config/flow-tunnel/token")
+docker run -d --name flow-cloudflared --restart unless-stopped --network host \
+  --user "$(id -u):$(id -g)" \
+  --mount "type=bind,source=$HOME/.config/flow-tunnel/token,target=/run/tunnel-token,readonly" \
+  cloudflare/cloudflared:latest tunnel --no-autoupdate run --token-file /run/tunnel-token
+```
+
+**4. Verify sign-in and open the team policy.** Open the public hostname with the intended administrator's GitHub browser session. The first verified Cloudflare login on a fresh or local-only database claims `/admin`. Visit `/api/session` on the public site and confirm `mode` is `cloudflare`, `username` matches your GitHub handle, and `admin` is `true`. Remove the temporary **Require → Emails** rule after confirming ownership. An allowed teammate should see their own handle and receive **403** on `/admin`. Test the public hostname with an account outside the team to verify Cloudflare denies access.
+
+An active Access session opens the app directly. When the session expires, GitHub handles sign-in, consent and MFA. The app verifies the Access assertion on HTTP and WebSocket requests, then uses that assertion to read the signed-in user's identity from the team domain. For a GitHub identity with a numeric upstream account ID, the web service fetches the current GitHub `login` by ID. It also accepts an explicit GitHub `login` in the identity response. Successful lookups are cached for up to 15 minutes and expire with the assertion. The new handle appears in the workspace header and on newly attributed edits and imports. Existing author records, per-user browser preferences, drafts and administrator ownership retain their original identifiers. [Access identity response](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/application-token/) · [GitHub user lookup by ID](https://docs.github.com/en/rest/users/users#get-a-user-using-their-id)
+
+If Access omits both the GitHub ID and login, an operator can set `FLOW_GITHUB_ID_MAP='{"access-user-uuid":12345}'` in the private server `.env`. Obtain the user's `user_uuid` from the authenticated site's `/cdn-cgi/access/get-identity` and confirm their GitHub account ID using `gh api users/HANDLE --jq .id`. Use a verified account pairing. This optional mapping only supplies the display identity after Access admits a GitHub user. For a private Enterprise Managed User, set `FLOW_GITHUB_API_TOKEN` to a credential that can read that account. Public profiles normally work without a token. Rerun the Compose `up -d` command after changing the environment. Keep the environment file and tunnel token outside version control.
 
 ## Scheduled backups and recovery
 

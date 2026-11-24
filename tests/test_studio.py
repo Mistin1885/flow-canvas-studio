@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import httpx
 import jwt
 from fastapi.testclient import TestClient
 from backend import storage
@@ -217,13 +218,36 @@ class Studio(unittest.TestCase):
                 "exp": int(time.time() + 60),
                 "type": "app",
             }
-            with patch("backend.auth.signing_keys") as keys:
+            def profile(url, *, headers, **kwargs):
+                if url == claims["iss"] + "/cdn-cgi/access/get-identity":
+                    self.assertEqual(set(headers), {"Cookie"})
+                    self.assertEqual(headers["Cookie"], "CF_Authorization=" + assertion)
+                    data = {"user_uuid": "abc", "idp": {"type": "github"}, "id": "12345", "name": "Full Name"}
+                else:
+                    self.assertEqual(url, "https://api.github.com/user/12345")
+                    self.assertNotIn("Cookie", headers)
+                    data = {"id": 12345, "login": "flow-editor"}
+                return httpx.Response(200, json=data, request=httpx.Request("GET", url))
+
+            assertion = jwt.encode(claims, key, algorithm="RS256")
+            with patch("backend.auth.signing_keys") as keys, patch("backend.github_identity.httpx.get", side_effect=profile) as lookups:
                 keys.return_value.get_signing_key_from_jwt.return_value.key = key.public_key()
 
                 def get(changes):
                     assertion = jwt.encode(dict(claims, **changes), key, algorithm="RS256")
                     return self.http.get("/api/session", headers={"Cf-Access-Jwt-Assertion": assertion})
 
-                self.assertEqual(get({}).json()["label"], claims["email"])
+                session = get({}).json()
+                self.assertEqual(session["label"], "flow-editor")
+                self.assertEqual(session["username"], "flow-editor")
+                self.assertEqual(session["storage_key"], claims["email"])
+                headers = {"Cf-Access-Jwt-Assertion": assertion, "X-Flow-Editor": "ignored"}
+                imported = self.http.post(self.path + "/imports", headers=headers, json={
+                    "base": 1, "ops": [operation("nodes", "A", None, node("A"))],
+                })
+                self.assertEqual(imported.status_code, 200)
+                history = self.http.get(self.path + "/imports", headers=headers).json()
+                self.assertEqual(history[0]["editor"], "flow-editor")
                 for change in ({"aud": "another"}, {"iss": "wrong"}, {"exp": 0}, {"type": "org"}):
                     self.assertEqual(get(change).status_code, 401)
+                self.assertEqual(lookups.call_count, 2)

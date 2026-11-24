@@ -20,7 +20,7 @@ USER 1000:1000
 CMD ["uvicorn", "backend.database_api:app", "--uds", "/run/flow-canvas/database.sock", "--workers", "1", "--no-proxy-headers"]
 
 FROM runtime AS web
-COPY backend/main.py backend/auth.py backend/
+COPY backend/main.py backend/auth.py backend/github_identity.py backend/
 COPY --from=frontend-build /build/dist/ frontend/dist/
 ENV FLOW_DATABASE_SOCKET=/run/flow-canvas/database.sock
 USER 1000:1000

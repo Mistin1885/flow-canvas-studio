@@ -16,6 +16,8 @@ services:
       FLOW_AUTH: ${FLOW_AUTH:-local}
       CF_ACCESS_ISSUER: ${CF_ACCESS_ISSUER:-}
       CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
+      FLOW_GITHUB_ID_MAP: ${FLOW_GITHUB_ID_MAP:-}
+      FLOW_GITHUB_API_TOKEN: ${FLOW_GITHUB_API_TOKEN:-}
       FLOW_ORIGIN: ${FLOW_ORIGIN:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import os,socket; socket.create_connection(('127.0.0.1', int(os.environ['FLOW_PORT'])), 2).close()"]

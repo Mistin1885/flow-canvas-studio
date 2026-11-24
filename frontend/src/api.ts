@@ -74,3 +74,5 @@ export function differences(previous: Graph, next: Graph, versions: Snapshot['ve
 export function errorText(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
+
+export type Session = { label: string; storage_key: string; admin: boolean }

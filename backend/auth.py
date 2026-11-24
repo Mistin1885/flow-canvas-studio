@@ -9,6 +9,8 @@ import jwt
 from fastapi import HTTPException
 from starlette.requests import HTTPConnection
 
+from .github_identity import github_login
+
 
 @lru_cache
 def signing_keys(issuer):
@@ -32,7 +34,7 @@ def authenticate(conn: HTTPConnection):
             token = secrets.token_hex(32)
             conn.state.new_local_token = token
         subject = token
-        user = {"label": "本機開發", "expires": None, "mode": mode}
+        user = {"label": "本機開發", "storage_key": "本機開發", "expires": None, "mode": mode}
     else:
         issuer = os.getenv("CF_ACCESS_ISSUER", "").rstrip("/")
         aud = os.getenv("CF_ACCESS_AUD", "")
@@ -58,14 +60,28 @@ def authenticate(conn: HTTPConnection):
                 issuer=issuer,
                 options={"require": ["aud", "iss", "exp", "sub", "email", "iat"]},
             )
-            if claims.get("type") != "app" or not claims["email"]:
+            if (
+                claims.get("type") != "app"
+                or not isinstance(claims["email"], str)
+                or not claims["email"]
+                or not claims["sub"]
+                or type(claims["exp"]) is not int
+            ):
                 raise jwt.InvalidTokenError()
         except jwt.PyJWTError as exc:
             raise HTTPException(401, "Access 登入已逾期或無效") from exc
         subject = issuer + "/" + claims["sub"]
-        user = {"label": claims["email"], "expires": claims["exp"], "mode": mode}
     supplied = conn.headers.get("origin")
     if (supplied is not None or conn.scope["type"] == "websocket") and supplied != origin:
         raise HTTPException(403, "請從此網站操作")
+    if mode == "cloudflare":
+        username = github_login(assertion, claims)
+        user = {
+            "label": username,
+            "username": username,
+            "storage_key": claims["email"],
+            "expires": claims["exp"],
+            "mode": mode,
+        }
     conn.state.principal = hashlib.sha256(subject.encode()).hexdigest()
     return user

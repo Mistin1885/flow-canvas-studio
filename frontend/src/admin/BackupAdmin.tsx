@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, errorText } from '../api'
+import { api, errorText, type Session } from '../api'
 import { DisplayControls } from '../display/DisplayControls'
 import { useDisplayPreferences } from '../display/useDisplayPreferences'
 import './backups.css'
@@ -18,8 +18,8 @@ type Point = {
 const date = (stamp: string) => new Date(stamp).toLocaleString('zh-TW', { hour12: false })
 
 export default function BackupAdmin() {
-  const [user, setUser] = useState('')
-  const display = useDisplayPreferences(user)
+  const [storageKey, setStorageKey] = useState('')
+  const display = useDisplayPreferences(storageKey)
   const [points, setPoints] = useState<Point[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
@@ -45,8 +45,8 @@ export default function BackupAdmin() {
     }
   }, [])
   useEffect(() => {
-    void api<{ label: string }>('session')
-      .then((s) => setUser(s.label))
+    void api<Session>('session')
+      .then((s) => setStorageKey(s.storage_key))
       .catch((e) => setError(errorText(e)))
     void refresh()
     const timer = window.setInterval(refresh, 60000)
