@@ -195,3 +195,12 @@
     font: 600 13px var(--ui);
   }
 }
+
+.node-picker input[aria-expanded='true'] {
+  color: var(--ink) !important;
+  caret-color: var(--ink);
+  cursor: text;
+}
+.node-picker input[aria-expanded='true'] + .picker-caption {
+  visibility: hidden;
+}

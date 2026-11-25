@@ -1,6 +1,12 @@
 import { selectionState } from './state.js'
 import { graphModel } from '../graph/model.js'
+import { effectiveType, nodeTypes } from '../graph/nodeTypes.js'
 import { el } from '../ui/dom.js'
+
+export function nodeChoiceLabel(node) {
+  const type = node.jumpTo ? 'return' : effectiveType(node)
+  return `${nodeTypes[type]} | ${node.id} · ${node.title}`
+}
 
 function attachSearch(select, value, description, rows = Object.values(graphModel.nodes)) {
   // The select retains the form value. The visible combobox lets the browser handle IME and soft keyboards.
@@ -24,20 +30,25 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
   select.required = false
   select.hidden = true
   select.setAttribute('aria-hidden', 'true')
-  const byId = new Map(rows.map((row) => [row.id, row]))
+  const choices = rows.map(row => {
+    // Group and subflow endpoints already include their kind in the supplied title.
+    const label = graphModel.nodes[row.id] ? nodeChoiceLabel(row) : row.title + ' · ' + row.id
+    const search = [row.id, row.title, row.group, label].join(' ').toLowerCase()
+    return { id: row.id, label, search }
+  })
+  const byId = new Map(choices.map(choice => [choice.id, choice]))
   let results = [],
     active = -1,
     query = ''
-  const text = (n) => n.id + ' · ' + n.title
   function display() {
     input.value = ''
-    input.placeholder = byId.has(select.value) ? text(byId.get(select.value)) : '選擇' + description
+    input.placeholder = byId.has(select.value) ? byId.get(select.value).label : '選擇' + description
     input.title = input.placeholder
     caption.textContent = input.placeholder
     input.setCustomValidity(select.value ? '' : '請選擇' + description)
   }
   function choose(n) {
-    select.replaceChildren(new Option(text(n), n.id, true, true))
+    select.replaceChildren(new Option(n.label, n.id, true, true))
     select.dispatchEvent(new Event('change'))
     close()
   }
@@ -56,10 +67,10 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
   }
   function render() {
     const q = query.trim().toLowerCase()
-    results = rows.filter((n) => (n.id + ' ' + n.title + ' ' + n.group).toLowerCase().includes(q))
+    results = choices.filter(choice => choice.search.includes(q))
     list.replaceChildren()
     for (const [i, n] of results.entries()) {
-      const o = el('span', 'picker-option', text(n))
+      const o = el('span', 'picker-option', n.label)
       o.id = id + '-' + i
       o.setAttribute('role', 'option')
       o.onpointerdown = (e) => e.preventDefault()
@@ -135,7 +146,7 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
     }
   }
   select.replaceChildren(
-    new Option(value && byId.has(value) ? text(byId.get(value)) : '', value || '', true, true),
+    new Option(value && byId.has(value) ? byId.get(value).label : '', value || '', true, true),
   )
   display()
   box.append(input, caption, list, select)

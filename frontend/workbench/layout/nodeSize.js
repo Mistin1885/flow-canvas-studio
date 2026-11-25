@@ -1,3 +1,4 @@
+import { renderFoldControls } from '../diagram/foldControls.js'
 import { renderBadges } from '../badges/canvas.js'
 import { effectiveStyle } from '../appearance/schema.js'
 import { diagramState } from '../diagram/state.js'
@@ -10,7 +11,7 @@ import { paintCard } from '../appearance/styles.js'
 // Presentation preferences do not modify the flow graph or commands.
 function sizeReadableNodes() {
   const s = diagramState.readingScale,
-    parents = new Set((graphModel.document.subflows || []).map((f) => f.parent))
+    flows = graphModel.document.subflows || []
   diagramState.W = Math.round(280 * s)
   diagramState.H = Math.round(66 * s)
   const probe = el('div')
@@ -33,7 +34,7 @@ function sizeReadableNodes() {
     )
     paintCard(card, effectiveStyle(graphModel.document, n))
     card.append(body)
-    if (parents.has(i.id)) card.append(el('button', 'toggle', '＋'))
+    renderFoldControls(card, i, flows.find(flow => flow.parent === i.id), n.title)
     if (n.badges) renderBadges(card, n, false)
     probe.append(card)
     return card

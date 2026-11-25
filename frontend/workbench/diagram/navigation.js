@@ -2,7 +2,7 @@ import { DX, diagramState } from './state.js'
 import { canvas } from './viewport.js'
 import { $, el } from '../ui/dom.js'
 import { updateTrace } from './animation.js'
-import { expandedFlows, sheetFor, startId } from './visibleGraph.js'
+import { revealNode, startId } from './visibleGraph.js'
 import { ancestors } from './paths.js'
 import { renderDetail } from '../inspector/details.js'
 import { graphModel } from '../graph/model.js'
@@ -117,10 +117,9 @@ function go(id, center = false) {
     renderGroupPanel()
     syncGroups()
   }
-  const scope = sheetFor(id)
-  if (scope !== 'project' && !expandedFlows.has(scope)) {
-    expandedFlows.add(scope)
-    draw(graphModel.document.subflows.find((s) => s.id === scope)?.parent)
+  if (!diagramState.instanceMap.has(id)) {
+    revealNode(id)
+    draw()
   }
   const i = diagramState.instanceMap.get(id)
   if (i) {

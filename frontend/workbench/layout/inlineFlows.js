@@ -2,7 +2,7 @@ import { diagramState } from '../diagram/state.js'
 import { dockProjectLinks } from './ports.js'
 import { layoutGraph } from './dagre.js'
 import { applyLayoutEdits } from '../groups/layout.js'
-import { expandedFlows } from '../diagram/visibleGraph.js'
+import { expandedFlows, expandFlowMembers } from '../diagram/visibleGraph.js'
 import { draw } from '../diagram/render.js'
 import { setHash, tweenView } from '../diagram/navigation.js'
 import { $ } from '../ui/dom.js'
@@ -137,7 +137,10 @@ function toggleInlineFlow(sf) {
     parent = diagramState.instanceMap.get(sf.parent)
   if (!parent) return
   if (closing) expandedFlows.delete(sf.id)
-  else expandedFlows.add(sf.id)
+  else {
+    expandedFlows.add(sf.id)
+    expandFlowMembers(sf)
+  }
   diagramState.selected = parent
   draw(sf.parent)
   setHash(sf.parent)

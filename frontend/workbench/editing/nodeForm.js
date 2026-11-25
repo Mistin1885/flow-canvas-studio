@@ -8,7 +8,7 @@ import { selectionState, editState } from './state.js'
 import { cloneGraph } from '../graph/json.js'
 import { effectiveType, nodeTypes } from '../graph/nodeTypes.js'
 import { $, el } from '../ui/dom.js'
-import { attachSearch } from './searchPicker.js'
+import { attachSearch, nodeChoiceLabel } from './searchPicker.js'
 import { graphModel, outgoing } from '../graph/model.js'
 import { categoryDraft, editorLegend } from '../categories/editor.js'
 import { sheetFor, startId } from '../diagram/visibleGraph.js'
@@ -155,10 +155,19 @@ function appendIncoming(id = '', condition = '') {
   $('added-incoming').append(row)
 }
 
+export function showReturnTarget(value, self) {
+  const field = $('return-target-field')
+  const targets = Object.values(graphModel.nodes).filter(node => node.id !== self && !node.jumpTo)
+  const select = $('node-return-target')
+  const prior = select.closest('.node-picker')
+  field.append(attachSearch(select, value, '返回目標', targets))
+  prior?.remove()
+}
+
 export function syncReturnField() {
   const enabled = $('node-type').value === 'return'
   $('return-target-field').hidden = !enabled
-  $('node-return-target').required = enabled
+  $('return-target-field').querySelector('input').disabled = !enabled
 }
 
 function populateEditor(id, add = false) {
@@ -186,7 +195,7 @@ function populateEditor(id, add = false) {
   $('added-incoming').replaceChildren()
   const previous = add ? (id ? [id] : []) : graphModel.edges.filter((e) => e.to === id).map((e) => e.from)
   $('current-incoming').textContent = previous.length
-    ? '目前前序：' + [...new Set(previous)].map((k) => k + ' · ' + graphModel.nodes[k].title).join('、')
+    ? '目前前序：' + [...new Set(previous)].map(k => nodeChoiceLabel(graphModel.nodes[k])).join('、')
     : '尚無前序連線'
   $('editor-title').textContent = add ? (id ? '新增後續節點' : '建立獨立節點') : '編輯 ' + n.title
   $('editor-context').textContent = add
@@ -201,10 +210,7 @@ function populateEditor(id, add = false) {
   checkNodeId()
   $('node-type').replaceChildren(...Object.entries(nodeTypes).map(([key, name]) => new Option(name, key)))
   $('node-type').value = add ? type : n.jumpTo ? 'return' : effectiveType(n)
-  const targets = Object.values(graphModel.nodes).filter(target => target.id !== n.id && !target.jumpTo)
-  $('node-return-target').replaceChildren(new Option('選擇返回目標', ''),
-    ...targets.map(target => new Option(target.id + ' · ' + target.title, target.id)))
-  $('node-return-target').value = n.jumpTo || ''
+  showReturnTarget(n.jumpTo, add ? null : n.id)
   syncReturnField()
   $('content-editor').replaceChildren()
   n.content.forEach((block, index) => appendContentBlock(block, index))

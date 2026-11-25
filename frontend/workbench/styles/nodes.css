@@ -298,3 +298,18 @@ html[data-theme='dark'] .detail-type.return {
     scroll-behavior: auto !important;
   }
 }
+
+.fold-controls {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  pointer-events: auto;
+}
+.fold-controls .toggle {
+  flex: 1;
+}
+.fold-controls:has(.toggle + .toggle) .toggle {
+  width: auto;
+  font-size: 10px;
+  white-space: nowrap;
+}

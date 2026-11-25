@@ -4,9 +4,9 @@ import { editState } from '../editing/state.js'
 import { effectiveStyle } from '../appearance/schema.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from './state.js'
-import { expandedFlows, tagList } from './visibleGraph.js'
+import { tagList } from './visibleGraph.js'
 import { graphModel } from '../graph/model.js'
-import { toggleInlineFlow } from '../layout/inlineFlows.js'
+import { renderFoldControls } from './foldControls.js'
 import { $, el } from '../ui/dom.js'
 import { activateNode, nodeFor, nodeGroup, nodeKind, returnTarget } from './nodes.js'
 import { scrollState } from './navigation.js'
@@ -109,7 +109,6 @@ export function renderCards(oldPositions, pathSet) {
     dom
       .querySelector('.node-body')
       .setAttribute('aria-pressed', String(diagramState.selected?.key === i.key))
-    let toggle = dom.querySelector('.toggle')
     const sf = graphModel.document.subflows?.find((s) => s.parent === i.id)
     dom.ondblclick = (e) => {
       if (editState.enabled && !e.target.closest('.connect-port,.toggle,.highlight-badge')) {
@@ -123,17 +122,7 @@ export function renderCards(oldPositions, pathSet) {
         rim.dataset.side = side
         dom.append(rim)
       }
-    if (sf) {
-      if (!toggle) {
-        toggle = el('button', 'toggle')
-        dom.append(toggle)
-      }
-      const open = expandedFlows.has(sf.id)
-      toggle.textContent = open ? '−' : '＋'
-      toggle.setAttribute('aria-expanded', String(open))
-      toggle.title = toggle.ariaLabel = (open ? '收合 ' : '展開 ') + sf.title + ' 子流程'
-      toggle.onclick = () => toggleInlineFlow(sf)
-    } else toggle?.remove()
+    renderFoldControls(dom, i, sf, n.title)
     renderBadges(dom, n)
     paintCard(dom, effectiveStyle(graphModel.document, n))
     const start = oldPositions.get(i.key) || { x: i.x, y: i.y }

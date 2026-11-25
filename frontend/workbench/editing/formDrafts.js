@@ -1,6 +1,6 @@
 import { badgeDraft, showBadges } from '../badges/editor.js'
 import { $, el } from '../ui/dom.js'
-import { nodeForm, populateEditor, syncReturnField, appendContentBlock, appendEditorEdge, appendIncoming } from './nodeForm.js'
+import { nodeForm, populateEditor, showReturnTarget, syncReturnField, appendContentBlock, appendEditorEdge, appendIncoming } from './nodeForm.js'
 import { categoryDraft, editorLegend } from '../categories/editor.js'
 import { editState } from './state.js'
 
@@ -135,6 +135,7 @@ function resume(key) {
   showAssignments({ ownerRole: saved.fields['node-role'], where: saved.fields['node-where'] }, saved.options)
   if (saved.adding) nodeForm.suggestion = suggestNodeId(saved.fields['node-type'], base.graph.nodes)
   for (const id of valueIds) if (id in saved.fields) $(id).value = saved.fields[id]
+  showReturnTarget(saved.fields['node-return-target'], saved.node)
   syncReturnField()
   $('group-direction').value = editState.groupDraft.get($('node-group').value) || 'auto'
   $('node-id').dispatchEvent(new Event('input'))
