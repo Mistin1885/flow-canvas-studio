@@ -49,12 +49,23 @@ function parallelRun(a, b, gap) {
   return Math.max(0, Math.min(a.hi, b.hi) - Math.max(a.lo, b.lo))
 }
 
-function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
+function heading(a, b) {
+  if (a.x !== b.x) return a.x < b.x ? 1 : 2
+  return a.y < b.y ? 3 : 4
+}
+
+function opposite(direction) {
+  return direction % 2 ? direction + 1 : direction - 1
+}
+
+function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale, edit) {
   const { left, right, min, max } = bounds
   const obstacles = boxes.filter((r) => r.x < right && r.x + r.w > left && r.y < max && r.y + r.h > min)
   const spacing = 12 * scale
-  const lanes = (axis) =>
-    conflicts.filter((t) => t.axis === axis).flatMap((t) => [t.at - spacing, t.at + spacing])
+  const lanes = (axis) => [
+    ...conflicts.filter((t) => t.axis === axis).flatMap((t) => [t.at - spacing, t.at + spacing]),
+    ...(edit?.lane?.axis === axis ? [edit.lane.at] : []),
+  ]
   const xs = [
     ...new Set(
       [start.x, end.x, left, right, ...lanes('x'), ...obstacles.flatMap((r) => [r.x, r.x + r.w])].filter(
@@ -72,16 +83,21 @@ function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
     nx = xs.length
   const first = ys.indexOf(start.y) * nx + xs.indexOf(start.x),
     last = ys.indexOf(end.y) * nx + xs.indexOf(end.x),
-    dist = new Map([[first * 3, 0]]),
+    // Edited routes distinguish travel direction and whether the dragged lane was used.
+    states = edit ? 10 : 3,
+    initial = first * states + (edit ? heading(edit.source, start) : 0),
+    endDirection = edit ? heading(end, edit.target) : 0,
+    dist = new Map(),
     previous = new Map(),
     heap = []
   const point = (id) => ({ x: xs[id % nx], y: ys[Math.floor(id / nx)] })
+  const compare = (a, b) => a.bends - b.bends || a.score - b.score
   const push = (item) => {
     heap.push(item)
     let k = heap.length - 1
     while (k) {
       const p = (k - 1) >> 1
-      if (heap[p].score <= item.score) break
+      if (compare(heap[p], item) <= 0) break
       heap[k] = heap[p]
       k = p
     }
@@ -94,8 +110,8 @@ function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
       let k = 0
       while (2 * k + 1 < heap.length) {
         let child = 2 * k + 1
-        if (child + 1 < heap.length && heap[child + 1].score < heap[child].score) child++
-        if (heap[child].score >= tail.score) break
+        if (child + 1 < heap.length && compare(heap[child + 1], heap[child]) < 0) child++
+        if (compare(heap[child], tail) >= 0) break
         heap[k] = heap[child]
         k = child
       }
@@ -103,17 +119,20 @@ function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
     }
     return top
   }
-  // Keep direction in the search state to favor fewer bends at equal distance.
-  push({ id: first * 3, cost: 0, score: 0 })
+  // Manual routes minimize turns first. Automatic layout keeps its congestion and distance costs.
+  const seed = { id: initial, cost: 0, score: 0, bends: 0 }
+  dist.set(initial, seed)
+  push(seed)
   while (heap.length) {
     const current = pop()
-    if (current.cost !== dist.get(current.id)) continue
-    const cell = Math.floor(current.id / 3),
-      axis = current.id % 3
-    if (cell === last) {
+    if (current !== dist.get(current.id)) continue
+    const cell = Math.floor(current.id / states),
+      direction = current.id % states % 5,
+      usedLane = edit && current.id % states >= 5
+    if (cell === last && (!edit?.lane || usedLane)) {
       const path = []
       for (let id = current.id; id !== undefined; id = previous.get(id))
-        path.push(point(Math.floor(id / 3)))
+        path.push(point(Math.floor(id / states)))
       return path.reverse()
     }
     const a = point(cell),
@@ -126,9 +145,13 @@ function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
     if (row + 1 < ys.length) neighbors.push(cell + nx)
     for (const next of neighbors) {
       const b = point(next),
-        dir = next % nx === col ? 2 : 1,
-        id = next * 3 + dir
-      const step = wireTrack(a, b)
+        dir = edit ? heading(a, b) : next % nx === col ? 2 : 1
+      if (edit && dir === opposite(direction)) continue
+      const lane = edit?.lane
+      const onLane = lane && a[lane.axis] === lane.at && b[lane.axis] === lane.at
+      const id = next * states + dir + (usedLane || onLane ? 5 : 0)
+      if (edit && next === last && (dir === opposite(endDirection) || (lane && !usedLane && !onLane))) continue
+      const step = tracks.length ? wireTrack(a, b) : null
       const congestion = step
         ? tracks.reduce((sum, t) => sum + parallelRun(step, t, 8 * scale), 0)
         : 0
@@ -137,11 +160,15 @@ function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
         Math.abs(b.x - a.x) +
         Math.abs(b.y - a.y) +
         congestion * 6 +
-        (axis && axis !== dir ? 20 * scale : 0)
-      if (cost >= (dist.get(id) ?? Infinity) || obstacles.some((r) => segmentHitsBox(a, b, r))) continue
-      dist.set(id, cost)
+        (!edit && direction && direction !== dir ? 20 * scale : 0)
+      const bends = current.bends + (edit && direction !== dir ? 1 : 0) +
+        (edit && next === last && dir !== endDirection ? 1 : 0)
+      const candidate = { id, cost, bends, score: cost + Math.abs(end.x - b.x) + Math.abs(end.y - b.y) }
+      const prior = dist.get(id)
+      if ((prior && compare(candidate, prior) >= 0) || obstacles.some((r) => segmentHitsBox(a, b, r))) continue
+      dist.set(id, candidate)
       previous.set(id, current.id)
-      push({ id, cost, score: cost + Math.abs(end.x - b.x) + Math.abs(end.y - b.y) })
+      push(candidate)
     }
   }
   return null

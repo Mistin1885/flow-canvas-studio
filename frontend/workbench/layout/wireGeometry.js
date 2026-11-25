@@ -1,5 +1,6 @@
 import { simplifyWire } from './polyline.js'
-import { bypassEndpoints, routeBetweenPorts } from './wireDocking.js'
+import { legacyRoute } from './legacyWire.js'
+import { routeBetweenPorts } from './wireDocking.js'
 
 const faces = { top: [0, -1], right: [1, 0], bottom: [0, 1], left: [-1, 0] }
 const sides = Object.keys(faces)
@@ -85,17 +86,18 @@ export function routeAnchor(points) {
   return points[0]
 }
 
-// Store each straight segment as a lane relative to the two ports. End lanes
-// normally follow the corresponding port as cards move or change size.
+// Only the line the user moved is a constraint. The bends that connected it
+// to the ports are disposable, otherwise each new drag accumulates old bends.
 export function dragLanes(points, index, delta, ports, scale) {
-  const [a, b] = ports.map((p) => p.point)
-  return points.slice(1).map((p, i) => {
-    const axis = points[i].x === p.x ? 'x' : 'y'
-    let at = (p[axis] + (i === index ? delta[axis] : 0) - (a[axis] + b[axis]) / 2) / scale
-    if (i !== index && i === 0) at = 'start'
-    else if (i !== index && i === points.length - 2) at = 'end'
-    return { axis, at }
-  })
+  const p = points[index]
+  const axis = p.x === points[index + 1].x ? 'x' : 'y'
+  let coordinate = p[axis] + delta[axis]
+  const aligned = ports.filter(port => port.point[axis] === port.stub[axis])
+    .sort((a, b) => Math.abs(coordinate - a.point[axis]) - Math.abs(coordinate - b.point[axis]))
+  if (aligned.length && Math.abs(coordinate - aligned[0].point[axis]) <= 6 * scale)
+    coordinate = aligned[0].point[axis]
+  const midpoint = (ports[0].point[axis] + ports[1].point[axis]) / 2
+  return [{ axis, at: (coordinate - midpoint) / scale }]
 }
 
 export function closestSegment(points, p) {
@@ -118,22 +120,14 @@ export function resolveWire(view, layout, scale) {
   if (!layout?.start && !layout?.end && !layout?.lanes) return view.autoPoints
   const [a, b] = wirePorts(view, layout, scale)
   let middle
-  if (layout.lanes?.length) {
-    let p = a.stub
-    middle = [p]
-    for (const { axis, at } of layout.lanes) {
-      const coord =
-        at === 'start'
-          ? a.stub[axis]
-          : at === 'end'
-            ? b.stub[axis]
-            : (a.point[axis] + b.point[axis]) / 2 + at * scale
-      p = { ...p, [axis]: coord }
-      middle.push(p)
-    }
-    const axis = layout.lanes.at(-1).axis === 'x' ? 'y' : 'x'
-    middle.push({ ...p, [axis]: b.stub[axis] }, b.stub)
-    middle = bypassEndpoints(middle, view, scale)
+  const single = layout.lanes?.length === 1 && layout.lanes[0]
+  if (single && finite(single.at)) {
+    const { axis, at } = single
+    middle = routeBetweenPorts(a, b, view, scale, {
+      axis, at: (a.point[axis] + b.point[axis]) / 2 + at * scale,
+    })
+  } else if (layout.lanes?.length) {
+    return legacyRoute(a, b, layout.lanes, view, scale)
   } else {
     middle = routeBetweenPorts(a, b, view, scale)
   }
