@@ -1,0 +1,148 @@
+.kbReading {
+  min-width: 0;
+}
+.kbScope {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.73rem;
+  font-weight: 600;
+  border-radius: 5px;
+  padding: 3px 8px;
+  color: var(--accent);
+  background: var(--soft);
+}
+.kbArticle {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.kbArticle h2 {
+  margin: 8px 0 3px;
+  font-size: clamp(1.45rem, 2.2vw, 1.95rem);
+  line-height: 1.35;
+  letter-spacing: -0.045em;
+}
+.kbArticle > p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 8px 0 22px;
+}
+.kbArticle h3 {
+  font-size: 1.02rem;
+  margin: 0 0 8px;
+}
+.kbArticle section {
+  margin: 20px 0;
+  border-top: 1px solid var(--line);
+  padding-top: 17px;
+}
+.kbArticle .knowledgeBody {
+  font-size: 0.9rem;
+}
+.kbArticle .knowledgeBody p {
+  margin: 4px 0;
+}
+.kbArticle table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0;
+}
+.kbArticle :is(th, td) {
+  border: 0;
+  padding: 8px 11px;
+}
+.kbArticle th {
+  color: var(--muted);
+  background: var(--rail);
+  font-size: 0.8rem;
+}
+.kbArticle td {
+  border-top: 1px solid var(--line);
+}
+.kbContext {
+  min-width: 0;
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: clamp(12px, 1.6vw, 20px);
+  overflow-wrap: anywhere;
+}
+.kbActions {
+  display: grid;
+  gap: 6px;
+}
+.kbActions button {
+  font-size: 0.79rem;
+  justify-content: start;
+  line-height: 1.5;
+  padding: 7px 10px;
+}
+.kbActions button:first-child {
+  font-weight: 650;
+  color: var(--accent);
+  background: var(--soft);
+}
+.kbUsage {
+  border-top: 1px solid var(--line);
+  margin-top: 17px;
+  padding-top: 14px;
+}
+.kbUsage h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.81rem;
+  margin: 0 0 10px;
+}
+.kbUsage svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.kbUsage small {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+.kbSpaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.kbSpaces li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  font-size: 0.73rem;
+}
+.kbLocation {
+  border-inline-start: 2px solid var(--line);
+  padding-inline-start: 10px;
+  margin: 11px 0;
+}
+.kbLocation strong,
+.kbLocation small {
+  display: block;
+  font-size: 0.82rem;
+}
+.kbLocation small {
+  font-size: 0.7rem;
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+.kbLocation a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.78rem;
+  margin-top: 4px;
+}
+.kbLocation a:hover {
+  text-decoration: underline;
+}

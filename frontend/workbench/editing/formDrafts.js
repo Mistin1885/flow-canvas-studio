@@ -1,3 +1,4 @@
+import { validateReferences } from '../knowledge/formValidation.js'
 import { pendingKnowledge } from '../knowledge/insert.js'
 import { badgeDraft, showBadges } from '../badges/editor.js'
 import { $, el } from '../ui/dom.js'
@@ -165,6 +166,7 @@ function resume(key) {
     row.querySelector('.edge-fallback').value = fallbackText
   }
   for (const [id, label] of saved.incoming) appendIncoming(id, label)
+  validateReferences()
   baseKey = saved.baseKey || key + ':base'
   lastSaved = JSON.stringify(formValues())
   prompt(false)

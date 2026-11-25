@@ -1,4 +1,5 @@
 import { linkText, pinnedEntries, readingEntry } from '../knowledge/reader.js'
+import { proseSegments } from '../knowledge/references.js'
 import { properties, rules } from '../modeling/fields.js'
 import { groupStyle } from '../appearance/schema.js'
 import { categoryTags } from '../categories/model.js'
@@ -20,8 +21,8 @@ import { openSourceReview } from '../ui/sourceReview.js'
 
 function prose(t) {
   const p = el('p', 'prose')
-  for (const part of t.split(/(`[^`]+`)/g))
-    p.append(part.startsWith('`') ? el('code', '', part.slice(1, -1)) : document.createTextNode(part))
+  for (const part of proseSegments(t))
+    p.append(part.code ? el('code', '', part.text.slice(1, -1)) : document.createTextNode(part.text))
   return p
 }
 

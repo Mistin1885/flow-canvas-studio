@@ -1,7 +1,9 @@
+import { references } from './references.js'
+import { attachPreview } from './tooltip.js'
 import { graphModel } from '../graph/model.js'
 import { $, el } from '../ui/dom.js'
 import { diagramState } from '../diagram/state.js'
-import { renderBody } from './body.js'
+import { renderBody, hasTable } from './body.js'
 import { renderDetail } from '../inspector/details.js'
 
 let opened
@@ -22,7 +24,7 @@ function showEntry(key, section, focus = true) {
   const doc = graphModel.document['knowledge.' + key]
   if (!doc) return
   const panel = $('detail')
-  const back = el('button', 'return-button', '← 返回節點')
+  const back = el('button', 'return-button knowledgeBack', '← 返回節點')
   opened = { key, section, node: diagramState.selected?.id }
   back.onclick = () => {
     opened = undefined
@@ -47,8 +49,9 @@ function entryLink(id, section, label) {
   if (!doc) return document.createTextNode(label)
   const link = el('button', 'knowledgeLink', label)
   link.type = 'button'
-  link.setAttribute('aria-description', doc.summary || doc.title)
-  if (doc.summary) link.dataset.preview = doc.summary
+  attachPreview(link, doc.summary || doc.title, () =>
+    (doc.sections || []).some((part) => hasTable(part.body)) ? '查看完整條目與表格' : '查看完整條目',
+  )
   link.onclick = () => showEntry(id, section)
   return link
 }
@@ -66,7 +69,7 @@ export function linkText(root) {
     const line = node.textContent,
       result = document.createDocumentFragment()
     let end = 0
-    for (const m of line.matchAll(/\[([^\]\n]+)\]\(kb:([\w-]+)(?:#([\w-]+))?\)/g)) {
+    for (const m of references(line)) {
       result.append(line.slice(end, m.index), entryLink(m[2], m[3], m[1]))
       end = m.index + m[0].length
     }

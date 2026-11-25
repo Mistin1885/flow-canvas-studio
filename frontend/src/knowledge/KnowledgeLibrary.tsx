@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Search, X } from 'lucide-react'
+import { BookOpen, Search, X, FileText, Plus, BookMarked, FolderOpen, Share2 } from 'lucide-react'
 import { useKnowledgeLibrary } from './useKnowledgeLibrary'
 import { ArticleForm } from './ArticleForm'
+import { SharingForm } from './SharingForm'
 import { QuickGuide } from './QuickGuide'
 import { ArticleView, Locations } from './ArticleView'
 import { scopeLabel, newKey, type Entry, type Picker, type Article } from './types'
@@ -29,7 +30,7 @@ export default function KnowledgeLibrary({
     picker,
   )
   const [query, search] = useState('')
-  const [form, setForm] = useState<'new' | 'edit' | null>(null),
+  const [form, setForm] = useState<'new' | 'edit' | 'sharing' | null>(null),
     [base, setBase] = useState<Entry>()
   const [section, setSection] = useState(''),
     [alias, setAlias] = useState(picker?.label || '')
@@ -45,7 +46,7 @@ export default function KnowledgeLibrary({
     setError('')
     setForm(null)
   }
-  function save(doc: Article, shares: string[]) {
+  function save(doc: Article) {
     if (picker && form === 'new') {
       const id = newKey()
       picker.insert(id, doc, alias.trim() || doc.title, '')
@@ -60,7 +61,6 @@ export default function KnowledgeLibrary({
         local: old?.local || '',
         localVersion: old?.version,
         version: old?.version || 0,
-        shares,
         doc,
       },
       choose,
@@ -79,6 +79,9 @@ export default function KnowledgeLibrary({
     picker.insert(key, doc, alias.trim() || entry.doc.title, section)
     close()
   }
+  const visibleEntries = lib?.entries.filter((e) =>
+    (e.doc.title + e.doc.summary).toLowerCase().includes(query.trim().toLowerCase()),
+  )
   return (
     <dialog
       ref={shell}
@@ -89,26 +92,36 @@ export default function KnowledgeLibrary({
         if (!busy) close()
       }}
     >
-      <header>
-        <div>
-          <small>{name}</small>
+      <header className="kbHeader">
+        <span className="kbMark" aria-hidden="true">
+          <BookOpen size={24} />
+        </span>
+        <div className="kbHeading">
+          <small>
+            <FolderOpen size={13} />
+            {name}
+          </small>
           <h1 id="kb-title">
-            <BookOpen size={21} />
             {picker ? '引用知識條目' : canvas ? '畫布知識與參考資料' : '工作區知識庫'}
           </h1>
         </div>
-        <button aria-label="關閉知識庫" onClick={close}>
+        {!picker && <QuickGuide identity={identity} />}
+        <button className="icon kbClose" aria-label="關閉知識庫" onClick={close}>
           <X size={18} />
         </button>
       </header>
-      {!picker && <QuickGuide identity={identity} />}
       {error && (
         <p role="alert" className="warning">
           {error} <button onClick={() => reload((n) => n + 1)}>重新讀取</button>
         </p>
       )}
       <div className="kbGrid">
-        <aside>
+        <aside className="kbIndex">
+          <div className="kbIndexHeading">
+            <BookMarked size={16} />
+            <strong>條目目錄</strong>
+            <span className="pill">{lib?.entries.length ?? '…'}</span>
+          </div>
           <label className="kbSearch">
             <Search size={16} />
             <input
@@ -119,48 +132,61 @@ export default function KnowledgeLibrary({
             />
           </label>
           <button
+            className="primary kbCreate"
             disabled={busy || !!form}
             onClick={() => {
               setBase(undefined)
               setForm('new')
             }}
           >
-            ＋ 新增條目
+            <Plus size={15} /> 新增條目
           </button>
           <nav aria-label="知識條目">
-            {lib?.entries
-              .filter((e) => (e.doc.title + e.doc.summary).toLowerCase().includes(query.toLowerCase()))
-              .map((e) => (
+            {lib &&
+              visibleEntries?.map((e) => (
                 <button
                   disabled={!!form || busy}
                   aria-current={e.id === selected ? 'true' : undefined}
                   key={e.id}
                   onClick={() => choose(e.id)}
                 >
+                  <FileText aria-hidden="true" size={16} />
                   <b>{e.doc.title}</b>
                   <small>{scopeLabel(e, lib.spaces)}</small>
                 </button>
               ))}
+            {query && visibleEntries?.length === 0 && (
+              <small className="kbNoMatches">找不到符合的條目</small>
+            )}
           </nav>
         </aside>
-        <main>
-          {form && lib ? (
+        <main className="kbDetail">
+          {form === 'sharing' && base && lib ? (
+            <SharingForm
+              entry={base}
+              spaces={lib.spaces}
+              busy={busy}
+              cancel={() => setForm(null)}
+              save={(shares) =>
+                void mutate({ action: 'share', entry: base.id, version: base.version, shares }, choose)
+              }
+            />
+          ) : form && lib ? (
             <ArticleForm
               key={form + base?.id}
               entry={form === 'edit' ? base : undefined}
               busy={busy}
-              shared={form === 'edit' ? base?.scope === 'workspace' : !canvas}
-              spaces={lib.spaces}
-              owner={space}
               save={save}
               cancel={() => setForm(null)}
             />
           ) : entry && lib ? (
-            <>
-              <small className="kbScope">{scopeLabel(entry, lib.spaces)}</small>
-              <ArticleView entry={entry} />
+            <div className={picker ? 'kbPage kbPicking' : 'kbPage'}>
+              <div className="kbReading">
+                <small className="kbScope">{scopeLabel(entry, lib.spaces)}</small>
+                <ArticleView doc={entry.doc} />
+              </div>
               {picker ? (
-                <div className="kbForm">
+                <div className="kbForm kbPickForm">
                   <label>
                     引用位置
                     <select value={section} onChange={(e) => setSection(e.target.value)}>
@@ -186,16 +212,16 @@ export default function KnowledgeLibrary({
                   </button>
                 </div>
               ) : (
-                <>
+                <aside className="kbContext">
                   <div className="kbActions">
-                    {entry.scope !== 'shared' && (
+                    {entry.actions?.includes('edit') && (
                       <button
                         onClick={() => {
                           setBase(entry)
                           setForm('edit')
                         }}
                       >
-                        {entry.scope === 'canvas' ? '編輯條目' : '編輯原文與共用範圍'}
+                        {entry.scope === 'canvas' ? '編輯條目' : '編輯原文'}
                       </button>
                     )}
                     {entry.scope === 'canvas' && (
@@ -236,19 +262,38 @@ export default function KnowledgeLibrary({
                   </div>
                   {entry.scope !== 'canvas' && (
                     <div className="kbUsage">
-                      <h3>可引用的工作區</h3>
-                      <p>
+                      <h3>
+                        <Share2 size={15} />
+                        可引用的工作區
+                      </h3>
+                      {entry.actions?.includes('share') && (
+                        <button
+                          className="kbManageSharing"
+                          disabled={busy}
+                          onClick={() => {
+                            setBase(entry)
+                            setForm('sharing')
+                          }}
+                        >
+                          管理共用範圍
+                        </button>
+                      )}
+                      <ul className="kbSpaces">
                         {lib.spaces
                           .filter((s) => s.id === entry.owner || entry.shares.includes(s.id))
-                          .map((s) => s.name)
-                          .join('、')}
-                      </p>
+                          .map((s) => (
+                            <li key={s.id}>
+                              <FolderOpen size={13} />
+                              {s.name}
+                            </li>
+                          ))}
+                      </ul>
                     </div>
                   )}
                   <Locations entry={entry} />
-                </>
+                </aside>
               )}
-            </>
+            </div>
           ) : (
             <p>{lib ? '新增第一篇條目，或從其他工作區分享條目到這裡。' : '載入中…'}</p>
           )}

@@ -1,0 +1,102 @@
+.kbSharing.kbForm {
+  align-content: start;
+  grid-template-rows: none;
+  gap: 18px;
+}
+.kbSharing h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+.kbSharing p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 5px 0 0;
+}
+.kbGrantList,
+.kbGrantPicker ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.kbGrantList {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.kbGrantList li {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 9px 14px;
+  min-height: 42px;
+}
+.kbGrantList li + li {
+  border-top: 1px solid var(--line);
+}
+.kbGrantList strong,
+.kbGrantPicker button span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: start;
+  font-size: 0.87rem;
+}
+.kbGrantList small {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex: none;
+}
+.kbGrantList li > svg,
+.kbGrantPicker svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.kbGrantList li > button {
+  padding: 4px;
+}
+.kbGrantPicker {
+  background: var(--rail);
+  padding: 12px;
+  border-radius: 9px;
+}
+.kbGrantPicker ul {
+  max-height: 12rem;
+  overflow: auto;
+}
+.kbGrantPicker li button {
+  display: flex;
+  width: 100%;
+  gap: 9px;
+  align-items: center;
+  background: transparent;
+  border-color: transparent;
+  padding: 7px;
+}
+.kbGrantPicker li button:hover {
+  background: var(--selection);
+}
+.kbGrantSearch {
+  display: flex;
+  position: relative;
+  align-items: center;
+}
+.kbGrantSearch svg {
+  position: absolute;
+  left: 10px;
+}
+.kbGrantPicker .kbGrantSearch input {
+  padding-left: 33px;
+}
+.kbGrantPicker label {
+  margin-bottom: 7px;
+}
+.kbSharing p.kbShareNotice {
+  border-inline-start: 3px solid var(--accent);
+  padding: 8px 12px;
+  background: var(--rail);
+  color: var(--ink);
+}
+.kbManageSharing {
+  margin-bottom: 9px;
+}

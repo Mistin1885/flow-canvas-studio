@@ -40,26 +40,81 @@ button.knowledgeLink {
   white-space: pre-wrap;
 }
 
-.knowledgeLink[data-preview] {
-  position: relative;
-}
-.knowledgeLink[data-preview]:is(:hover, :focus-visible)::after {
-  content: attr(data-preview);
-  position: absolute;
-  z-index: 4;
-  top: 100%;
-  inset-inline-end: 0;
-  min-width: 10em;
-  max-width: 16em;
+.knowledgeTooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  z-index: 2147483647;
   width: max-content;
-  padding: 0.55em 0.7em;
-  border-radius: 6px;
-  box-shadow: 0 3px 12px #0002;
+  max-width: min(25rem, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  padding: 9px 13px;
+  border-radius: 8px;
+  box-shadow:
+    0 6px 24px #14253b2b,
+    0 1px 4px #14253b1a;
   background: var(--paper);
   color: var(--ink);
   border: 1px solid var(--line);
-  text-align: start;
-  font-size: 0.88em;
-  line-height: 1.5;
+  font: calc(13px * var(--reading-scale, 1))/1.6 var(--ui);
   pointer-events: none;
+}
+#node-form textarea[aria-invalid='true'] {
+  border-color: light-dark(#b23634, #ff948b);
+  outline: 1px solid light-dark(#b23634, #ff948b);
+}
+#node-form .referenceError {
+  display: block;
+  color: light-dark(#a12b2a, #ffaca3);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+#node-form .editor-footer button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.knowledgePins:not(:empty) {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.knowledgePins .section-title {
+  margin: 0;
+}
+.knowledgeBack {
+  margin-bottom: 18px;
+}
+.knowledgeTooltip {
+  pointer-events: auto;
+  overflow-y: auto;
+}
+.knowledgeTooltip small {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.knowledgeTooltip p {
+  margin: 3px 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.knowledgeTooltip button {
+  width: 100%;
+  padding: 7px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
 }

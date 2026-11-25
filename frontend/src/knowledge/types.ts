@@ -16,6 +16,7 @@ export type Entry = {
   local: string | null
   version: number
   localVersion?: number
+  actions: ('edit' | 'share')[]
   shares: string[]
   uses: Usage[]
 }

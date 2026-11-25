@@ -73,6 +73,28 @@ class Knowledge(unittest.TestCase):
         self.assertEqual(self.snapshot(following)["graph"][key],updated)
         self.assertFalse(self.library(guest)["entries"])
 
+    def test_separate_content_and_sharing_changes(self):
+        doc = {"title": "Shift guide"}
+        path = "knowledge/"+self.owner
+        key = self.post(path, dict(action="save", doc=doc))["id"]
+        change = dict(action="share", entry=key, version=1, shares=[self.guest])
+        self.post(path, change)
+        self.assertEqual(self.library(self.owner)["entries"][0]["actions"], ["edit", "share"])
+        self.assertEqual(self.library(self.guest)["entries"][0]["actions"], [])
+        canvas = self.canvas(self.guest)
+        local = self.mutate(self.guest, "pin", canvas=canvas, entry=key)["id"]
+        revised = dict(doc, summary="New summary")
+        self.post(path, dict(action="save", entry=key, version=2, doc=revised))
+        self.assertEqual(self.library(self.guest)["entries"][0]["doc"]["summary"], "New summary")
+        self.assertEqual(self.web.post("/api/"+path, json=dict(change,shares=[])).status_code, 409)
+        self.assertGreaterEqual(self.web.post("/api/knowledge/"+self.guest, json=dict(change,version=3)).status_code, 400)
+        self.assertGreaterEqual(self.web.post("/api/"+path, json=dict(change,version=3,doc=doc)).status_code, 400)
+        self.post(path, dict(change, version=3, shares=[]))
+        self.assertFalse(self.library(self.guest)["entries"])
+        copy = self.snapshot(canvas)["graph"]["knowledge."+local]
+        self.assertEqual(copy["summary"], "New summary")
+        self.assertNotIn("source", copy)
+
     def test_local_sections_pins_and_named_backlinks(self):
         canvas = self.canvas(self.owner)
         key = self.mutate(self.owner,"save",canvas=canvas,doc=dict(title="Checklist"))["id"]

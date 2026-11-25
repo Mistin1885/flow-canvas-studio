@@ -1,3 +1,4 @@
+import { CircleHelp, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
 export function QuickGuide({ identity }: { identity: string }) {
@@ -19,19 +20,19 @@ export function QuickGuide({ identity }: { identity: string }) {
   }
   return (
     <section className="kbGuide">
-      <button type="button" aria-expanded={open} onClick={toggle}>
-        {open ? '收合使用指引' : '知識庫使用指引'}
+      <button type="button" className="kbGuideToggle" aria-expanded={open} onClick={toggle}>
+        <CircleHelp size={15} /> 使用指引 <ChevronDown size={13} />
       </button>
       {open && (
-        <ol>
+        <ol className="kbGuideSteps">
           <li>
-            <b>閱讀流程</b>　在節點詳情點選底線文字，讀完按「返回節點」。
+            <b>閱讀流程</b>在節點詳情點選底線文字，讀完按「返回節點」。
           </li>
           <li>
-            <b>加入說明</b>　在節點編輯器選取文字，按「引用知識條目」。
+            <b>加入說明</b>在節點編輯器選取文字，按「引用知識條目」。
           </li>
           <li>
-            <b>與團隊共用</b>　畫布專用條目可加入工作區共用，再選擇要分享給哪些工作區。
+            <b>與團隊共用</b>畫布專用條目可加入工作區共用，再選擇要分享給哪些工作區。
           </li>
         </ol>
       )}

@@ -18,6 +18,12 @@ def context(db, space, canvas):
         raise store.Invalid("畫布不屬於此工作區")
 
 
+def entry_actions(scope):
+    if scope == "workspace":
+        return ["edit", "share"]
+    return ["edit"] if scope == "canvas" else []
+
+
 def local_rows(db, canvas):
     return db.execute("""SELECT m.*,c.name,w.name AS space_name FROM meta m
         JOIN active_canvases c ON c.id=m.canvas JOIN workspaces w ON w.id=c.workspace
@@ -49,6 +55,8 @@ def listing(space: str, canvas: str = "", selected: str = ""):
                               version=row["version"], owner=row["workspace"], shares=kb.shares(db,key),
                               scope="workspace" if row["workspace"]==space else "shared",
                               uses=[u for u in uses if u["nodes"] or u["pinned"]]))
+        for item in items:
+            item["actions"] = entry_actions(item["scope"])
         pins = db.execute("SELECT value,version FROM meta WHERE canvas=? AND key='knowledgePins'",(canvas,)).fetchone()
         return {"entries":items,"spaces":workspaces,"pins":json.loads(pins[0]) if pins else [],"pinVersion":pins[1] if pins else None}
 
@@ -63,7 +71,7 @@ def preview(space: str, source: str):
 
 
 class Mutation(BaseModel):
-    action: Literal["save","promote","copy","detach","pin"]
+    action: Literal["save","share","promote","copy","detach","pin"]
     canvas: str = ""
     entry: str = Field(default="", pattern=r"^[a-zA-Z0-9_-]{0,64}$")
     local: str = Field(default="", pattern=r"^[a-zA-Z0-9_-]{0,64}$")
@@ -71,7 +79,7 @@ class Mutation(BaseModel):
     version: int = 0
     pinVersion: int | None = None
     doc: dict | None = None
-    shares: list[str] = Field(default_factory=list,max_length=500)
+    shares: list[str] | None = Field(default=None,max_length=500)
 
 
 @router.post("/api/knowledge/{space}")
@@ -88,7 +96,14 @@ def modify(space: str, body: Mutation, x_flow_editor: str = Header()):
                            (body.canvas,kb.PREFIX+body.local)).fetchone()
         local_doc = json.loads(local["value"]) if local else None
         original = kb.allowed(db,body.entry,space) if body.entry else None
+        if body.entry:
+            scope = "workspace" if original and original["workspace"] == space else "shared"
+        else:
+            scope = "canvas" if body.canvas else "workspace"
+        actions = entry_actions(scope)
         if body.action == "save":
+            if "edit" not in actions or (scope != "canvas" and body.shares is not None and "share" not in actions):
+                raise store.Invalid("請從來源工作區編輯共用原文")
             doc = kb.document(body.doc)
             if body.canvas and not body.entry:
                 if local_doc and local_doc.get("source"):
@@ -97,7 +112,17 @@ def modify(space: str, body: Mutation, x_flow_editor: str = Header()):
                 put_local(kb.PREFIX+key,doc,body.localVersion)
             else:
                 key = body.entry or uuid4().hex
-                updated = kb.publish(db,space,key,doc,body.shares,body.version,editor)
+                # Older clients submit both content and recipients. Content-only edits
+                # from the current editor preserve sharing inside this transaction.
+                targets = body.shares if body.shares is not None else kb.shares(db, key)
+                updated = kb.publish(db,space,key,doc,targets,body.version,editor)
+        elif body.action == "share":
+            if not original or "share" not in actions:
+                raise store.Invalid("請從來源工作區管理共用範圍")
+            if body.shares is None or body.doc is not None:
+                raise store.Invalid("請僅指定要共用的工作區")
+            key = original["id"]
+            updated = kb.publish(db,space,key,json.loads(original["document"]),body.shares,body.version,editor)
         elif body.action == "promote":
             if not local_doc or local_doc.get("source"):
                 raise store.Conflict("無法將此條目加入共用")

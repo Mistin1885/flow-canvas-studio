@@ -30,6 +30,17 @@ function inline(line, parent) {
   parent.append(line.slice(end))
 }
 
+const tableLine = (line) => line.startsWith('|') || line.includes('\t')
+
+export function hasTable(text) {
+  let inCode = false
+  return text.split('\n').some((line) => {
+    if (line.startsWith('```')) inCode = !inCode
+    else if (!inCode && tableLine(line)) return true
+    return false
+  })
+}
+
 export function renderBody(text) {
   const root = element('div')
   root.className = 'knowledgeBody'
@@ -42,7 +53,7 @@ export function renderBody(text) {
       while (i < lines.length && !lines[i].startsWith('```')) code.push(lines[i++])
       i++
       root.append(element('pre', code.join('\n')))
-    } else if (line.startsWith('|') || line.includes('\t')) {
+    } else if (tableLine(line)) {
       const separator = line.includes('\t') ? '\t' : '|'
       const table = element('table')
       const rows = [line]

@@ -1,3 +1,4 @@
+import { bindReferenceValidation, validateReferences } from '../knowledge/formValidation.js'
 import { finishBadgeEditor, saveBadges } from '../badges/editor.js'
 import { draftApplied, formValues } from './formDrafts.js'
 import { saveAssignmentOptions } from '../modeling/assignmentOptions.js'
@@ -19,6 +20,7 @@ import { go } from '../diagram/navigation.js'
 import { say } from '../ui/toast.js'
 
 function applyEditor() {
+  if (!validateReferences()) throw new Error('請修正標紅欄位中的知識引用。')
   const id = $('node-id').value.trim()
   if (nodeForm.adding && Object.hasOwn(graphModel.nodes, id)) throw new Error('節點 ID 已存在')
   const graph = exportGraph(),
@@ -90,6 +92,7 @@ function applyEditor() {
 }
 
 function bindNodeActions() {
+  bindReferenceValidation()
   $('node-form').onsubmit = (e) => {
     e.preventDefault()
     try {

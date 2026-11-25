@@ -32,9 +32,10 @@ export function renderFoldControls(card, item, flow, title) {
     if (!control) {
       control = el('button', 'toggle ' + kind)
       control.type = 'button'
+      control.append(el('span'))
       controls.append(control)
     }
-    control.textContent = (open ? '−' : '＋') +
+    control.firstElementChild.textContent = (open ? '−' : '+') +
       (item.hasBranch && flow ? (kind === 'branch-toggle' ? '後續' : '子流程') : '')
     control.setAttribute('aria-expanded', String(open))
     control.title = control.ariaLabel = (open ? '收合 ' : '展開 ') + label

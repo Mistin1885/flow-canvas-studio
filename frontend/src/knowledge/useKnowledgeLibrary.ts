@@ -35,6 +35,7 @@ export function useKnowledgeLibrary(space: string, canvas: string, picker?: Pick
               version: 0,
               scope: 'canvas',
               owner: space,
+              actions: ['edit'],
               shares: [],
               uses: [],
             })

@@ -1,157 +1,279 @@
 @import '../../workbench/styles/knowledge.css';
+@import './knowledge-forms.css';
+@import './knowledge-reading.css';
+@import './knowledge-editor.css';
+@import './knowledge-sharing.css';
+
 .kbDialog {
-  width: min(940px, 96vw);
-  max-height: 88dvh;
+  --rail: light-dark(#f7f9f9, #1b252c);
+  --accent: light-dark(#286650, #a6d2bf);
+  --selection: light-dark(#e6efea, #294238);
+  width: min(1160px, 96vw);
+  height: min(790px, 89dvh);
+  max-height: 95dvh;
   padding: 0;
+  overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  border-radius: 16px;
   color: var(--ink);
-  box-shadow: 0 24px 80px #16251e35;
+  background: var(--surface);
+  box-shadow: 0 24px 90px #11252d35;
+}
+.kbDialog[open] {
+  display: flex;
+  flex-direction: column;
 }
 .kbDialog::backdrop {
-  background: #15272066;
+  background: #172a3394;
 }
-.kbDialog > header {
+.kbHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 22px;
   border-bottom: 1px solid var(--line);
-  padding: 18px 24px;
 }
-.kbDialog h1 {
+.kbMark {
+  width: 46px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background:
+    radial-gradient(light-dark(#c9d9d0, #496055) 1px, transparent 1px) 0 0 / 8px 8px,
+    var(--selection);
+}
+.kbHeading {
+  flex: 1;
+  min-width: 0;
+}
+.kbHeading small {
   display: flex;
-  gap: 10px;
   align-items: center;
-  font-size: 1.3rem;
-  margin: 0.25rem 0;
-}
-.kbDialog small {
+  gap: 6px;
+  font-size: 0.75rem;
   color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.kbHeading h1 {
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  margin: 3px 0 0;
+  letter-spacing: -0.035em;
+}
+.kbClose {
+  color: var(--muted);
+  padding: 7px;
 }
 .kbGrid {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(185px, 31%) minmax(0, 1fr);
-  min-height: 390px;
+  grid-template-columns: clamp(205px, 22%, 265px) minmax(0, 1fr);
 }
-.kbGrid aside,
-.kbGrid main {
+.kbIndex,
+.kbDetail {
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
-  max-height: 65dvh;
-  padding: 20px;
+  overscroll-behavior: contain;
 }
-.kbGrid aside {
-  background: var(--soft);
+.kbIndex {
+  background: var(--rail);
   border-inline-end: 1px solid var(--line);
+  padding: 21px 13px;
 }
-.kbGrid nav,
-.kbForm,
-.kbForm label,
-.kbUsage div {
-  display: grid;
+.kbIndexHeading {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  font-size: 0.86rem;
+  margin: 0 4px 16px;
 }
-.kbGrid nav {
-  margin-top: 16px;
+.kbIndexHeading svg {
+  color: var(--accent);
 }
-.kbGrid nav button {
-  display: grid;
-  text-align: start;
-  justify-content: start;
-  gap: 5px;
-}
-.kbGrid nav button[aria-current] {
-  border-color: #39816d;
-  box-shadow: inset 3px 0 #39816d;
+.kbIndexHeading .pill {
+  margin-inline-start: auto;
 }
 .kbSearch {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.kbDialog input:not([type='checkbox']),
-.kbDialog textarea,
-.kbDialog select {
-  font: inherit;
-  color: var(--ink);
-  background: var(--surface);
+  gap: 7px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px;
-  width: 100%;
-  min-width: 0;
-}
-.kbDialog textarea {
-  resize: vertical;
-}
-.kbGrid h2 {
-  font-size: 1.35rem;
-  margin: 9px 0;
-}
-.kbScope {
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 0 9px;
+  height: 35px;
   color: var(--muted);
 }
-.kbArticle {
-  line-height: 1.55;
+.kbSearch input {
+  color: var(--ink);
+  background: none;
+  border: 0;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+  font-size: 0.82rem;
 }
-.kbForm {
-  gap: 14px;
+.kbSearch:focus-within {
+  outline: 2px solid var(--accent);
 }
-.kbForm fieldset {
-  border: 1px solid var(--line);
-  border-radius: 8px;
+button.kbCreate {
+  width: 100%;
+  margin: 8px 0 16px;
+  padding: 8px;
+  font-size: 0.82rem;
+}
+.kbIndex nav {
   display: grid;
-  gap: 10px;
+  gap: 4px;
 }
-.kbForm footer,
-.kbActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.kbIndex nav button {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 3px 8px;
+  align-items: start;
+  justify-content: start;
+  border: 1px solid transparent;
+  text-align: start;
+  background: transparent;
+  padding: 10px;
+  border-radius: 8px;
 }
-.kbForm label.kbCheck {
-  display: flex;
-  align-items: center;
+.kbIndex nav button > svg {
+  color: var(--muted);
+  margin-top: 3px;
 }
-.kbUsage {
-  border-top: 1px solid var(--line);
-  margin-top: 18px;
-  font-size: 0.9rem;
+.kbIndex nav b {
+  font-size: 0.89rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-.kbUsage h3 {
-  font-size: 0.9rem;
+.kbIndex nav small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.72rem;
 }
-.kbUsage div {
-  margin: 0.65rem 0;
+.kbIndex nav button[aria-current] {
+  background: var(--selection);
+  color: var(--accent);
+  border-color: light-dark(#cfdfd5, #3d574c);
 }
-.kbUsage a {
-  color: inherit;
-  text-decoration-color: #4f977d;
+.kbIndex nav button:hover {
+  background: var(--soft);
 }
-@media (max-width: 650px) {
-  .kbGrid {
-    display: block;
-  }
-  .kbGrid aside {
-    max-height: 24dvh;
-  }
-  .kbGrid main {
-    max-height: 49dvh;
-  }
+.kbNoMatches {
+  color: var(--muted);
+  padding: 10px;
+}
+.kbDetail {
+  padding: clamp(18px, 2.3vw, 32px);
+}
+.kbPage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(175px, 27%);
+  gap: clamp(16px, 2.2vw, 30px);
 }
 .kbGuide {
-  padding: 7px 20px;
-  background: var(--soft);
-  font-size: 0.85rem;
+  display: contents;
 }
-.kbGuide button {
-  border: 0;
-  background: transparent;
-  padding: 3px;
+.kbGuideToggle {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 6px 8px;
 }
-.kbGuide ol {
-  margin: 4px 0 8px;
-  padding-inline-start: 1.5em;
-  line-height: 1.65;
+.kbGuideToggle[aria-expanded='true'] svg:last-child {
+  transform: rotate(180deg);
+}
+.kbGuideSteps {
+  order: 1;
+  flex: 0 0 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  list-style: none;
+  background: var(--rail);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.kbGuideSteps b {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+@media (max-width: 900px) {
+  .kbPage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kbContext,
+  .kbPickForm {
+    border: 0;
+    padding: 0;
+  }
+  .kbActions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 640px) {
+  .kbDialog {
+    height: 94dvh;
+    width: 96vw;
+  }
+  .kbHeader {
+    gap: 7px;
+    padding: 9px 12px;
+  }
+  .kbMark {
+    width: 34px;
+  }
+  .kbGuideSteps {
+    display: block;
+    max-height: 16dvh;
+    overflow: auto;
+  }
+  .kbGuideSteps li + li {
+    margin-top: 4px;
+  }
+  .kbGuideSteps b {
+    display: inline;
+    margin-inline-end: 0.5em;
+  }
+  .kbGrid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .kbIndex {
+    max-height: 25dvh;
+    padding: 10px 12px;
+    border-inline: 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+  }
+  .kbIndexHeading {
+    display: none;
+  }
+  button.kbCreate {
+    margin: 0;
+    width: auto;
+    padding: 5px 9px;
+  }
+  .kbIndex nav {
+    grid-column: 1/-1;
+    display: flex;
+    overflow-x: auto;
+  }
+  .kbIndex nav button {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+  }
 }

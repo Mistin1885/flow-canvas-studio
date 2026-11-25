@@ -1,6 +1,7 @@
+import { Network, ArrowUpRight } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { renderBody } from '../../workbench/knowledge/body.js'
-import type { Entry, Section } from './types'
+import type { Article, Entry, Section } from './types'
 
 function Body({ section }: { section: Section }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -12,12 +13,12 @@ function Body({ section }: { section: Section }) {
     </section>
   )
 }
-export function ArticleView({ entry }: { entry: Entry }) {
+export function ArticleView({ doc }: { doc: Article }) {
   return (
     <article className="kbArticle">
-      <h2>{entry.doc.title}</h2>
-      <p>{entry.doc.summary}</p>
-      {entry.doc.sections.map((s) => (
+      <h2>{doc.title}</h2>
+      <p>{doc.summary}</p>
+      {doc.sections.map((s) => (
         <Body key={s.id} section={s} />
       ))}
     </article>
@@ -26,17 +27,22 @@ export function ArticleView({ entry }: { entry: Entry }) {
 export function Locations({ entry }: { entry: Entry }) {
   return (
     <section className="kbUsage">
-      <h3>實際引用位置</h3>
+      <h3>
+        <Network size={15} />
+        實際引用位置
+      </h3>
       {!entry.uses.length && <small>尚無畫布引用</small>}
       {entry.uses.map((u) => (
-        <div key={u.canvas}>
+        <div className="kbLocation" key={u.canvas}>
           <strong>
-            {u.workspace} / {u.name}
+            <small>{u.workspace}</small>
+            {u.name}
           </strong>
           {u.pinned && <a href={'#canvas/' + u.canvas}>畫布參考資料</a>}
           {u.nodes.map((n) => (
             <a key={n.id} href={'#canvas/' + u.canvas + '/' + n.id}>
               {n.name}
+              <ArrowUpRight size={12} />
             </a>
           ))}
         </div>
