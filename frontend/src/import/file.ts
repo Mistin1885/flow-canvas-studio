@@ -1,14 +1,19 @@
 import { api, type Snapshot, type Graph } from '../api'
 import { readGraph } from '../../workbench/graph/readGraph.js'
+import { newMissingTarget } from '../../workbench/knowledge/targets.js'
 import { exportDocument } from './provenance'
 
-export function validate(value: unknown): Graph {
-  return readGraph(value) as Graph
+export function validate(value: unknown, previous?: Graph): Graph {
+  const graph = readGraph(value) as Graph
+  const issue = newMissingTarget(graph, previous)
+  if (issue) throw new Error(issue.message + '請保留對應的知識條目或調整引用。')
+  return graph
 }
 
-export async function readFile(file: File) {
+export async function readFile(file: File, forMerge = false) {
   if (file.size > 5 * 1024 * 1024) throw new Error('JSON 請小於 5 MB')
-  return validate(JSON.parse(await file.text()))
+  const graph = JSON.parse(await file.text())
+  return forMerge ? readGraph(graph, { deferKnowledgePins: true }) as Graph : validate(graph)
 }
 
 export async function downloadJson(canvas: string) {

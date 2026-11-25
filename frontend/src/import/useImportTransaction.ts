@@ -38,7 +38,7 @@ export function useImportTransaction(
       for (let attempt = 0; attempt < 4; attempt++) {
         const next = resolve(snapshot, compare(base.graph, file, snapshot, origin, protectMissing), choices)
         if (next.unresolved) return
-        validate(next.graph)
+        validate(next.graph, snapshot.graph)
         if (!next.ops.length) {
           applied(snapshot.canvas.rev, 0)
           return

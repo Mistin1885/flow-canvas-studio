@@ -34,8 +34,11 @@ export function ImportDialog({
   const [unversionedUpload, setUnversionedUpload] = useState(false)
   const [allowRemoval, setAllowRemoval] = useState(false)
   const protectMissing = unversionedUpload && !allowRemoval
-  const hasOmissions = useMemo(() => unversionedUpload && file && preserveFields(file, latest.graph) !== file,
-    [unversionedUpload, file, latest.graph])
+  const omissions = useMemo(() => {
+    const labels = new Set<string>()
+    if (unversionedUpload && file) preserveFields(file, latest.graph, labels)
+    return [...labels]
+  }, [unversionedUpload, file, latest.graph])
   const [team, setTeam] = useState(false)
   useEffect(() => {
     dialog.current?.showModal()
@@ -48,12 +51,12 @@ export function ImportDialog({
   const invalid = useMemo(() => {
     if (!file || plan.unresolved) return ''
     try {
-      validate(plan.graph)
+      validate(plan.graph, latest.graph)
       return ''
     } catch (e) {
       return errorText(e)
     }
-  }, [file, plan])
+  }, [file, plan, latest.graph])
   function review(graph: Graph, name: string, source?: Origin, upload = false) {
     setUnversionedUpload(upload && !source)
     setAllowRemoval(false)
@@ -67,7 +70,7 @@ export function ImportDialog({
   async function select(input: File) {
     setBusy(true)
     try {
-      const { graph, manifest } = unpackDocument(await readFile(input))
+      const { graph, manifest } = unpackDocument(await readFile(input, true))
       review(graph, input.name, await identifyChanges(graph, manifest, latest), true)
     } catch (e) {
       setFile(null)
@@ -131,13 +134,13 @@ export function ImportDialog({
                 ? '以此檔案匯出時的 v' + origin.revision + ' 為基準，已保留之後的獨立修改。'
                 : '以開啟比對時的畫布為基準。請確認檔案中缺少的項目是否要移除。'}
             </p>
-            {hasOmissions && (
+            {omissions.length > 0 && (
               <label className="teamToggle">
                 <input type="checkbox" checked={allowRemoval} onChange={e => {
                   setAllowRemoval(e.target.checked)
                   setChoices({})
                 }} />
-                移除 JSON 未提供的負責角色/負責人、選單選項、醒目標籤與樣式、分流與匯合規則、自訂欄位及其值（預設保留）
+                移除 JSON 未提供的{omissions.join('、')}（預設保留）
               </label>
             )}
             <p aria-live="polite">
@@ -168,7 +171,7 @@ export function ImportDialog({
           </>
         )}
       </fieldset>
-      {invalid && <p role="alert">選擇的版本組合無法套用。{invalid}。請調整相關項目的選擇。</p>}
+      {invalid && <p role="alert">選擇的版本組合無法套用。{invalid}</p>}
       {error && <p role="alert">{error}</p>}
       <footer>
         <button disabled={busy} onClick={close}>

@@ -1,6 +1,8 @@
 """A shared original, an independent copy and a portable export across workspaces."""
 from contextlib import ExitStack
 import os
+import json
+from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -8,7 +10,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend import snapshots, storage
+from backend import knowledge, snapshots, storage
 
 BASE = "http://127.0.0.1:8768"
 
@@ -38,6 +40,48 @@ class Knowledge(unittest.TestCase):
 
     def snapshot(self, canvas):
         return self.web.get("/api/canvases/"+canvas).json()
+
+    def test_reference_parity_and_import_rollback(self):
+        fixture = json.loads((Path(__file__).parent / "fixtures" / "knowledge-targets.json").read_text())
+        self.assertEqual([list(ref) for ref in knowledge.node_targets(fixture["node"])], fixture["targets"])
+        node = dict(id="A", group="Flow", title="Review", decision=False, content=[],
+                    description="Read [the checklist](kb:guide#verify).")
+        doc = dict(title="Checklist", sections=[dict(id="verify", title="Verify", body="Read")])
+        graph = dict(schemaVersion=1, documentType="dfx-project-flow", nodes={"A":node}, edges=[],
+                     **{"knowledge.guide":doc})
+        key = self.canvas(self.owner, graph=graph)
+        path = f"/api/canvases/{key}/imports"
+        remove = dict(table="meta",key="knowledge.guide",version=1,remove=True)
+        for op in [remove, dict(remove,remove=False,value=dict(doc,sections=[]))]:
+            rejected = self.web.post(path,json=dict(base=1,ops=[op]))
+            self.assertEqual(rejected.status_code, 422)
+            self.assertIn("guide#verify", rejected.json()["detail"])
+        self.assertEqual(self.snapshot(key)["canvas"]["rev"], 1)
+        fixed = dict(table="nodes",key="A",version=1,value=dict(node,description="Read the checklist."))
+        self.assertEqual(self.web.post(path,json=dict(base=1,ops=[remove,fixed])).status_code, 200)
+
+    def test_literal_example_is_not_a_backlink(self):
+        text = dict(type="text",value="Write `[example](kb:guide)`.")
+        node = dict(id="A",group="Flow",title="Example",decision=False,content=[text])
+        graph = dict(schemaVersion=1,documentType="dfx-project-flow",nodes={"A":node},edges=[],
+                     **{"knowledge.guide":{"title":"Guide"}})
+        key = self.canvas(self.owner, graph=graph)
+        selected = self.library(self.owner,canvas=key,selected="guide")
+        self.assertEqual(selected["entries"][0]["uses"], [])
+        graph["nodes"]["A"]["content"].append(dict(type="text",value="Read [the guide](kb:guide)."))
+        second = self.canvas(self.owner, graph=graph)
+        selected = self.library(self.owner,canvas=second,selected="guide")
+        self.assertEqual(selected["entries"][0]["uses"][0]["nodes"], [dict(id="A",name="Example")])
+
+    def test_reordering_steps_with_an_existing_missing_target(self):
+        block = dict(type="text", value="[Guide](kb:missing)")
+        def graph(content):
+            return {"nodes": {"A": {"id": "A", "content": content}}}
+        previous = graph([block])
+        reordered = [dict(type="text", value="Intro"), block]
+        knowledge.check_reference_changes(graph(reordered), previous)
+        with self.assertRaisesRegex(storage.Invalid, "文字步驟 3"):
+            knowledge.check_reference_changes(graph([*reordered, block]), previous)
 
     def test_sharing_and_portable_forks(self):
         owner, guest = self.owner, self.guest

@@ -11,6 +11,7 @@ import {
 } from '../workbench/layout/wireGeometry.js'
 import { clearRoute } from '../workbench/layout/routing.js'
 import { straightenAutomaticWire } from '../workbench/layout/dockPoints.js'
+import { rightAnglePath } from '../workbench/diagram/paths.js'
 
 const from = { x: 0, y: 0, w: 100, h: 50 },
   to = { ...from, x: 200 }
@@ -63,6 +64,10 @@ test('orthogonal segments and their midpoint match the displayed path', () => {
     { x: 100, y: 30 },
   ])
   assert.deepEqual(routeAnchor(points), { x: 50, y: 15 })
+  for (const end of [{ x: 100, y: 30 }, { x: -10, y: -80 }, { x: 40, y: 40 }]) {
+    const input = [{ x: 0, y: 0 }, end]
+    assert.equal(rightAnglePath(input), rightAnglePath(straightPoints(input)))
+  }
   for (const layout of [{ start: 'east' }, { label: { x: NaN, y: 2 } }, { lanes: [null] }])
     assert.throws(() => validateWireLayout(layout))
 })

@@ -316,6 +316,7 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None, follow=
             graph = empty_graph(title)
         knowledge.reconcile(db, graph, workspace, False)
         check_graph(graph)
+        knowledge.check_reference_changes(graph, None)
         for key, value in graph.items():
             if key not in ("nodes", "edges"):
                 put(db, canvas, "meta", key, value, 1)
@@ -327,7 +328,7 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None, follow=
     return canvas
 
 
-def commit(db, canvas, base, ops, editor, kind="edited", actor=None):
+def commit(db, canvas, base, ops, editor, kind="edited", actor=None, reference_base=None):
     before = {}
     after = {}
     info = required(db, "canvases", canvas)
@@ -386,7 +387,10 @@ def commit(db, canvas, base, ops, editor, kind="edited", actor=None):
                         else:
                             raise Conflict("共用原文或分享範圍已變更，請重新選取或建立副本")
                 put(db, canvas, table, op["key"], value, stamp)
-    check_graph(snapshot(db, canvas)["graph"])
+    graph = snapshot(db, canvas)["graph"]
+    check_graph(graph)
+    if reference_base is not None:
+        knowledge.check_reference_changes(graph, reference_base)
     updated = now()
     items = activity.node_changes(before, after)
     for table, label in (("edges", "connections"), ("meta", "settings")):

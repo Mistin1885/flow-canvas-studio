@@ -9,7 +9,7 @@ import { adaptDfxDraft } from './dfx.js'
 
 import { validateFrameData } from '../frames/validation.js'
 
-function readGraph(value) {
+function readGraph(value, { deferKnowledgePins = false } = {}) {
   const bad = (path, message) => {
       throw new Error(path + '：' + message)
     },
@@ -142,7 +142,7 @@ function readGraph(value) {
       ...value,
       nodes: Object.fromEntries(Object.entries(value.nodes).map(([id, n]) => [id, materialize(n)])),
       edges: value.edges.map(materialize),
-    })
+    }, { deferKnowledgePins })
   }
   if (value.edges.some((e) => e.to === '$caller' || e.kind === 'spine'))
     bad('edges', 'DFx 流程請使用明確目標與 next／return／retry')
@@ -261,7 +261,7 @@ function readGraph(value) {
     if (options !== undefined && (!Array.isArray(options) || options.some(s => typeof s !== 'string' || !s.trim())))
       bad(key, '選項必須是非空白文字')
   }
-  checkKnowledge(value, bad)
+  checkKnowledge(value, bad, deferKnowledgePins)
   checkBadges(value, bad)
   validateFrameData(value)
   checkNodeStyles(value.nodeStyle, '全圖', true)

@@ -1,5 +1,5 @@
 import { records, type Graph, type Snapshot } from '../api'
-import { signature } from './merge'
+import { signature } from '../../shared/jsonComparison.js'
 
 const marker = 'flowCanvasStudioExport'
 type Manifest = {

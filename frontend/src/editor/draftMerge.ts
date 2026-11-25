@@ -1,5 +1,6 @@
 import { records, type Graph, type Snapshot, type NodeData, differences } from '../api'
-import { compare, resolve, signature, type Choices } from '../import/merge'
+import { equalJson, signature } from '../../shared/jsonComparison.js'
+import { compare, resolve, type Choices } from '../import/merge'
 
 export type Draft = { operation_id?: string; strict?: boolean; createdNode?: string; confirmedConflict?: boolean; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
 type Question = { token: string; label: string; mine: unknown; team: unknown }
@@ -20,7 +21,7 @@ function mergeFields(
 ) {
   const merged = { ...remote }
   for (const field of new Set([...Object.keys(old), ...Object.keys(local)])) {
-    if (signature(old[field]) === signature(local[field]) || signature(local[field]) === signature(remote[field])) continue
+    if (equalJson(old[field], local[field]) || equalJson(local[field], remote[field])) continue
     const itemPath = [...path, field]
     if (path.length === 1 && ['fieldValues', 'badges'].includes(field) &&
         [old[field], local[field], remote[field]].every(value => value === undefined || isFields(value))) {
@@ -30,7 +31,7 @@ function mergeFields(
       else delete merged[field]
       continue
     }
-    if (signature(remote[field]) !== signature(old[field])) {
+    if (!equalJson(remote[field], old[field])) {
       const token = signature([itemPath, local[field], remote[field]])
       const name = path.length === 1 ? fieldNames[field] : path[1] === 'fieldValues' ? customNames.get(field) : field
       questions.push({ token, label: label + ' · ' + (name || field), mine: local[field], team: remote[field] })

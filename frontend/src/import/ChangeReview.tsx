@@ -1,4 +1,5 @@
-import { signature, type Choices, type Group, type Row, type Side } from './merge'
+import { equalJson } from '../../shared/jsonComparison.js'
+import type { Choices, Group, Row, Side } from './merge'
 
 function valueText(value: unknown) {
   if (value === undefined) return '（無）'
@@ -6,6 +7,11 @@ function valueText(value: unknown) {
 }
 
 function title(row: Row) {
+  if (row.table === 'meta' && row.key.startsWith('knowledge.')) {
+    const doc = (row.file || row.team) as { title: string }
+    return '知識條目 · ' + doc.title + '（' + row.key.slice(10) + '）'
+  }
+  if (row.table === 'meta' && row.key === 'knowledgePins') return '畫布知識釘選'
   if (row.table === 'meta') return '畫布設定 · ' + row.key
   if (row.table === 'nodes') return '節點 ' + row.key
   const [from, to, kind, label] = JSON.parse(row.key)
@@ -21,7 +27,7 @@ function RowDiff({ row, conflict }: { row: Row; conflict: boolean }) {
   const fields =
     record(team) && record(file)
       ? [...new Set([...Object.keys(team), ...Object.keys(file)])].filter(
-          (k) => signature(team[k]) !== signature(file[k]),
+          (k) => !equalJson(team[k], file[k]),
         )
       : null
   const change = team === undefined ? '新增' : file === undefined ? '移除' : '修改'

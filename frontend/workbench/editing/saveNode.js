@@ -1,3 +1,4 @@
+import { equalJson } from '../../shared/jsonComparison.js'
 import { addNode } from '../graph/addNode.js'
 import { bindReferenceValidation, validateReferences } from '../knowledge/formValidation.js'
 import { finishBadgeEditor, saveBadges } from '../badges/editor.js'
@@ -28,7 +29,7 @@ function applyEditor() {
     n = nodeForm.adding ? { id } : graph.nodes[id]
   finishBadgeEditor()
   const before = nodeForm.initial, after = formValues()
-  const differs = (key) => JSON.stringify(before[key]) !== JSON.stringify(after[key])
+  const differs = (key) => !equalJson(before[key], after[key])
   const edited = (key) => nodeForm.adding || before.fields[key] !== after.fields[key]
   for (const key of ['group', 'title', 'description', 'where', 'expect', 'note']) {
     if (edited('node-' + key)) n[key] = after.fields['node-' + key].trim()
@@ -89,7 +90,7 @@ function applyEditor() {
   if (nodeForm.adding) addNode(graph, n)
   if (differs('edges') || after.incoming.length || nodeForm.parent)
     applyEdgeEdits(graph, id, after, nodeForm.parent)
-  if (JSON.stringify(graph) !== JSON.stringify(graphModel.document)) replaceGraph(graph, { createdNode: nodeForm.adding ? id : undefined })
+  if (!equalJson(graph, graphModel.document)) replaceGraph(graph, { createdNode: nodeForm.adding ? id : undefined })
   draftApplied()
   go(id)
   return id

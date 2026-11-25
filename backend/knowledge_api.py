@@ -44,17 +44,17 @@ def listing(space: str, canvas: str = "", selected: str = ""):
                 local[doc["source"]] = (key,row["version"])
             else:
                 items.append(dict(id=key, doc=doc, local=key, version=row["version"], scope="canvas",
-                                  owner=space, shares=[], uses=[kb.usage(db,row)] if selected==key else []))
+                                  owner=space, shares=[], uses=kb.usage_list(db,[row]) if selected==key else []))
         rows = db.execute("""SELECT e.* FROM knowledge_entries e WHERE e.workspace=? OR EXISTS
             (SELECT 1 FROM knowledge_shares s WHERE s.entry=e.id AND s.workspace=?) ORDER BY e.rowid""",(space,space))
         for row in rows:
             key = row["id"]
             alias, local_version = local.get(key,(None,0))
-            uses = [kb.usage(db,r) for r in kb.subscribers(db,key)] if selected==key else []
+            uses = kb.usage_list(db,kb.subscribers(db,key)) if selected==key else []
             items.append(dict(id=key, doc=json.loads(row["document"]), local=alias, localVersion=local_version,
                               version=row["version"], owner=row["workspace"], shares=kb.shares(db,key),
                               scope="workspace" if row["workspace"]==space else "shared",
-                              uses=[u for u in uses if u["nodes"] or u["pinned"]]))
+                              uses=uses))
         for item in items:
             item["actions"] = entry_actions(item["scope"])
         pins = db.execute("SELECT value,version FROM meta WHERE canvas=? AND key='knowledgePins'",(canvas,)).fetchone()

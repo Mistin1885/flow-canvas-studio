@@ -1,4 +1,4 @@
-import { simplifyWire } from './polyline.js'
+import { orthogonalPoints, simplifyWire } from './polyline.js'
 import { legacyRoute } from './legacyWire.js'
 import { routeBetweenPorts } from './wireDocking.js'
 
@@ -40,21 +40,7 @@ export function wirePorts(view, layout, scale) {
 }
 
 export function straightPoints(points) {
-  const result = [points[0]]
-  for (const b of points.slice(1)) {
-    const a = result.at(-1)
-    if (a.x !== b.x && a.y !== b.y) {
-      if (Math.abs(b.x - a.x) >= Math.abs(b.y - a.y)) {
-        const x = (a.x + b.x) / 2
-        result.push({ x, y: a.y }, { x, y: b.y })
-      } else {
-        const y = (a.y + b.y) / 2
-        result.push({ x: a.x, y }, { x: b.x, y })
-      }
-    }
-    result.push(b)
-  }
-  return simplifyWire(result)
+  return simplifyWire(orthogonalPoints(points))
 }
 
 export function routeAnchor(points) {

@@ -1,3 +1,4 @@
+import { equalJson, signature } from '../../shared/jsonComparison.js'
 import { records, type Graph, type Snapshot, type Table, type Link } from '../api'
 
 import { preserveFields } from './preserveFields'
@@ -16,21 +17,6 @@ export type Row = {
   concurrent: boolean
 }
 export type Group = { token: string; rows: Row[]; conflict: boolean; defaultSide: Side }
-
-// Object property order has no meaning in JSON. Array order (e.g. steps) does.
-export function signature(value: unknown): string {
-  return (
-    JSON.stringify(value, (_, item) =>
-      item && typeof item === 'object' && !Array.isArray(item)
-        ? Object.fromEntries(
-            Object.keys(item)
-              .sort()
-              .map((key) => [key, item[key]]),
-          )
-        : item,
-    ) ?? 'undefined'
-  )
-}
 
 function nodeRefs(row: Row, value: unknown): string[] {
   if (!value) return []
@@ -78,17 +64,15 @@ export function compare(base: Graph, incoming: Graph, latest: Snapshot, origin?:
       const get = (data: typeof team) => (Object.hasOwn(data[table], key) ? data[table][key] : undefined)
       const f = get(file),
         t = get(team),
-        b = signature(get(original))
-      const fromFile = signature(f),
-        fromTeam = signature(t)
-      if (fromFile === fromTeam) continue
+        b = get(original)
+      if (equalJson(f, t)) continue
       const id = rowId(table, key)
-      const intent = origin ? origin.modified.has(id) : b !== (atBase === file ? fromFile : signature(get(atBase)))
+      const intent = origin ? origin.modified.has(id) : !equalJson(b, atBase === file ? f : get(atBase))
       const concurrent = origin
         ? t === undefined
           ? origin.original.has(id)
           : latest.versions[table][key] > origin.revision
-        : b !== fromTeam
+        : !equalJson(b, t)
       rows.set(id, { id, table, key, order: rows.size, team: t, file: f, intent, concurrent })
     }
   }

@@ -1,3 +1,4 @@
+import { moveToSheet } from '../graph/nodeSheet.js'
 import { addNode } from '../graph/addNode.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from '../diagram/state.js'
@@ -154,10 +155,7 @@ function editFrameObject(key, action, kind, name) {
       f.title = name
     } else {
       for (const n of Object.values(g.nodes)) {
-        if (sheetFor(n.id) === f.id) {
-          n.sheetId = 'project'
-          delete n.layoutPosition
-        }
+        if (sheetFor(n.id) === f.id) moveToSheet(n, f.id, 'project')
         if (n.subflowId === f.id) delete n.subflowId
       }
       g.subflows = flows.filter((r) => r !== f)

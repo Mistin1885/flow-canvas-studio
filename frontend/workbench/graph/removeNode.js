@@ -1,3 +1,4 @@
+import { moveToSheet } from './nodeSheet.js'
 import { sheetFor } from '../diagram/visibleGraph.js'
 import { flowKey, groupKey } from '../frames/membership.js'
 
@@ -18,7 +19,7 @@ function removeGraphNode(graph, id) {
   if (graph.subflows)
     graph.subflows = graph.subflows.filter((s) => {
       if (s.parent === id || !members.get(s.id).length) {
-        for (const k of members.get(s.id)) graph.nodes[k].sheetId = 'project'
+        for (const k of members.get(s.id)) moveToSheet(graph.nodes[k], s.id, 'project')
         for (const n of Object.values(graph.nodes)) if (n.subflowId === s.id) delete n.subflowId
         return false
       }

@@ -49,3 +49,22 @@ test('inline code examples remain literal and backticks in link captions remain 
   assert.equal(parts[2].text, '[the `command`](kb:guide)')
   assert.equal(parts[2].code, false)
 })
+
+test('import and backlinks follow the same knowledge target contract', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { nodeKnowledgeTargets, newMissingTarget } = await import('../workbench/knowledge/targets.js')
+  const { node, targets } = JSON.parse(await readFile(new URL('../../tests/fixtures/knowledge-targets.json', import.meta.url)))
+  assert.deepEqual([...nodeKnowledgeTargets(node)].map(r => [r.field, r.key, r.section ?? null]), targets)
+  const g = { nodes: { A: node } }
+  for (const [, key] of targets) g['knowledge.' + key] = { title: key, sections: [{ id: 'check' }] }
+  assert.equal(newMissingTarget(g), null)
+  const removed = { ...g, 'knowledge.guide': { title: 'guide', sections: [] } }
+  assert.match(newMissingTarget(removed, g).message, /節點 A.*文字步驟 1.*guide#check/)
+  assert.equal(newMissingTarget(removed, removed), null)
+  assert.equal(newMissingTarget({ ...removed, nodes: {} }, g), null)
+  const shifted = structuredClone(removed)
+  shifted.nodes.A.content.unshift({ type: 'text', value: 'Intro' })
+  assert.equal(newMissingTarget(shifted, removed), null)
+  shifted.nodes.A.content.push({ type: 'text', value: '[Extra](kb:guide#check)' })
+  assert.match(newMissingTarget(shifted, removed).message, /guide#check/)
+})

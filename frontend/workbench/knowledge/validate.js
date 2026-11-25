@@ -1,6 +1,6 @@
 const identifier = /^[a-zA-Z0-9_-]{1,64}$/
 
-export function checkKnowledge(graph, bad) {
+export function checkKnowledge(graph, bad, deferPins = false) {
   for (const [key, doc] of Object.entries(graph)) {
     if (!key.startsWith('knowledge.')) continue
     if (
@@ -36,7 +36,11 @@ export function checkKnowledge(graph, bad) {
   if (
     pins !== undefined &&
     (!Array.isArray(pins) ||
-      pins.some((id) => typeof id !== 'string' || !Object.hasOwn(graph, 'knowledge.' + id)))
+      pins.some((id) => typeof id !== 'string' || !identifier.test(id)))
   )
-    bad('knowledgePins', '畫布參考資料缺少對應條目')
+    bad('knowledgePins', '畫布釘選資料格式無效')
+  if (!deferPins && pins) {
+    const missing = pins.find(id => !Object.hasOwn(graph, 'knowledge.' + id))
+    if (missing) bad('knowledgePins', '畫布釘選了缺少的知識條目「' + missing + '」。請保留該條目或移除釘選')
+  }
 }

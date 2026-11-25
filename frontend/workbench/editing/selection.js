@@ -1,3 +1,4 @@
+import { reconcileEdgeReviews } from '../graph/edgeMutation.js'
 import { showWireGrips } from './wireDrag.js'
 import { selectionState, editState } from './state.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
@@ -46,18 +47,7 @@ function deleteEditTarget() {
       if (k == null || k < 0) return
       g.groupLinks.splice(k, 1)
     } else g.edges.splice(index, 1)
-    for (const r of g.review || []) {
-      if (!r.resolved || !r.resolution) continue
-      const { from, to, added } = r.resolution
-      if (
-        added
-          ? target.edge.reviewedConnectorId === r.id
-          : !g.edges.some((e) => e.from === from && e.to === to)
-      ) {
-        r.resolved = false
-        delete r.resolution
-      }
-    }
+    reconcileEdgeReviews(g)
   }
   replaceGraph(g, { keepView: true })
   say(target.node ? '已刪除節點及其連線，可復原' : '已刪除連線，可復原')

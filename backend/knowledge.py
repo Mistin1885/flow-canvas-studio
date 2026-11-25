@@ -1,4 +1,5 @@
 """Portable knowledge stored in canvas metadata, with explicitly shared workspace originals."""
+from collections import Counter
 import json
 import re
 from uuid import uuid4
@@ -7,7 +8,9 @@ from . import storage as store
 
 PREFIX = "knowledge."
 IDENT = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
-LINK = re.compile(r"\[([^\]\n]+)\]\(kb:([a-zA-Z0-9_-]{1,64})(?:#([a-zA-Z0-9_-]{1,64}))?\)")
+LINK = re.compile(r"\[([^\]\n]+)\]\(kb:([a-zA-Z0-9_-]+)(?:#([a-zA-Z0-9_-]+))?\)")
+# The first token owns its span, matching proseSegments in the workbench.
+PROSE_TOKEN = re.compile(LINK.pattern + r"|`[^`]+`")
 MIGRATION = """
 CREATE TABLE knowledge_entries(id TEXT PRIMARY KEY, workspace TEXT NOT NULL REFERENCES workspaces(id),
  document TEXT NOT NULL, version INTEGER NOT NULL);
@@ -47,12 +50,50 @@ def entries(graph):
             yield key[len(PREFIX):], value
 
 
+def node_targets(node):
+    for key, label in (("description", "說明"), ("expect", "預期結果"), ("note", "注意事項")):
+        text = node.get(key)
+        if isinstance(text, str) and "](kb:" in text:
+            for match in LINK.finditer(text):
+                yield label, match[2], match[3]
+    for index, block in enumerate(node.get("content", []), 1):
+        if block.get("type") != "text" or "](kb:" not in block["value"]:
+            continue
+        for match in PROSE_TOKEN.finditer(block["value"]):
+            if match[2] is not None:
+                yield f"文字步驟 {index}", match[2], match[3]
+
+
 def nodes_using(nodes, item):
     for node in nodes:
-        fields = [node.get(k, "") for k in ("description", "expect", "note")]
-        fields.extend(b["value"] for b in node.get("content", []) if b["type"] == "text")
-        if any(match[2] == item for field in fields if isinstance(field,str) for match in LINK.finditer(field)):
+        if any(key == item for _, key, _ in node_targets(node)):
             yield {"id": node["id"], "name": node["title"]}
+
+
+def missing_targets(graph):
+    for node in graph["nodes"].values():
+        for field, key, section in node_targets(node):
+            doc = graph.get(PREFIX + key)
+            if doc is None:
+                missing = "條目"
+            elif section and not any(part["id"] == section for part in doc.get("sections", [])):
+                missing = "小節"
+            else:
+                continue
+            yield node["id"], field, key + ("#" + section if section else ""), missing
+
+
+def check_reference_changes(graph, previous):
+    allowed = None
+    for node, field, target, missing in missing_targets(graph):
+        if allowed is None:
+            allowed = Counter((n, t, m) for n, _, t, m in missing_targets(previous)) if previous else Counter()
+        # Step indices can move. Count occurrences within a node, keeping the current field for feedback.
+        key = node, target, missing
+        if allowed[key]:
+            allowed[key] -= 1
+        else:
+            raise store.Invalid(f"節點 {node} 的{field}引用了缺少的{missing}「{target}」。請保留該條目或調整引用。")
 
 
 def validate(graph):
@@ -96,6 +137,11 @@ def usage(db, row):
     return {"canvas": row["canvas"], "name": row["name"], "workspace": row["space_name"],
             "pinned": bool(pins and key in json.loads(pins[0])),
             "nodes": list(nodes_using((json.loads(n[0]) for n in nodes), key))}
+
+
+def usage_list(db, rows):
+    uses = (usage(db, row) for row in rows)
+    return [item for item in uses if item["nodes"] or item["pinned"]]
 
 
 def change_meta(db, canvas, key, value, expected, editor):

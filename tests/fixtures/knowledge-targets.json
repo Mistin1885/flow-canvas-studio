@@ -1,0 +1,22 @@
+{
+  "node": {
+    "id": "A",
+    "title": "Review",
+    "description": "Read [description](kb:desc).",
+    "expect": "Read [expectation](kb:expected).",
+    "note": "Read [note](kb:tip).",
+    "content": [
+      {"type": "text", "value": "Write `[example](kb:sample)`, then read [the `instruction`](kb:guide#check)."},
+      {"type": "code", "value": "[literal](kb:command)"},
+      {"type": "text", "value": "[next](kb:guide) and [one more](kb:guide)"}
+    ]
+  },
+  "targets": [
+    ["說明", "desc", null],
+    ["預期結果", "expected", null],
+    ["注意事項", "tip", null],
+    ["文字步驟 1", "guide", "check"],
+    ["文字步驟 3", "guide", null],
+    ["文字步驟 3", "guide", null]
+  ]
+}

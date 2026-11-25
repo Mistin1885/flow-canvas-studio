@@ -157,7 +157,9 @@ def write_batch(canvas, body, editor, principal, route):
         else:
             if body.strict and store.required(db, "canvases", canvas)["rev"] != body.base:
                 raise store.Conflict("團隊版本已更新，請確認最新比對")
-            rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor, actor=principal)
+            reference_base = store.snapshot(db, canvas)["graph"] if body.strict else None
+            rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor,
+                               actor=principal, reference_base=reference_base)
         if operation:
             db.execute("INSERT INTO edit_receipts VALUES(?,?,?,?,?)", (*key, digest, rev))
         return {"rev": rev}
@@ -184,7 +186,8 @@ def commit_import(db, canvas, body, editor):
         loses_endpoint = edge["from"] in removed_nodes or edge["to"] in removed_nodes
         if loses_endpoint and store.edge_key(edge) not in removed_edges:
             raise store.Invalid("請確認與移除節點相連的每一條連線")
-    rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor, kind="imported")
+    rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor,
+                       kind="imported", reference_base=before["graph"])
     db.execute(
         "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(?,?,?,?,?)",
         (canvas, body.base, store.now(), editor, store.encode(before["graph"])),

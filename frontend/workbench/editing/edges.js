@@ -1,3 +1,4 @@
+import { reconcileEdgeReviews, updateEdge } from '../graph/edgeMutation.js'
 import { readableInk } from '../appearance/contrast.js'
 import { editState } from './state.js'
 import { $, el } from '../ui/dom.js'
@@ -79,25 +80,9 @@ function saveEdge() {
   const owner = oldIndex >= 0 ? g.edges : g.groupLinks
   const oldPos = oldIndex >= 0 ? oldIndex : (graphModel.document.groupLinks || []).indexOf(old)
   if (old && oldPos < 0) throw Error('連線已更新，請重新選取。')
-  const e = old ? owner.splice(oldPos, 1)[0] : { kind: 'next', dashed: false, label: '' }
-  const label = $('line-text').value.trim(),
-    moved = old && (old.from !== from || old.to !== to)
-  if (e.label !== label || moved) {
-    if (e.sourceAnnotationIds) {
-      e.originalSourceAnnotationIds = e.sourceAnnotationIds
-      delete e.sourceAnnotationIds
-    }
-    e.labelStatus = 'user_edited'
-  }
-  if (moved) {
-    delete e.drawingRoute
-    for (const r of g.review || [])
-      if (r.resolved && r.resolution?.from === old.from && r.resolution?.to === old.to) {
-        r.resolved = false
-        delete r.resolution
-      }
-  }
-  const layout = moved || $('line-reset-layout').checked ? {} : { ...e.wireLayout }
+  const e = old ? owner.splice(oldPos, 1)[0] : { from, to, kind: 'next', dashed: false, label: '' }
+  updateEdge(e, { from, to, kind: e.kind, label: $('line-text').value.trim() })
+  const layout = $('line-reset-layout').checked ? {} : { ...e.wireLayout }
   for (const key of ['start', 'end']) {
     const side = $('line-' + key + '-side').value
     if (side) layout[key] = side
@@ -105,7 +90,6 @@ function saveEdge() {
   }
   if (Object.keys(layout).length) e.wireLayout = layout
   else delete e.wireLayout
-  Object.assign(e, { from, to, label })
   if ($('line-auto').checked) delete e.conditionColor
   else e.conditionColor = $('line-color').value
   for (const key of [from, to])
@@ -114,6 +98,7 @@ function saveEdge() {
   const dest = normal ? g.edges : (g.groupLinks ??= [])
   if (old && dest === owner) dest.splice(oldPos, 0, e)
   else dest.push(e)
+  reconcileEdgeReviews(g)
   replaceGraph(g, { keepView: true })
   $('line-dialog').close()
   say(old ? '已更新連線' : '已建立連線')

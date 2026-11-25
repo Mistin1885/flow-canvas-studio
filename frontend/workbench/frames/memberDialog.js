@@ -1,3 +1,4 @@
+import { moveToSheet } from '../graph/nodeSheet.js'
 import { addNode } from '../graph/addNode.js'
 import { suggestNodeId } from '../graph/nodeIds.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
@@ -194,9 +195,7 @@ function editMembers(initial) {
           if (n.sourceKind === 'subflow') draft.nodes[n.id].sheetId = sheetFor(n.id)
         for (const id of new Set([...old, ...ids])) {
           const n = draft.nodes[id]
-          n.sheetId = ids.includes(id) ? f.id : 'project'
-          delete n.layoutPosition
-          delete n.layoutOffset
+          moveToSheet(n, sheetFor(id), ids.includes(id) ? f.id : 'project')
         }
         f.root = ids[0]
         f.memberOrder = [...ids]

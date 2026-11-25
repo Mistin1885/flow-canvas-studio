@@ -1,3 +1,5 @@
+import { equalJson } from '../../shared/jsonComparison.js'
+import { newMissingTarget } from '../knowledge/targets.js'
 import { studioFrame } from '../display/preferences.js'
 import { $, el } from '../ui/dom.js'
 import { replaceGraph } from '../graph/replace.js'
@@ -53,6 +55,11 @@ function bindImportDialog() {
     try {
       if (file.size > 5 * 1024 * 1024) throw new Error('JSON 請小於 5 MB')
       pendingGraph = validateGraph(JSON.parse(await file.text()))
+      const issue = newMissingTarget(pendingGraph, graphModel.document)
+      if (issue) {
+        pendingGraph = null
+        throw Error(issue.message)
+      }
       const oldIds = Object.keys(graphModel.nodes),
         newIds = Object.keys(pendingGraph.nodes),
         counts = [
@@ -62,7 +69,7 @@ function bindImportDialog() {
             newIds.filter(
               (id) =>
                 graphModel.nodes[id] &&
-                JSON.stringify(graphModel.nodes[id]) !== JSON.stringify(pendingGraph.nodes[id]),
+                !equalJson(graphModel.nodes[id], pendingGraph.nodes[id]),
             ).length,
           ],
           ['移除', oldIds.filter((id) => !pendingGraph.nodes[id]).length],
@@ -79,6 +86,11 @@ function bindImportDialog() {
         ' 個節點 / ' +
         (pendingGraph.edges.length + (pendingGraph.groupLinks?.length || 0)) +
         ' 條連線'
+      if (equalJson(graphModel.document, pendingGraph)) {
+        $('import-summary').textContent += ' · 這份 JSON 沒有待套用的差異。'
+        pendingGraph = null
+      }
+      $('import-confirm').textContent = pendingGraph ? '套用匯入' : '完成比對'
       $('import-confirm').disabled = false
     } catch (error) {
       $('graph-import-error').textContent = '無法匯入，原設定未變更。\n' + error.message
@@ -90,7 +102,10 @@ function bindImportDialog() {
   for (const id of ['import-close', 'import-cancel'])
     $(id).onclick = () => $('graph-import-preview').close()
   $('import-confirm').onclick = () => {
-    if (!pendingGraph) return
+    if (!pendingGraph) {
+      $('graph-import-preview').close()
+      return
+    }
     const backup = exportGraph()
     replaceGraph(pendingGraph)
     importHistory.previousGraph = backup

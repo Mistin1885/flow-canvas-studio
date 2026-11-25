@@ -1,3 +1,5 @@
+import { orthogonalPoints } from '../layout/polyline.js'
+
 function ancestors(i) {
   const out = new Set(),
     visit = (n) => {
@@ -14,12 +16,10 @@ function rightAnglePath(points) {
   if (!points.length) return ''
   let a = points[0],
     d = 'M' + a.x + ' ' + a.y
-  for (const b of points.slice(1)) {
-    if (a.x !== b.x && a.y !== b.y) {
-      if (Math.abs(b.x - a.x) >= Math.abs(b.y - a.y))
-        d += ' H' + (a.x + b.x) / 2 + ' V' + b.y + ' H' + b.x
-      else d += ' V' + (a.y + b.y) / 2 + ' H' + b.x + ' V' + b.y
-    } else if (a.x !== b.x) d += ' H' + b.x
+  const route = orthogonalPoints(points)
+  for (let i = 1; i < route.length; i++) {
+    const b = route[i]
+    if (a.x !== b.x) d += ' H' + b.x
     else if (a.y !== b.y) d += ' V' + b.y
     a = b
   }

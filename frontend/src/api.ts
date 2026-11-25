@@ -1,3 +1,5 @@
+import { equalJson } from '../shared/jsonComparison.js'
+
 export type NodeData = {
   id: string
   title: string
@@ -57,7 +59,7 @@ export function differences(previous: Graph, next: Graph, versions: Snapshot['ve
   const ops = []
   for (const table of ['nodes', 'edges', 'meta'] as const) {
     for (const key of new Set([...Object.keys(before[table]), ...Object.keys(after[table])])) {
-      if (JSON.stringify(before[table][key]) === JSON.stringify(after[table][key])) continue
+      if (equalJson(before[table][key], after[table][key])) continue
       ops.push({
         table,
         key,

@@ -26,7 +26,7 @@ export function DraftReview({canvas,draft,revision,done,close,submit}:{submit:(i
     if(!plan || !latest || busy) return
     setBusy(true);setError('')
     try {
-      validate(plan.graph)
+      validate(plan.graph, latest.graph)
       if (plan.ops.length) {
         const before = records(latest.graph)
         submit({ graph: plan.graph, base: latest.canvas.rev, ops: plan.ops, strict: true,
