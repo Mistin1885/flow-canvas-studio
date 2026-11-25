@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from backend import storage, legacy_transfer
+from backend import storage, legacy_transfer, migrate_sqlite
 from backend.main import app
 from pg_test_support import isolated_schema
 
@@ -65,6 +65,21 @@ class Postgres(unittest.TestCase):
         snapshot = web.get(path).json()
         self.assertEqual(snapshot["canvas"]["rev"], 6)
         self.assertEqual(set(snapshot["graph"]["nodes"]), set(keys))
+
+    def test_explicit_migration_rolls_back_and_refuses_reimport(self):
+        with tempfile.TemporaryDirectory() as folder, isolated_schema():
+            source = Path(folder)
+            with self.assertRaisesRegex(ValueError, "Missing SQLite source"):
+                migrate_sqlite.apply(source)
+            with storage.session() as db:
+                self.assertIsNone(db.execute("SELECT to_regclass('schema_migrations')").fetchone()[0])
+            with closing(sqlite3.connect(source / "studio.sqlite3")) as old:
+                legacy_transfer.upgrade_copy(old)
+            self.assertEqual(migrate_sqlite.apply(source), legacy_transfer.inspect_database(source))
+            with self.assertRaisesRegex(ValueError, "already initialized"):
+                migrate_sqlite.apply(source)
+            with storage.session() as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM workspaces").fetchone()[0], 1)
 
     @unittest.skipUnless(os.getenv("FLOW_TEST_LEGACY_DIR"), "Optional read-only legacy installation")
     def test_existing_installation(self):

@@ -111,9 +111,22 @@ Open [Flow Canvas Studio](http://127.0.0.1:8768/) in local mode. Both containers
 ### Upgrade an existing SQLite installation
 
 1. Pause edits and stop the old web and database services with their original Compose file. Keep the old data directory, including WAL sidecars and the `backups/` folder. Keep a verified pre-upgrade backup.
-2. Set `FLOW_DATA_DIR` to that directory's absolute path in your deployment environment. By default Compose mounts `../flow-canvas-studio-data` from the repo's parent at `/legacy` read-only. Set `FLOW_UID` and `FLOW_GID` to a user who can read it.
+2. Set `FLOW_DATA_DIR` to that directory's absolute path in your deployment environment. By default Compose mounts the repo's sibling directory `../flow-canvas-studio-data` at `/legacy` read-only. Set `FLOW_UID` and `FLOW_GID` to a user who can read it.
 3. Start the updated Compose project with the commands above. On a new PostgreSQL volume the web service imports the legacy database and indexed gzip archives in one transaction. A failed conversion rolls back the schema and data. Fix the reported cause and restart the web service to retry.
 4. Compare the workspace and canvas counts, open a known canvas by its original URL, and check active and cold recovery points. Reopen editing after verification. To revert before resuming edits, stop the new services and run the old version with the original directory. Edits accepted by PostgreSQL after cutover require a fresh export for rollback.
+
+For an explicit migration, use the following sequence instead of starting the new web service in step 3. Run from the updated repo root after stopping the old services. The source directory may have any name. Set `FLOW_DATA_DIR` in the deployment's `.env` to the same absolute path so later web starts use the same mount. Use the same Compose project name and PostgreSQL volume for the transfer and subsequent startup.
+
+```bash
+export FLOW_DATA_DIR=/absolute/path/to/flow-studio-data
+# Optional source-only check, using the Python standard library (no running database required).
+python3 -m backend.migrate_sqlite check "$FLOW_DATA_DIR"
+# Build the web image, start PostgreSQL, and run the one-time import.
+./deploy/docker/migrate-sqlite.sh "$FLOW_DATA_DIR" && \
+  docker compose -f deploy/docker/docker-compose.yml up -d --wait web
+```
+
+Both commands print the original SQLite schema version, per-table counts after upgrading the private copy, and the number of indexed recovery archives. The import compares all table counts and archive counts before committing. An invalid source or missing indexed gzip stops the import. Explicit migration refuses an initialized destination, even one with just the default workspace. To rehearse or retry against a fresh named volume, choose a separate `COMPOSE_PROJECT_NAME`, leave `FLOW_PGDATA` at its named-volume default, and choose a free `FLOW_PORT` for the preview. Preserve the existing volume. For native deployment, use `python -m backend.migrate_sqlite apply /absolute/path/to/flow-studio-data` with the application's PostgreSQL connection settings and dependencies.
 
 If the legacy mount is empty, startup creates one blank workspace. Each later startup checks the PostgreSQL migration history. An already initialized database keeps its records. Production data, active points and cold gzip payloads live together in the project’s `postgres-data` volume. For a dedicated PostgreSQL host directory, set `FLOW_PGDATA=/srv/flow-canvas-postgres` before first startup. Keep it separate from the legacy directory. Use a logical dump for a live, portable copy. `FLOW_DATA_DIR` selects only the read-only migration source. To rehearse a deployment, use a different Compose project name and host port.
 
