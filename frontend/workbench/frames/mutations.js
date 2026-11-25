@@ -1,3 +1,4 @@
+import { addNode } from '../graph/addNode.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from '../diagram/state.js'
 
@@ -115,14 +116,14 @@ function editFrameObject(key, action, kind, name) {
       key = groupKey(name)
     } else if (kind === 'source') {
       const id = newId('FRAME')
-      g.nodes[id] = { ...node(id, name), sourceKind: 'container', type: 'frame', frameMembers: [] }
+      addNode(g, { ...node(id, name), sourceKind: 'container', type: 'frame', frameMembers: [] })
       key = id
     } else {
       const id = newId('FLOW'),
         parent = newId('HOST'),
         root = newId('STEP')
-      g.nodes[parent] = node(parent, name)
-      g.nodes[root] = { ...node(root, '第一個步驟'), sheetId: id }
+      addNode(g, node(parent, name))
+      addNode(g, { ...node(root, '第一個步驟'), sheetId: id })
       ;(g.subflows ??= []).push({ id, title: name, parent, root, memberOrder: [root] })
       key = flowKey(id)
     }

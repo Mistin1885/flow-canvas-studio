@@ -1,4 +1,4 @@
-import { peerStyle } from '../appearance/groupPalette.js'
+import { addNode } from '../graph/addNode.js'
 import { bindReferenceValidation, validateReferences } from '../knowledge/formValidation.js'
 import { finishBadgeEditor, saveBadges } from '../badges/editor.js'
 import { draftApplied, formValues } from './formDrafts.js'
@@ -86,8 +86,7 @@ function applyEditor() {
     n.sheetId = sheetFor(nodeForm.parent)
     n.sourceKind = 'subflow'
   }
-  if (nodeForm.adding && Object.keys(peerStyle(graph, n)).length) n.inheritPeerStyle = true
-  graph.nodes[id] = n
+  if (nodeForm.adding) addNode(graph, n)
   if (differs('edges') || after.incoming.length || nodeForm.parent)
     applyEdgeEdits(graph, id, after, nodeForm.parent)
   if (JSON.stringify(graph) !== JSON.stringify(graphModel.document)) replaceGraph(graph, { createdNode: nodeForm.adding ? id : undefined })

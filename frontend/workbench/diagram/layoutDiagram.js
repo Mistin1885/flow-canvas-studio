@@ -64,7 +64,7 @@ export function layoutDiagram() {
   }
   clearCardRoutes()
   for (const link of diagramState.graphLinks) {
-    link.geometry = wireGeometry(link.edge, link.from, link.to, link.points)
+    link.geometry = wireGeometry(link.edge, link.from, link.to, link.points, { originalPorts: link.originalPorts })
     link.points = routedPoints(link.geometry)
   }
   return projectNodes

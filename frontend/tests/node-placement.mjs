@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { gridStep, overlapsAt, snapDrag } from '../workbench/layout/nodePlacement.js'
+import { addNode } from '../workbench/graph/addNode.js'
 import { effectiveStyle } from '../workbench/appearance/schema.js'
 import { invalidatePeerStyles, peerStyle } from '../workbench/appearance/groupPalette.js'
 
@@ -29,7 +30,11 @@ test('new cards inherit same-type styles, then group consensus for a new type', 
     note: card('note', '#aaaaaa', { line: 'dotted' }),
     unrelated: { ...card('note', '#bbbbbb'), group: 'B' },
   } }
-  const n = { group: 'A', type: 'action', inheritPeerStyle: true }
+  addNode(g, { id: 'new', group: 'A', type: 'action' })
+  const n = g.nodes.new
+  assert.equal(n.inheritPeerStyle, true)
+  addNode(g, { id: 'firstInGroup', group: 'New group', type: 'action' })
+  assert.equal(g.nodes.firstInGroup.inheritPeerStyle, undefined)
   assert.deepEqual(effectiveStyle(g, n), { dark: '#abcdef', line: 'solid' })
   assert.deepEqual(effectiveStyle(g, { ...n, type: 'note' }), { dark: '#aaaaaa', line: 'dotted' })
   assert.deepEqual(effectiveStyle(g, { ...n, group: 'Empty' }), {})

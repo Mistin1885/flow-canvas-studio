@@ -110,6 +110,10 @@ export function moveWireDrag(g, e) {
     }
     g.label.setAttribute('transform', 'translate(' + delta.x + ' ' + delta.y + ')')
   } else {
+    // Older group edits imply horizontal ports. Record both faces when editing
+    // a vertical auto route for the first time so preview and reload agree.
+    if (g.geometry.autoDock && !layout.start && !layout.end && !layout.lanes)
+      Object.assign(layout, g.geometry.autoDock)
     if (g.mode === 'segment') {
       const axis = g.points[g.index].x === g.points[g.index + 1]?.x ? 'x' : 'y'
       if (g.points.length < 2 || Math.abs(delta[axis]) < 0.1) {

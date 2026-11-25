@@ -13,6 +13,7 @@ import { editMembers } from './memberDialog.js'
 import { labelColor, openEdge, readableInk } from '../editing/edges.js'
 import { groupNamesInGraph, hiddenGroups } from '../groups/visibility.js'
 
+import { facePort, facingSide, straightenAutomaticWire } from '../layout/dockPoints.js'
 import { clearRoute, orthogonalRoute } from '../layout/routing.js'
 import { dockProjectLinks, simplifyWire } from '../layout/ports.js'
 import { rightAnglePath } from '../diagram/paths.js'
@@ -103,23 +104,31 @@ function layoutFrameHandles() {
 
 function renderGroupLinks(frag) {
   const endpoint = (k) => frameHandles.get(k) || diagramState.instanceMap.get(k)
-  for (const edge of graphModel.document.groupLinks || []) {
+  const edges = graphModel.document.groupLinks || []
+  if (!edges.length) return
+  const obstacles = [
+    ...diagramState.instances.filter(i => !isFrameNode(graphModel.nodes[i.id])),
+    ...frameHandles.values(),
+  ].map(item => ({
+    item, x: item.x - 4, y: item.y - 4, w: item.w + 8, h: item.h + 8,
+  }))
+  for (const edge of edges) {
     const a = endpoint(edge.from),
       b = endpoint(edge.to)
     if (!a || !b) continue
-    const right = a.x + a.w / 2 <= b.x + b.w / 2
-    const start = { x: a.x + (right ? a.w : 0), y: a.y + a.h / 2 },
-      end = { x: b.x + (right ? 0 : b.w), y: b.y + b.h / 2 }
-    const s = { x: start.x + (right ? 12 : -12), y: start.y },
-      t = { x: end.x + (right ? -12 : 12), y: end.y }
-    const mx = (s.x + t.x) / 2,
-      defaultPath = [s, { x: mx, y: s.y }, { x: mx, y: t.y }, t]
-    const boxes = [
-      ...diagramState.instances.filter((i) => !isFrameNode(graphModel.nodes[i.id])),
-      ...frameHandles.values(),
-    ]
-      .filter((i) => i !== a && i !== b)
-      .map((i) => ({ x: i.x - 4, y: i.y - 4, w: i.w + 8, h: i.h + 8 }))
+    const layout = edge.wireLayout
+    // Saved group edits are relative to the original horizontal auto ports.
+    const side = layout?.start || layout?.end || layout?.lanes
+      ? (a.x + a.w / 2 <= b.x + b.w / 2 ? 'right' : 'left')
+      : facingSide(a, b)
+    const opposite = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' }[side]
+    const { point: start, stub: s } = facePort(a, side, 12 * diagramState.readingScale)
+    const { point: end, stub: t } = facePort(b, opposite, 12 * diagramState.readingScale)
+    const axis = side === 'left' || side === 'right' ? 'x' : 'y'
+    const middle = (s[axis] + t[axis]) / 2
+    const defaultPath = [s, { ...s, [axis]: middle }, { ...t, [axis]: middle }, t]
+    const getObstacles = () => obstacles.filter(r => r.item !== a && r.item !== b)
+    const boxes = getObstacles()
     const path = clearRoute(defaultPath, boxes)
       ? defaultPath
       : orthogonalRoute(
@@ -136,10 +145,16 @@ function renderGroupLinks(frag) {
           [],
           diagramState.readingScale,
         ) || defaultPath
-    const geometry = wireGeometry(edge, a, b, simplifyWire([start, ...path, end])),
+    const autoPoints = simplifyWire([start, ...path, end])
+    const points = straightenAutomaticWire(a, b, autoPoints, diagramState.readingScale, edge.wireLayout,
+      straight => clearRoute(straight, boxes))
+    const geometry = wireGeometry(edge, a, b, points, {
+      getObstacles, originalPorts: points !== autoPoints ? [start, end] : undefined,
+    }),
       pts = routedPoints(geometry),
       d = rightAnglePath(pts),
       g = svg('g', { class: 'edge-route graph-link' })
+    if (axis === 'y') geometry.autoDock = { start: side, end: opposite }
     g.dataset.from = edge.from
     g.dataset.to = edge.to
     g._edge = edge

@@ -3,11 +3,14 @@ import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
 
+import { facePort, facingSide } from './dockPoints.js'
 import { segmentHitsBox } from './routing.js'
 import { edgeLabelLines } from './labels.js'
 
 // Preserve the worksheet's entry/exit faces, while docking to the actual card.
 // Separate several arrows on one side so their tips and first bends stay visible.
+const pinSides = ['left', 'right', 'top', 'bottom']
+
 function dockProjectLinks(links, mx, my) {
   const s = diagramState.readingScale,
     sides = new Map()
@@ -30,9 +33,7 @@ function dockProjectLinks(links, mx, my) {
       }
       ratio = side < 2 ? (py - y) / h : (px - x) / w
     } else {
-      const dx = other.x + other.w / 2 - i.x - i.w / 2,
-        dy = other.y + other.h / 2 - i.y - i.h / 2
-      side = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 1) : dy < 0 ? 2 : 3
+      side = pinSides.indexOf(facingSide(i, other))
     }
     const key = i.key + '|' + side,
       pin = {
@@ -51,21 +52,15 @@ function dockProjectLinks(links, mx, my) {
     l.pins = [port(l.from, l.to, raw?.[0], raw?.[1]), port(l.to, l.from, raw?.at(-1), raw?.at(-2))]
     l.guides = raw ? raw.slice(1, -1).map(([x, y]) => ({ x: mx(x), y: my(y) })) : []
   }
-  const directions = [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ]
   for (const pins of sides.values()) {
     pins.sort((a, b) => Math.round(a.ratio * 12) - Math.round(b.ratio * 12) || a.remote - b.remote)
     pins.forEach((p, k) => {
       const i = p.i,
         side = p.side,
         u = pins.length === 1 ? p.ratio : 0.14 + (0.72 * k) / (pins.length - 1)
-      p.at = { x: i.x + i.w * (side < 2 ? side : u), y: i.y + i.h * (side < 2 ? u : side - 2) }
-      const [dx, dy] = directions[side]
-      p.stub = { x: p.at.x + dx * 14 * s, y: p.at.y + dy * 14 * s }
+      const dock = facePort(i, pinSides[side], 14 * s, u)
+      p.at = dock.point
+      p.stub = dock.stub
     })
   }
   const boxes = diagramState.instances.filter(

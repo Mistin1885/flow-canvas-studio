@@ -2,8 +2,10 @@ import { simplifyWire } from './polyline.js'
 import { legacyRoute } from './legacyWire.js'
 import { routeBetweenPorts } from './wireDocking.js'
 
-const faces = { top: [0, -1], right: [1, 0], bottom: [0, 1], left: [-1, 0] }
-const sides = Object.keys(faces)
+import { dockSides, extendPort, facePort, nearestFace, nearStraightRoute, portSnapRadius } from './dockPoints.js'
+import { clearRoute } from './routing.js'
+
+export { nearestFace }
 const finite = (v) => Number.isFinite(v) && Math.abs(v) <= 1e7
 
 export function validateWireLayout(layout) {
@@ -12,7 +14,7 @@ export function validateWireLayout(layout) {
     !layout ||
     typeof layout !== 'object' ||
     Array.isArray(layout) ||
-    [layout.start, layout.end].some((s) => s !== undefined && !sides.includes(s)) ||
+    [layout.start, layout.end].some((s) => s !== undefined && !dockSides.includes(s)) ||
     (layout.label !== undefined && !(finite(layout.label?.x) && finite(layout.label?.y))) ||
     (layout.lanes !== undefined &&
       (!Array.isArray(layout.lanes) ||
@@ -25,32 +27,16 @@ export function validateWireLayout(layout) {
     throw Error('連線的接點或排版座標無效')
 }
 
-export function nearestFace(card, p) {
-  const dx = p.x - card.x,
-    dy = p.y - card.y
-  // Outside a card, pick the side facing the pointer, including near corners.
-  const outsideX = Math.max(-dx, dx - card.w),
-    outsideY = Math.max(-dy, dy - card.h)
-  if (Math.max(outsideX, outsideY) > 0) {
-    if (outsideX > outsideY) return dx < 0 ? 'left' : 'right'
-    return dy < 0 ? 'top' : 'bottom'
-  }
-  const distances = [Math.abs(dy), Math.abs(dx - card.w), Math.abs(dy - card.h), Math.abs(dx)]
-  return sides[distances.indexOf(Math.min(...distances))]
-}
-
 export function wirePorts(view, layout, scale) {
+  // A hand-set lane is measured against the original ports, both in the live
+  // preview and after saving/loading it. Auto snap changes only the default drawing.
+  const ports = view.originalPorts || view.autoPoints
   return [
-    ['start', view.from, view.autoPoints[0]],
-    ['end', view.to, view.autoPoints.at(-1)],
-  ].map(([key, card, auto]) => {
-    const side = layout[key] || nearestFace(card, auto),
-      [dx, dy] = faces[side]
-    const point = layout[key]
-      ? { x: card.x + (card.w * (dx + 1)) / 2, y: card.y + (card.h * (dy + 1)) / 2 }
-      : auto
-    return { point, stub: { x: point.x + dx * 12 * scale, y: point.y + dy * 12 * scale } }
-  })
+    ['start', view.from, ports[0]],
+    ['end', view.to, ports.at(-1)],
+  ].map(([key, card, auto]) => layout[key]
+    ? facePort(card, layout[key], 12 * scale)
+    : { point: auto, stub: extendPort(auto, nearestFace(card, auto), 12 * scale) })
 }
 
 export function straightPoints(points) {
@@ -94,7 +80,7 @@ export function dragLanes(points, index, delta, ports, scale) {
   let coordinate = p[axis] + delta[axis]
   const aligned = ports.filter(port => port.point[axis] === port.stub[axis])
     .sort((a, b) => Math.abs(coordinate - a.point[axis]) - Math.abs(coordinate - b.point[axis]))
-  if (aligned.length && Math.abs(coordinate - aligned[0].point[axis]) <= 6 * scale)
+  if (aligned.length && Math.abs(coordinate - aligned[0].point[axis]) <= portSnapRadius * scale)
     coordinate = aligned[0].point[axis]
   const midpoint = (ports[0].point[axis] + ports[1].point[axis]) / 2
   return [{ axis, at: (coordinate - midpoint) / scale }]
@@ -119,8 +105,16 @@ export function closestSegment(points, p) {
 export function resolveWire(view, layout, scale) {
   if (!layout?.start && !layout?.end && !layout?.lanes) return view.autoPoints
   const [a, b] = wirePorts(view, layout, scale)
-  let middle
   const single = layout.lanes?.length === 1 && layout.lanes[0]
+  // A dragged lane is stored relative to the ports' midpoint. Let a user
+  // pull it back onto their common axis without having to reset the wire.
+  if (!layout.lanes || (single && finite(single.at) && Math.abs(single.at) <= portSnapRadius)) {
+    const corridor = layout.start || layout.end ? [a.point, b.point] : view.autoPoints
+    const straight = nearStraightRoute(view.from, view.to, corridor, scale)
+    if (straight && (!single || straight[0][single.axis] === straight[1][single.axis]) &&
+        clearRoute(straight, view.obstacles || [])) return straight
+  }
+  let middle
   if (single && finite(single.at)) {
     const { axis, at } = single
     middle = routeBetweenPorts(a, b, view, scale, {

@@ -94,6 +94,28 @@
 .style-color select {
   flex: 1;
 }
+/* Keep long palettes inside the browser's top layer and away from the opening click. */
+@supports (appearance: base-select) and selector(::picker(select)) {
+  .style-color select,
+  .style-color select::picker(select) {
+    appearance: base-select;
+  }
+  .style-color select::picker(select) {
+    max-height: min(16rem, 40dvh);
+    overflow-y: auto;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .style-color option {
+    padding: 4px 8px;
+  }
+  .style-color option:is(:focus, :hover) {
+    color: var(--ink);
+    background: var(--teal-soft);
+  }
+}
 .style-color input {
   border: 1px solid var(--line);
   background: var(--paper);

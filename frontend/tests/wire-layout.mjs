@@ -10,6 +10,7 @@ import {
   nearestFace,
 } from '../workbench/layout/wireGeometry.js'
 import { clearRoute } from '../workbench/layout/routing.js'
+import { straightenAutomaticWire } from '../workbench/layout/dockPoints.js'
 
 const from = { x: 0, y: 0, w: 100, h: 50 },
   to = { ...from, x: 200 }
@@ -128,4 +129,67 @@ test('old staircase coordinates lose a small jog but keep a deliberately offset 
   const path = resolveWire(offsetWire, legacy, 1)
   assert.equal(path.length - 2, 3)
   assert.deepEqual(path.slice(1, -1), [{ x: 50, y: 73 }, { x: 162, y: 73 }, { x: 162, y: 90 }])
+})
+
+test('near-aligned opposite faces share one axis for both directions, zoom-independent', () => {
+  for (const scale of [0.8, 1, 1.4]) {
+    for (const orientation of ['horizontal', 'vertical']) {
+      const flip = orientation === 'vertical'
+      const point = (x, y) => flip ? { x: y * scale, y: x * scale } : { x: x * scale, y: y * scale }
+      const rect = (x, y, w, h) => ({ ...point(x, y), w: scale * (flip ? h : w), h: scale * (flip ? w : h) })
+      const near = rect(0, 0, 80, 50), far = rect(200, -3, 60, 80)
+      const dogleg = [point(80, 25), point(145, 25), point(145, 37), point(200, 37)]
+      const straight = [point(80, 31), point(200, 31)]
+      assert.deepEqual(straightenAutomaticWire(near, far, dogleg, scale, undefined, () => true), straight)
+      assert.deepEqual(straightenAutomaticWire(far, near, dogleg.toReversed(), scale, {}, () => true), straight.toReversed())
+      const pinnedSides = { start: flip ? 'bottom' : 'right', end: flip ? 'top' : 'left' }
+      const view = { from: near, to: far, autoPoints: dogleg }
+      assert.deepEqual(resolveWire(view, pinnedSides, scale), straight)
+    }
+  }
+})
+
+test('automatic straightening respects route clearance, intended detours, manual lanes and the tolerance', () => {
+  const near = from, far = { ...to, y: 10 }
+  const dogleg = [{ x: 100, y: 25 }, { x: 150, y: 25 }, { x: 150, y: 35 }, { x: 200, y: 35 }]
+  const blocked = [{ x: 125, y: 28, w: 10, h: 4 }]
+  assert.equal(straightenAutomaticWire(near, far, dogleg, 1, {}, ps => clearRoute(ps, blocked)), dogleg)
+  assert.equal(straightenAutomaticWire(near, far, dogleg, 1, { lanes: [{ axis: 'y', at: 25 }] }, () => true), dogleg)
+  assert.deepEqual(straightenAutomaticWire(near, far, dogleg, 1, { label: { x: 4, y: 8 } }, () => true),
+    [{ x: 100, y: 30 }, { x: 200, y: 30 }])
+  const wide = [dogleg[0], { x: 150, y: 25 }, { x: 150, y: 41 }, { x: 200, y: 41 }]
+  assert.equal(straightenAutomaticWire(near, { ...to, y: 16 }, wide, 1, {}, () => true), wide)
+  const detour = [dogleg[0], { x: 125, y: 25 }, { x: 125, y: -10 }, { x: 175, y: -10 }, { x: 175, y: 35 }, dogleg.at(-1)]
+  assert.equal(straightenAutomaticWire(near, far, detour, 1, {}, () => true), detour)
+  const adjacent = [dogleg[0], { x: 250, y: 10 }]
+  assert.equal(straightenAutomaticWire(near, far, adjacent, 1, {}, () => true), adjacent)
+  const narrow = { x: 200, y: 34, w: 50, h: 4 }
+  assert.equal(straightenAutomaticWire(near, narrow, dogleg, 1, {}, () => true), dogleg)
+})
+
+test('a lane dragged back into the snap radius becomes a straight line; an intentional offset survives', () => {
+  const view = {
+    from, to: { ...to, y: 10 },
+    autoPoints: [{ x: 100, y: 25 }, { x: 150, y: 25 }, { x: 150, y: 35 }, { x: 200, y: 35 }],
+  }
+  const layout = { start: 'right', end: 'left' }
+  const ports = wirePorts(view, layout, 1)
+  const offset = { ...layout, lanes: [{ axis: 'y', at: 32 }] }
+  const path = resolveWire(view, offset, 1)
+  const index = path.findIndex((p, i) => p.y === 62 && path[i + 1]?.y === 62)
+  assert.notEqual(index, -1)
+  const lanes = dragLanes(path, index, { x: 0, y: -32 }, ports, 1)
+  assert.deepEqual(resolveWire(view, { ...layout, lanes }, 1), [{ x: 100, y: 30 }, { x: 200, y: 30 }])
+  assert.deepEqual(resolveWire(view, { lanes }, 1), [{ x: 100, y: 30 }, { x: 200, y: 30 }])
+  const autoView = {
+    ...view, originalPorts: [view.autoPoints[0], view.autoPoints.at(-1)],
+    autoPoints: [{ x: 100, y: 30 }, { x: 200, y: 30 }],
+  }
+  // The first drag previews on the snapped geometry. Reload sees the underlying
+  // automatic geometry and the saved manual lane. They must render identically.
+  assert.deepEqual(resolveWire(autoView, { lanes: offset.lanes }, 1),
+    resolveWire(view, { lanes: offset.lanes }, 1))
+  const blocked = { ...view, obstacles: [{ x: 125, y: 28, w: 10, h: 4 }] }
+  const detour = resolveWire(blocked, { ...layout, lanes }, 1)
+  assert.ok(detour.length > 2 && clearRoute(detour, blocked.obstacles))
 })

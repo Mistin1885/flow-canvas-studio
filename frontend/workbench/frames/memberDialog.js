@@ -1,3 +1,4 @@
+import { addNode } from '../graph/addNode.js'
 import { suggestNodeId } from '../graph/nodeIds.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { $, el } from '../ui/dom.js'
@@ -147,7 +148,7 @@ function editMembers(initial) {
     }
     const memberType = type() === 'flow' ? 'shared' : 'action'
     const id = suggestNodeId(memberType, draft.nodes)
-    draft.nodes[id] = {
+    addNode(draft, {
       id,
       type: memberType,
       title,
@@ -157,13 +158,12 @@ function editMembers(initial) {
           : type() === 'flow'
             ? graphModel.document.subflows.find((f) => flowKey(f.id) === key).title
             : '未分組',
-      sheetId: 'project',
+      sheetId: type() === 'source' ? sheetFor(key) : 'project',
       decision: false,
       content: [],
       tags: [],
       description: '',
-    }
-    if (type() === 'source') draft.nodes[id].sheetId = sheetFor(key)
+    })
     ids.push(id)
     dirty = true
     $('member-new').value = ''

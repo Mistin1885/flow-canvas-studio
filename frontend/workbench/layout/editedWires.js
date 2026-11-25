@@ -3,14 +3,15 @@ import { isFrameNode } from '../graph/nodeTypes.js'
 import { graphModel } from '../graph/model.js'
 import { resolveWire, routeAnchor, straightPoints } from './wireGeometry.js'
 
-export function wireGeometry(edge, from, to, autoPoints) {
+export function wireGeometry(edge, from, to, autoPoints, { getObstacles, originalPorts } = {}) {
   return {
     edge,
     from,
     to,
     autoPoints,
+    originalPorts,
     get obstacles() {
-      return diagramState.instances.filter(
+      return getObstacles ? getObstacles() : diagramState.instances.filter(
         (i) => i !== from && i !== to && !isFrameNode(graphModel.nodes[i.id]),
       )
     },

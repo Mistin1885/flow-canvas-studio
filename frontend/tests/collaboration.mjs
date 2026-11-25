@@ -13,6 +13,7 @@ import { verifyAdminBackups } from './admin-backups.mjs'
 import { verifyImport } from './import-review.mjs'
 import { verifyLegacyEdits } from './legacy-edits.mjs'
 import { verifyHighlightBadges } from './highlight-badges.mjs'
+import { verifyStylePalette } from './style-palette.mjs'
 import { verifyNodeCreation } from './node-creation.mjs'
 import { verifyDraftReview } from './draft-review.mjs'
 
@@ -95,6 +96,7 @@ try {
   await verifyImport(alice, bob, origin)
   await verifyLegacyEdits(alice, origin)
   await verifyNodeCreation(alice, bob, origin)
+  await verifyStylePalette(alice, origin)
   await verifyHighlightBadges(alice, bob, origin)
   await verifyCanvasLifecycle(alice, bob, origin)
   await verifyAdminBackups(alice, bob, origin, root, data)

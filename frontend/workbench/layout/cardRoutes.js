@@ -3,6 +3,7 @@ import { diagramState } from '../diagram/state.js'
 
 import { graphModel } from '../graph/model.js'
 import { clearRoute, orthogonalRoute, parallelRun, tracksOf, wireTrack } from './routing.js'
+import { straightenAutomaticWire } from './dockPoints.js'
 import { simplifyWire } from './ports.js'
 
 // Use workbook ports and waypoints unless the displayed card sizes obstruct a wire.
@@ -28,15 +29,14 @@ function clearCardRoutes() {
   for (const l of diagramState.graphLinks) {
     const shapes = cards
     const other = shapes.filter((i) => i !== l.from && i !== l.to)
-    const a = l.points[0],
-      b = l.points.at(-1)
+    const first = l.points[0], last = l.points.at(-1)
     const endpoints = shapes.filter((i) => i === l.from || i === l.to)
     const space = 125 * diagramState.readingScale
     const bounds = {
-      left: Math.min(a.x, b.x) - space,
-      right: Math.max(a.x, b.x) + space,
-      min: Math.min(a.y, b.y) - space,
-      max: Math.max(a.y, b.y) + space,
+      left: Math.min(first.x, last.x) - space,
+      right: Math.max(first.x, last.x) + space,
+      min: Math.min(first.y, last.y) - space,
+      max: Math.max(first.y, last.y) + space,
     }
     const sources = new Set(l.edge.sourceConnectorIds || [])
     // Explicit shared workbook trunks may share a corridor. Other long
@@ -47,6 +47,13 @@ function clearCardRoutes() {
         ? t.at >= bounds.left && t.at <= bounds.right && t.hi >= bounds.min && t.lo <= bounds.max
         : t.at >= bounds.min && t.at <= bounds.max && t.hi >= bounds.left && t.lo <= bounds.right
     })
+    l.points = straightenAutomaticWire(l.from, l.to, l.points, diagramState.readingScale, l.edge.wireLayout, straight => {
+      const track = wireTrack(...straight), gap = 8 * diagramState.readingScale
+      return !nearbyTracks.some(t => parallelRun(track, t, gap) > 18 * diagramState.readingScale) &&
+        clearRoute(straight, other.map(i => box(i, gap)))
+    })
+    if (l.points[0] !== first) l.originalPorts = [first, last]
+    const a = l.points[0], b = l.points.at(-1)
     // Keep existing worksheet tracks and ports. Only replace non-axis-aligned legs.
     if (l.points.some((p, k) => k && p.x !== l.points[k - 1].x && p.y !== l.points[k - 1].y)) {
       const blocks = [
