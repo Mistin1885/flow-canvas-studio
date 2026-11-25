@@ -1,3 +1,4 @@
+import {CopyOptions} from '../knowledge/CopyOptions'
 import { templates, templateGraph } from './templates'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { X } from 'lucide-react'
@@ -33,6 +34,7 @@ export function CatalogDialog({
   )
   const [template, setTemplate] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [follow,setFollow]=useState(false)
   const [target, setTarget] = useState(workspaceId)
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -60,6 +62,7 @@ export function CatalogDialog({
         const result = await api<Canvas>('workspaces/' + target + '/canvases', 'POST', {
           name: clean,
           graph: modal.action === 'import' && file ? unpackDocument(await readFile(file)).graph : templateGraph(template, clean),
+          follow: modal.action === 'copy' && follow,
           source: modal.action === 'copy' ? modal.item?.id : undefined,
         })
         navigate = ['canvas', result.id]
@@ -125,7 +128,7 @@ export function CatalogDialog({
         {modal.action === 'copy' && (
           <label>
             目的工作區
-            <select value={target} onChange={(e) => setTarget(e.target.value)}>
+            <select value={target} onChange={(e) => {setTarget(e.target.value);setFollow(false)}}>
               {workspaces.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.name}
@@ -134,6 +137,7 @@ export function CatalogDialog({
             </select>
           </label>
         )}
+        {modal.action==='copy' && target!==workspaceId && <CopyOptions target={target} source={modal.item!.id} follow={follow} change={setFollow}/>}
         <label>
           名稱
           <input

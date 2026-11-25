@@ -1,3 +1,5 @@
+import KnowledgeLibrary from '../knowledge/KnowledgeLibrary'
+import type {Picker} from '../knowledge/types'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, GitFork, Activity, X, Download, Copy } from 'lucide-react'
 import { api, errorText, type Canvas, type Graph, type Snapshot } from '../api'
@@ -14,18 +16,20 @@ export default function Editor({
   canvas,
   workspace,
   display,
-  identity,
+  targetNode, identity,
   open,
   back,
 }: {
   canvas: Canvas
   workspace: string
   display: ReturnType<typeof useDisplayPreferences>
+  targetNode?: string
   identity: string
   open: (id: string) => void
   back: () => void
 }) {
   const frame = useRef<HTMLIFrameElement>(null)
+  const [library,setLibrary]=useState<true|Picker|null>(null)
   const [loaded, setLoaded] = useState(false)
   const [map, setMap] = useState<{graph:Graph;rev:number} | null>(null)
   const [showActivity,setActivity]=useState(false)
@@ -42,6 +46,19 @@ export default function Editor({
     loaded,
     open,
   )
+  useEffect(()=>{
+    const win=frame.current?.contentWindow
+    if(!loaded || !win)return
+    const pick=(e:Event)=>setLibrary((e as CustomEvent<Picker>).detail)
+    const navigate=()=>setLibrary(null)
+    window.addEventListener('hashchange',navigate)
+    win.addEventListener('studio-knowledge',pick)
+    return ()=>{win.removeEventListener('studio-knowledge',pick);window.removeEventListener('hashchange',navigate)}
+  },[loaded])
+  useEffect(()=>{
+    if(ready && targetNode && current.current?.graph.nodes[targetNode])
+      (frame.current?.contentWindow as Workbench)?.T1Playbook.go(targetNode,true)
+  },[ready,targetNode,current])
   useEffect(() => {
     if (loaded) (frame.current?.contentWindow as Workbench)?.T1Playbook?.setCanvasTitle(canvasName)
   }, [loaded, canvasName])
@@ -102,6 +119,7 @@ export default function Editor({
             <Activity size={14} />
             {status}
           </span>
+          <button disabled={!ready || busy || !!draft} onClick={()=>setLibrary(true)}>畫布知識</button>
           <button disabled={!ready || !!draft} onClick={()=>setActivity(true)}>變更紀錄</button>
           {Overview && (
             <button
@@ -161,6 +179,7 @@ export default function Editor({
           {importResult}
         </p>
       )}
+      {library && <KnowledgeLibrary identity={identity} name={workspace+' / '+canvasName} space={canvas.workspace} canvas={canvas.id} close={()=>setLibrary(null)} picker={library===true?undefined:library}/>}
       {showActivity && <ActivityDialog canvas={canvas.id} after={visit.last} close={()=>setActivity(false)}
         exists={id=>!!current.current?.graph.nodes[id]} locate={id=>{setActivity(false);(frame.current?.contentWindow as Workbench).T1Playbook.go(id,true)}}/>}
       {review && draft && <DraftReview submit={actions.current.submitReview} canvas={canvas.id} draft={draft} revision={remoteRev} close={()=>setReview(false)}

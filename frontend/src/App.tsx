@@ -1,3 +1,4 @@
+import KnowledgeLibrary from './knowledge/KnowledgeLibrary'
 import { useEffect, useRef, useState } from 'react'
 import {
   Boxes,
@@ -46,7 +47,7 @@ export default function App() {
   const user = session?.label || ''
   const display = useDisplayPreferences(session?.storage_key || '')
   const [error, setError] = useState('')
-  const [[type, id], setRoute] = useState(route)
+  const [[type, id, targetNode], setRoute] = useState(route)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('updated')
   const [list, setList] = useState(false)
@@ -54,7 +55,7 @@ export default function App() {
   const [page, setPage] = useState(1)
   const params = type === 'canvas' && id
     ? new URLSearchParams({ canvas: id })
-    : new URLSearchParams({ workspace: type === 'workspace' ? id : '', page: String(page), q: query, sort })
+    : new URLSearchParams({ workspace: ['workspace','knowledge'].includes(type) ? id : '', page: String(page), q: query, sort })
   const listing = useListing<Directory>('catalog/page?' + params, type === 'canvas' ? 0 : 12000)
   const { data: catalog, refresh } = listing
   const lastWorkspace = useRef('')
@@ -84,12 +85,12 @@ export default function App() {
   const opened = type === 'canvas' && catalog?.opened?.id === id ? catalog.opened : undefined
   const workspace = opened
     ? catalog?.workspaces.find((w) => w.id === opened.workspace)
-    : type === 'workspace'
+    : ['workspace','knowledge'].includes(type)
       ? catalog?.workspaces.find((w) => w.id === id)
       : catalog?.workspaces[0]
 
   const badRoute =
-    listing.current && !!id && ((type === 'workspace' && !workspace) || (type === 'canvas' && !opened))
+    listing.current && !!id && ((['workspace','knowledge'].includes(type) && !workspace) || (type === 'canvas' && !opened))
   function form(action: Modal['action'], item?: Workspace) {
     setModal({ action, item })
   }
@@ -99,6 +100,7 @@ export default function App() {
         key={opened.id}
         canvas={opened}
         workspace={workspace.name}
+        targetNode={targetNode}
         identity={session.storage_key}
         display={display}
         open={(key) => go('canvas', key)}
@@ -190,6 +192,7 @@ export default function App() {
           />
         )}
       </main>
+      {type==='knowledge' && workspace && <KnowledgeLibrary key={workspace.id} identity={session?.storage_key || ''} name={workspace.name} space={workspace.id} close={()=>go('workspace',workspace.id)}/>}
       {modal && (
         <CatalogDialog
           modal={modal}

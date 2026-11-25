@@ -1,0 +1,65 @@
+button.knowledgeLink {
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: var(--blue);
+  text-decoration: underline dotted;
+  text-underline-offset: 0.23em;
+  font: inherit;
+  cursor: pointer;
+}
+.knowledgePins {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.knowledgePins h3 {
+  width: 100%;
+}
+.knowledgeBody {
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.knowledgeBody table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0 16px;
+}
+.knowledgeBody th,
+.knowledgeBody td {
+  border: 1px solid var(--line);
+  text-align: start;
+  padding: 5px 9px;
+}
+.knowledgeBody img {
+  max-width: 100%;
+}
+.knowledgeBody pre {
+  white-space: pre-wrap;
+}
+
+.knowledgeLink[data-preview] {
+  position: relative;
+}
+.knowledgeLink[data-preview]:is(:hover, :focus-visible)::after {
+  content: attr(data-preview);
+  position: absolute;
+  z-index: 4;
+  top: 100%;
+  inset-inline-end: 0;
+  min-width: 10em;
+  max-width: 16em;
+  width: max-content;
+  padding: 0.55em 0.7em;
+  border-radius: 6px;
+  box-shadow: 0 3px 12px #0002;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  text-align: start;
+  font-size: 0.88em;
+  line-height: 1.5;
+  pointer-events: none;
+}

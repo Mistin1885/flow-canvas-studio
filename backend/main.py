@@ -105,6 +105,9 @@ async def database_unavailable(request, exc):
     return JSONResponse({"detail": "資料庫暫時無法連線"}, status_code=503)
 
 
+@app.get("/api/knowledge/{space}")
+@app.post("/api/knowledge/{space}")
+@app.get("/api/knowledge/{space}/copy-preview")
 @app.get("/api/catalog/page")
 @app.get("/api/admin/backups/page")
 @app.get("/api/admin/backup-status")
@@ -136,6 +139,9 @@ async def data_request(request: Request):
             "x-flow-editor": quote(request.state.user["label"], safe=""),
         },
     )
+    if response.is_success and request.method == "POST" and request.url.path.startswith("/api/knowledge/"):
+        for key, rev in response.json().get("updated", {}).items():
+            notify(key, rev)
     canvas_changed = request.method == "DELETE" or (
         request.method == "POST" and request.url.path.endswith(("/changes", "/imports", "/clear"))
     )

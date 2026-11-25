@@ -22,6 +22,10 @@ export function preserveFields(file: Graph, team: Graph): Graph {
     if (graph === file) graph = { ...file, nodes: { ...file.nodes } }
     graph.nodes[id] = { ...incoming, ...patch }
   }
+  for (const [key, value] of Object.entries(team)) {
+    if ((key.startsWith('knowledge.') || key === 'knowledgePins') && !Object.hasOwn(file, key))
+      graph = { ...graph, [key]: value }
+  }
   for (const key of ['ownerRoleOptions', 'locationOptions']) {
     const current = team[key], incoming = file[key]
     if (!Array.isArray(current)) continue

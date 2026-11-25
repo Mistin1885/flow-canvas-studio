@@ -30,6 +30,7 @@ function applyEditor() {
   for (const key of ['group', 'title', 'description', 'where', 'expect', 'note']) {
     if (edited('node-' + key)) n[key] = after.fields['node-' + key].trim()
   }
+  Object.assign(graph, after.knowledge)
   saveBadges(graph, n, before.badges)
   saveAssignmentOptions(graph)
   readNodeFields(n, nodeForm.adding ? null : before)

@@ -94,6 +94,7 @@ export function CanvasCollection({
           <Pencil size={15} />
         </button>
         <div className="canvasActions">
+          <button onClick={()=>{location.hash='knowledge/'+workspace.id}}>工作區知識庫</button>
           <button onClick={() => form('import')}>從 JSON 建立</button>
           <button className="primary" onClick={() => form('canvas')}>
             <Plus size={17} /> 建立畫布

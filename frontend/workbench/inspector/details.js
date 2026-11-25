@@ -1,3 +1,4 @@
+import { linkText, pinnedEntries, readingEntry } from '../knowledge/reader.js'
 import { properties, rules } from '../modeling/fields.js'
 import { groupStyle } from '../appearance/schema.js'
 import { categoryTags } from '../categories/model.js'
@@ -143,7 +144,7 @@ function outputCard(c) {
 
 function renderDetail() {
   const i = diagramState.selected
-  if (!i) return
+  if (!i || readingEntry()) return
   const n = graphModel.nodes[i.id],
     frag = document.createDocumentFragment()
   $('detail-id').textContent = ''
@@ -287,6 +288,8 @@ function renderDetail() {
     b.onclick = () => openSourceReview(n.sourceId)
     frag.append(b)
   }
+  linkText(frag)
+  frag.append(pinnedEntries())
   $('detail').replaceChildren(frag)
   if (diagramState.lastDetailKey !== i.key) {
     $('detail').scrollTop = 0

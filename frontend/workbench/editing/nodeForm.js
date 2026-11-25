@@ -1,3 +1,4 @@
+import { bindInsert, pendingKnowledge } from '../knowledge/insert.js'
 import { showBadges, bindBadges } from '../badges/editor.js'
 import { draftOpened } from './formDrafts.js'
 import { suggestNodeId } from '../graph/nodeIds.js'
@@ -171,6 +172,7 @@ export function syncReturnField() {
 }
 
 function populateEditor(id, add = false) {
+  pendingKnowledge.docs = {}
   nodeForm.adding = add
   nodeForm.parent = add ? id : null
   nodeForm.node = add ? null : id
@@ -258,6 +260,7 @@ function openNodeEditor() {
 }
 
 function bindNodeForm() {
+  bindInsert()
   bindBadges()
   $('node-id').oninput = () => {
     nodeForm.autoId = !$('node-id').value

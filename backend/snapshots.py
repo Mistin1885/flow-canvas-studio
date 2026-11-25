@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 from uuid import uuid4
 
-from . import storage as store
+from . import knowledge, storage as store
 
 TABLE = {"canvas": "canvases", "workspace": "workspaces"}
 WEEK = timedelta(days=7)
@@ -54,6 +54,8 @@ def capture(db, kind, info, clock, *, force=False):
     payload = {"kind": kind, "item": info, "captured": captured}
     if kind == "canvas":
         payload["graph"] = store.snapshot(db, key)["graph"]
+    else:
+        payload["knowledge"] = knowledge.backups(db,key)
     file = write_payload(payload)
     point = db.execute("""INSERT INTO recovery_points(kind,item,workspace,name,revision,captured,expires,file)
         VALUES(?,?,?,?,?,?,?,?)""", (kind, key, info.get("workspace", key), info["name"], rev,
@@ -161,9 +163,12 @@ def restore(db, point, editor, expected=None):
     rev = live.get("rev", 0)
     name = store.name(payload["item"]["name"])
     if kind == "workspace":
+        if "knowledge" in payload:
+            knowledge.restore_library(db,key,payload["knowledge"],editor)
         db.execute("UPDATE workspaces SET name=?,updated=? WHERE id=?", (name, stamp, key))
     else:
         graph = payload["graph"]
+        knowledge.reconcile(db,graph,live["workspace"],True)
         if deleted:
             db.execute("UPDATE canvases SET deleted_until=NULL WHERE id=?", (key,))
         before_nodes = store.snapshot(db, key)["graph"]["nodes"]

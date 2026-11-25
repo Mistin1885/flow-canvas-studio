@@ -9,7 +9,7 @@ import re
 import sqlite3
 from uuid import uuid4
 
-from . import activity, operations
+from . import activity, operations, knowledge
 from .snapshot_schema import MIGRATION
 
 
@@ -108,7 +108,7 @@ def initialize():
             ALTER TABLE canvases ADD COLUMN write_floor INTEGER NOT NULL DEFAULT 1;
             CREATE VIEW active_canvases AS SELECT * FROM canvases WHERE deleted_until IS NULL;
             PRAGMA user_version=7;
-        """)
+        """, knowledge.MIGRATION)
         if version > len(migrations):
             raise Invalid(f"資料庫版本 {version} 與程式不相容")
         # Keep the version check and schema changes in one write transaction.
@@ -152,6 +152,7 @@ def check_graph(graph):
     nodes, edges = graph.get("nodes"), graph.get("edges")
     if not isinstance(nodes, dict) or not isinstance(edges, list) or len(nodes) > 300 or len(edges) > 800:
         raise Invalid("畫布最多支援 300 個節點及 800 條連線")
+    knowledge.validate(graph)
     badge_styles = check_badge_styles(graph)
     for key in ("ownerRoleOptions", "locationOptions"):
         if key in graph and (not isinstance(graph[key], list) or
@@ -268,21 +269,26 @@ def empty_graph(title):
     }
 
 
-def create_canvas(db, workspace, title, editor, graph=None, source=None):
+def create_canvas(db, workspace, title, editor, graph=None, source=None, follow=False):
     required(db, "workspaces", workspace)
     canvas = uuid4().hex
     db.execute("INSERT INTO canvases(id,workspace,name,rev,updated,editor) VALUES(?,?,?,?,?,?)", (canvas, workspace, name(title), 1, now(), editor))
     if source:
-        required(db, "canvases", source)
+        source_info = required(db, "canvases", source)
         for table in ("nodes", "edges", "meta"):
             extra = ",src,dst" if table == "edges" else ""
             db.execute(
                 f"INSERT INTO {table} SELECT ?,key,value,1{extra} FROM {table} WHERE canvas=? ORDER BY rowid",
                 (canvas, source),
             )
+        docs = {r[0]: json.loads(r[1]) for r in db.execute("SELECT key,value FROM meta WHERE canvas=? AND key GLOB 'knowledge.*'", (canvas,))}
+        knowledge.reconcile(db, docs, workspace, follow or source_info["workspace"] == workspace)
+        for key, value in docs.items():
+            put(db, canvas, "meta", key, value, 1)
     else:
         if graph is None:
             graph = empty_graph(title)
+        knowledge.reconcile(db, graph, workspace, False)
         check_graph(graph)
         for key, value in graph.items():
             if key not in ("nodes", "edges"):
@@ -344,7 +350,16 @@ def commit(db, canvas, base, ops, editor, kind="edited", actor=None):
             if remove:
                 db.execute(f"DELETE FROM {table} WHERE canvas=? AND key=?", (canvas, op["key"]))
             else:
-                put(db, canvas, table, op["key"], op["value"], stamp)
+                value = op["value"]
+                if table == "meta" and op["key"].startswith(knowledge.PREFIX) and isinstance(value,dict) and "source" in value:
+                    source = value["source"]
+                    origin = knowledge.allowed(db, source, info["workspace"]) if isinstance(source,str) else None
+                    if not origin or knowledge.document(value) != json.loads(origin["document"]):
+                        if kind == "imported":
+                            value = knowledge.document(value)
+                        else:
+                            raise Conflict("共用原文或分享範圍已變更，請重新選取或建立副本")
+                put(db, canvas, table, op["key"], value, stamp)
     check_graph(snapshot(db, canvas)["graph"])
     updated = now()
     items = activity.node_changes(before, after)

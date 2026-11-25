@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from . import activity, operations, storage as store
+from .knowledge_api import router as knowledge_router
 from .canvas_lifecycle import router as lifecycle_router
 from .admin_api import router as admin_router
 from .catalog_pages import router as catalog_router
@@ -27,6 +28,7 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 
+app.include_router(knowledge_router)
 app.include_router(lifecycle_router)
 app.include_router(admin_router)
 app.include_router(catalog_router)
@@ -59,6 +61,7 @@ class Rename(Named):
 
 
 class CanvasCreate(Named):
+    follow: bool = False
     source: str | None = None
     graph: dict | None = None
 
@@ -124,7 +127,7 @@ def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename, x_fl
 @app.post("/api/workspaces/{workspace}/canvases", status_code=201)
 def canvas(workspace: str, body: CanvasCreate, x_flow_editor: str = Header()):
     with store.session(True) as db:
-        key = store.create_canvas(db, workspace, body.name, unquote(x_flow_editor), body.graph, body.source)
+        key = store.create_canvas(db, workspace, body.name, unquote(x_flow_editor), body.graph, body.source, body.follow)
     return {"id": key}
 
 

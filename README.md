@@ -272,3 +272,13 @@ npm run test:browser
 ```
 
 For an installed Chrome browser, use `CHROME_BIN=/usr/bin/google-chrome npm run test:browser`.
+
+## Knowledge library
+
+Open **工作區知識庫** from a workspace or **畫布知識** from a canvas. An entry has a title, a short hover summary and optional titled sections. Section bodies support paragraphs, lists, code fences, links, images, pipe tables and tables pasted from a spreadsheet.
+
+- Create an entry inside a canvas for local use. Choose **加入工作區共用** to publish an original in the workspace.
+- Use **編輯原文與共用範圍** in the owning workspace to share with selected workspaces. The article lists eligible workspaces separately from the canvases and nodes that actually reference it. Sharing defines where editors can reuse an entry. Site access still follows the configured authentication mode.
+- Select text in the node editor and choose **引用知識條目** to link to an entry or section. Readers can open it in the inspector and return to the node. Use **釘選至畫布參考資料** for a reference that applies throughout a canvas.
+- Edits to an original update its linked canvases. Detaching or revoking a share retains the last available content as a local copy. New canvases imported from JSON keep independent copies. Same-workspace forks retain shared originals. Cross-workspace forks default to independent copies and offer a preview of which entries can remain linked.
+- JSON and portable HTML include the referenced text and tables. Linked external images need network access. Embedded PNG, JPEG and WebP data URLs can travel with the document.

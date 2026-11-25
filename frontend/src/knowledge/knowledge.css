@@ -1,0 +1,157 @@
+@import '../../workbench/styles/knowledge.css';
+.kbDialog {
+  width: min(940px, 96vw);
+  max-height: 88dvh;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 80px #16251e35;
+}
+.kbDialog::backdrop {
+  background: #15272066;
+}
+.kbDialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 18px 24px;
+}
+.kbDialog h1 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 1.3rem;
+  margin: 0.25rem 0;
+}
+.kbDialog small {
+  color: var(--muted);
+}
+.kbGrid {
+  display: grid;
+  grid-template-columns: minmax(185px, 31%) minmax(0, 1fr);
+  min-height: 390px;
+}
+.kbGrid aside,
+.kbGrid main {
+  overflow: auto;
+  max-height: 65dvh;
+  padding: 20px;
+}
+.kbGrid aside {
+  background: var(--soft);
+  border-inline-end: 1px solid var(--line);
+}
+.kbGrid nav,
+.kbForm,
+.kbForm label,
+.kbUsage div {
+  display: grid;
+  gap: 8px;
+}
+.kbGrid nav {
+  margin-top: 16px;
+}
+.kbGrid nav button {
+  display: grid;
+  text-align: start;
+  justify-content: start;
+  gap: 5px;
+}
+.kbGrid nav button[aria-current] {
+  border-color: #39816d;
+  box-shadow: inset 3px 0 #39816d;
+}
+.kbSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.kbDialog input:not([type='checkbox']),
+.kbDialog textarea,
+.kbDialog select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.kbDialog textarea {
+  resize: vertical;
+}
+.kbGrid h2 {
+  font-size: 1.35rem;
+  margin: 9px 0;
+}
+.kbScope {
+  color: var(--muted);
+}
+.kbArticle {
+  line-height: 1.55;
+}
+.kbForm {
+  gap: 14px;
+}
+.kbForm fieldset {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+}
+.kbForm footer,
+.kbActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kbForm label.kbCheck {
+  display: flex;
+  align-items: center;
+}
+.kbUsage {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  font-size: 0.9rem;
+}
+.kbUsage h3 {
+  font-size: 0.9rem;
+}
+.kbUsage div {
+  margin: 0.65rem 0;
+}
+.kbUsage a {
+  color: inherit;
+  text-decoration-color: #4f977d;
+}
+@media (max-width: 650px) {
+  .kbGrid {
+    display: block;
+  }
+  .kbGrid aside {
+    max-height: 24dvh;
+  }
+  .kbGrid main {
+    max-height: 49dvh;
+  }
+}
+.kbGuide {
+  padding: 7px 20px;
+  background: var(--soft);
+  font-size: 0.85rem;
+}
+.kbGuide button {
+  border: 0;
+  background: transparent;
+  padding: 3px;
+}
+.kbGuide ol {
+  margin: 4px 0 8px;
+  padding-inline-start: 1.5em;
+  line-height: 1.65;
+}

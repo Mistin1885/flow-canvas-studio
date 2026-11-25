@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY backend/__init__.py backend/
 
 FROM runtime AS database
-COPY backend/database_api.py backend/canvas_lifecycle.py backend/catalog_pages.py backend/paging.py backend/backup_pages.py backend/storage.py backend/activity.py backend/operations.py backend/bundle.py backend/backup.py backend/snapshot_schema.py backend/snapshots.py backend/snapshot_schedule.py backend/admin_api.py backend/recovery.py backend/
+COPY backend/knowledge.py backend/knowledge_api.py backend/database_api.py backend/canvas_lifecycle.py backend/catalog_pages.py backend/paging.py backend/backup_pages.py backend/storage.py backend/activity.py backend/operations.py backend/bundle.py backend/backup.py backend/snapshot_schema.py backend/snapshots.py backend/snapshot_schedule.py backend/admin_api.py backend/recovery.py backend/
 RUN python -c "from backend.database_api import app"
 ENV FLOW_DATA_DIR=/data
 USER 1000:1000
