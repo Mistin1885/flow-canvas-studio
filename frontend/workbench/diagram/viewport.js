@@ -59,8 +59,8 @@ function bindViewport() {
       return
     }
     const { left, top, right, bottom } = includeEditedWires({
-      left: 0,
-      top: 0,
+      left: Math.min(0, ...diagramState.instances.map(i => (i.inlineFlow || i).x)),
+      top: Math.min(0, ...diagramState.instances.map(i => (i.inlineFlow || i).y)),
       right: diagramState.totalW,
       bottom: diagramState.totalH,
     })

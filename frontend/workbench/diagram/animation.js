@@ -26,14 +26,15 @@ function animateDiagram(oldPositions, revision) {
         pos = { x: old.x + (i.x - old.x) * t, y: old.y + (i.y - old.y) * t }
       positions.set(i.key, pos)
       const dom = diagramState.domNodes.get(i.key)
-      if (dom) {
+      if (dom && !(editState.gesture?.started && editState.gesture.card === dom)) {
         dom.style.transform = `translate(${pos.x}px,${pos.y}px)`
         dom.style.opacity = oldPositions.has(i.key) ? '1' : String(Math.min(1, progress * 1.6))
       }
     }
     diagramState.displayPositions = positions
     for (const view of views) {
-      if (editState.gesture?.started && editState.gesture.group === view.group) continue
+      if (editState.gesture?.started && (editState.gesture.group === view.group ||
+          editState.gesture.wires?.includes(view))) continue
       const a = positions.get(view.from.key),
         b = positions.get(view.to.key),
         da = { x: a.x - view.from.x, y: a.y - view.from.y },

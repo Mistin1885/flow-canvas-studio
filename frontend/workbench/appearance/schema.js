@@ -1,3 +1,5 @@
+import { peerStyle } from './groupPalette.js'
+
 const styleSpec = {
   edge: ['外框色'],
   light: ['淺色底色'],
@@ -34,7 +36,7 @@ function groupStyle(g, name) {
 }
 
 function effectiveStyle(g, n) {
-  return { ...g.nodeStyle, ...groupStyle(g, n.group), ...n.nodeStyle }
+  return { ...(n.inheritPeerStyle && peerStyle(g, n)), ...g.nodeStyle, ...groupStyle(g, n.group), ...n.nodeStyle }
 }
 
 export { styleSpec, defaultColors, checkNodeStyles, groupStyle, effectiveStyle }

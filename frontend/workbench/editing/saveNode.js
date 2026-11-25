@@ -1,3 +1,4 @@
+import { peerStyle } from '../appearance/groupPalette.js'
 import { bindReferenceValidation, validateReferences } from '../knowledge/formValidation.js'
 import { finishBadgeEditor, saveBadges } from '../badges/editor.js'
 import { draftApplied, formValues } from './formDrafts.js'
@@ -44,7 +45,10 @@ function applyEditor() {
     if (group) group.direction = direction
     else (graph.layoutGroups ??= []).push({ name, direction })
     for (const member of Object.values(graph.nodes))
-      if (member.group === name) delete member.layoutOffset
+      if (member.group === name) {
+        delete member.layoutPosition
+        delete member.layoutOffset
+      }
   }
   if (categoryDraft.items.length)
     graph.customCategories = [...(graph.customCategories || []), ...categoryDraft.items]
@@ -82,6 +86,7 @@ function applyEditor() {
     n.sheetId = sheetFor(nodeForm.parent)
     n.sourceKind = 'subflow'
   }
+  if (nodeForm.adding && Object.keys(peerStyle(graph, n)).length) n.inheritPeerStyle = true
   graph.nodes[id] = n
   if (differs('edges') || after.incoming.length || nodeForm.parent)
     applyEdgeEdits(graph, id, after, nodeForm.parent)

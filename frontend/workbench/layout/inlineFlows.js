@@ -1,3 +1,4 @@
+import { graphModel } from '../graph/model.js'
 import { diagramState } from '../diagram/state.js'
 import { dockProjectLinks } from './ports.js'
 import { layoutGraph } from './dagre.js'
@@ -105,9 +106,31 @@ function placeInlineFlows() {
     const f = host.inlineFlow,
       dx = f.x + f.pad,
       dy = f.y + f.pad + f.headerSpace
+    const moved = new Set()
+    const origin = { x: dx, y: dy }
     for (const i of f.nodes) {
+      i.scopeOrigin = origin
+      const pos = graphModel.nodes[i.id].layoutPosition
+      if (pos) {
+        i.appliedOffset = { x: pos.x - i.x / diagramState.readingScale, y: pos.y - i.y / diagramState.readingScale }
+        i.x = pos.x * diagramState.readingScale
+        i.y = pos.y * diagramState.readingScale
+        moved.add(i)
+      }
       i.x += dx
       i.y += dy
+    }
+    // Grow the outline after positioning its host. Resizing it during automatic
+    // layout would move the origin during the very drop that enlarged the flow.
+    if (moved.size) {
+      const right = Math.max(f.x + f.w, ...[...moved].map(i => i.x + i.w + f.pad))
+      const bottom = Math.max(f.y + f.h, ...[...moved].map(i => i.y + i.h + f.pad))
+      f.x = Math.min(f.x, ...[...moved].map(i => i.x - f.pad))
+      f.y = Math.min(f.y, ...[...moved].map(i => i.y - f.pad))
+      f.w = right - f.x
+      f.h = bottom - f.y
+      diagramState.totalW = Math.max(diagramState.totalW, right + f.pad)
+      diagramState.totalH = Math.max(diagramState.totalH, bottom + f.pad)
     }
     for (const l of f.links) {
       l.points = l.points.map((p) => ({ x: p.x + dx, y: p.y + dy }))
@@ -116,6 +139,7 @@ function placeInlineFlows() {
         l.labelY += dy
       }
     }
+    if (moved.size) dockProjectLinks(f.links.filter(l => moved.has(l.from) || moved.has(l.to)))
   }
 }
 

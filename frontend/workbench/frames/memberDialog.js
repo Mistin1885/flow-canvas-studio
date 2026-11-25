@@ -195,6 +195,7 @@ function editMembers(initial) {
         for (const id of new Set([...old, ...ids])) {
           const n = draft.nodes[id]
           n.sheetId = ids.includes(id) ? f.id : 'project'
+          delete n.layoutPosition
           delete n.layoutOffset
         }
         f.root = ids[0]

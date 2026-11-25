@@ -1,3 +1,4 @@
+import { invalidatePeerStyles, peerStyle } from './groupPalette.js'
 import { selectionState } from '../editing/state.js'
 import { defaultColors, effectiveStyle, groupStyle, styleSpec } from './schema.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
@@ -42,6 +43,7 @@ function initStyleEditor() {
       delete item.nodeStyle[key]
       if (!Object.keys(item.nodeStyle).length) delete item.nodeStyle
     }
+    invalidatePeerStyles(graph)
     dirty = true
     preview()
   }
@@ -82,6 +84,7 @@ function initStyleEditor() {
     const local = owner()?.nodeStyle || {},
       n = sample()
     const groupParent = level === 'node' ? groupStyle(graph, n?.group) : null
+    const peers = level === 'node' && n?.inheritPeerStyle ? peerStyle(graph, n) : {}
     $('frame-fields').hidden = level === 'node'
     const count =
       level === 'diagram'
@@ -95,11 +98,12 @@ function initStyleEditor() {
           (level === 'group' ? '新加入此群組的節點也會繼承。' : '群組與個別節點可逐項覆寫。')
     for (const [key, [name, choices]] of Object.entries(styleSpec)) {
       if (level === 'node' && key.startsWith('frame')) continue
-      const inherited = groupParent?.[key] || (level !== 'diagram' && graph.nodeStyle?.[key])
+      const inherited = groupParent?.[key] || (level !== 'diagram' && graph.nodeStyle?.[key]) || peers[key]
       const source = groupParent?.[key]
         ? '群組'
-        : inherited
+        : level !== 'diagram' && graph.nodeStyle?.[key]
           ? '全圖'
+          : peers[key] ? '同群組節點'
           : key.startsWith('frame')
             ? '預設'
             : '原圖'
@@ -192,6 +196,7 @@ function initStyleEditor() {
   $('reset-style').onclick = () => {
     const item = owner()
     if (item) delete item.nodeStyle
+    invalidatePeerStyles(graph)
     dirty = true
     render()
   }

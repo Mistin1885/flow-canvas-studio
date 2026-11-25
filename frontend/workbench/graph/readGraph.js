@@ -243,6 +243,13 @@ function readGraph(value) {
       (!n.layoutOffset || ![n.layoutOffset.x, n.layoutOffset.y].every(Number.isFinite))
     )
       bad(n.id, '手動位置無效')
+  for (const n of Object.values(value.nodes)) {
+    if (n.layoutPosition !== undefined &&
+        (!n.layoutPosition || ![n.layoutPosition.x, n.layoutPosition.y].every(Number.isFinite)))
+      bad(n.id, '格線位置無效')
+    if (n.inheritPeerStyle !== undefined && typeof n.inheritPeerStyle !== 'boolean')
+      bad(n.id, '群組樣式繼承設定無效')
+  }
   for (const e of value.edges)
     if (e.conditionColor !== undefined && !/^#[0-9a-f]{6}$/i.test(e.conditionColor))
       bad('edges', '條件顏色無效')

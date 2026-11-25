@@ -47,6 +47,7 @@ function packSourceSteps(graph, frameId, ids) {
       y = base.y + dy,
       old = i.appliedOffset || { x: 0, y: 0 }
     const n = graph.nodes[i.id]
+    delete n.layoutPosition
     n.layoutOffset = {
       x: old.x + (x - box.x) / diagramState.readingScale,
       y: old.y + (y - box.y) / diagramState.readingScale,
@@ -152,7 +153,10 @@ function editFrameObject(key, action, kind, name) {
       f.title = name
     } else {
       for (const n of Object.values(g.nodes)) {
-        if (sheetFor(n.id) === f.id) n.sheetId = 'project'
+        if (sheetFor(n.id) === f.id) {
+          n.sheetId = 'project'
+          delete n.layoutPosition
+        }
         if (n.subflowId === f.id) delete n.subflowId
       }
       g.subflows = flows.filter((r) => r !== f)

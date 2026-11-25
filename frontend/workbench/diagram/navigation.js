@@ -1,3 +1,4 @@
+import { gridStep } from '../layout/nodePlacement.js'
 import { DX, diagramState } from './state.js'
 import { canvas } from './viewport.js'
 import { $, el } from '../ui/dom.js'
@@ -13,8 +14,8 @@ import { renderLegend } from '../categories/legend.js'
 const scrollState = {}
 
 function transform() {
-  const grid = 20 * diagramState.readingScale * diagramState.scale
-  canvas.style.setProperty('--edit-grid', Math.max(3, grid) + 'px')
+  const grid = gridStep(diagramState.readingScale, diagramState.scale) * diagramState.scale
+  canvas.style.setProperty('--edit-grid', grid + 'px')
   canvas.style.setProperty('--edit-origin', diagramState.tx + 'px ' + diagramState.ty + 'px')
   $('world').style.setProperty('--port-scale', Math.min(2.4, 1 / diagramState.scale))
   $('world').style.transform =

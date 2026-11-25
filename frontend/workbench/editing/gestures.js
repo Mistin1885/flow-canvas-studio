@@ -12,6 +12,10 @@ import { rightAnglePath } from '../diagram/paths.js'
 import { frameTargetAt } from '../frames/handles.js'
 import { cancelGesture } from './tools.js'
 import { exportGraph } from '../io/graph.js'
+import { snapDrag, overlapsAt } from '../layout/nodePlacement.js'
+import { isFrameNode } from '../graph/nodeTypes.js'
+import { hiddenGroups } from '../groups/visibility.js'
+import { say } from '../ui/toast.js'
 import { graphModel } from '../graph/model.js'
 import { replaceGraph } from '../graph/replace.js'
 
@@ -83,6 +87,7 @@ function initGestures() {
       if (!item) return
       e.stopImmediatePropagation()
       swallowClick = false
+      cancelAnimationFrame(diagramState.frame)
       editState.gesture = {
         pointer: e.pointerId,
         x: e.clientX,
@@ -125,8 +130,6 @@ function initGestures() {
         return
       }
       if (g.port) canvas.classList.add('choosing-endpoint')
-      g.dx = dx / diagramState.scale
-      g.dy = dy / diagramState.scale
       if (g.port) {
         const r = $('world').getBoundingClientRect(),
           x = (e.clientX - r.left) / diagramState.scale,
@@ -142,6 +145,9 @@ function initGestures() {
         g.target = target !== g.card ? target : null
         g.target?.classList.add('link-target')
       } else {
+        const pos = snapDrag(g.item, dx, dy, diagramState.readingScale, diagramState.scale)
+        g.dx = pos.x - g.item.x
+        g.dy = pos.y - g.item.y
         for (const v of g.wires) {
           const last = v.points.length - 1
           const d = rightAnglePath(
@@ -175,7 +181,7 @@ function initGestures() {
         }
         return
       }
-      const drop = frameTargetAt(e.clientX, e.clientY),
+      const drop = g.port && frameTargetAt(e.clientX, e.clientY),
         target = drop?.dataset.endpoint || drop?.dataset.key
       cancelGesture()
       if (!g.started) return
@@ -186,15 +192,24 @@ function initGestures() {
         if (target && target !== g.item.key) openEdge(g.item.id, target, null)
         return
       }
-      const graph = exportGraph(),
-        node = graph.nodes[g.item.id],
-        prev = g.item.appliedOffset || { x: 0, y: 0 }
-      node.layoutOrder =
-        1 + Math.max(0, ...Object.values(graphModel.nodes).map((n) => n.layoutOrder || 0))
-      node.layoutOffset = {
-        x: prev.x + g.dx / diagramState.readingScale,
-        y: prev.y + g.dy / diagramState.readingScale,
+      const { item } = g, { readingScale, scale } = diagramState
+      if (diagramState.instanceMap.get(item.key) !== item) return
+      const pos = snapDrag(item, e.clientX - g.x, e.clientY - g.y, readingScale, scale)
+      if (pos.x === item.x && pos.y === item.y) return
+      if (!isFrameNode(graphModel.nodes[item.id]) && diagramState.instances.some(other =>
+        other !== item && other.scope === item.scope && !isFrameNode(graphModel.nodes[other.id]) &&
+        !hiddenGroups.has(graphModel.nodes[other.id].group) && overlapsAt(item, pos, other))) {
+        say('該格會與其他節點重疊，請選擇空位。')
+        return
       }
+      const graph = exportGraph(), node = graph.nodes[item.id]
+      delete node.layoutOffset
+      delete node.layoutOrder
+      node.layoutPosition = {
+        x: (pos.x - (item.scopeOrigin?.x || 0)) / readingScale,
+        y: (pos.y - (item.scopeOrigin?.y || 0)) / readingScale,
+      }
+      diagramState.displayPositions.set(item.key, pos)
       replaceGraph(graph, { keepView: true, selection: g.item.id })
       setEditTarget({ node: g.item.id })
     },

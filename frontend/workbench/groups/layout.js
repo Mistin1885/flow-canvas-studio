@@ -30,7 +30,8 @@ function applyLayoutEdits(nodes, links) {
   const moved = nodes
     .filter((i) => graphModel.nodes[i.id].layoutOffset)
     .sort((a, b) => (graphModel.nodes[a.id].layoutOrder || 0) - (graphModel.nodes[b.id].layoutOrder || 0))
-  if (!active.length && !moved.length) return
+  const pinned = nodes.filter(i => i.scope === 'project' && graphModel.nodes[i.id].layoutPosition)
+  if (!active.length && !moved.length && !pinned.length) return
   const occupied = nodes
     .filter(
       (i) =>
@@ -60,6 +61,15 @@ function applyLayoutEdits(nodes, links) {
     for (const i of members) positionFootprint(i, x + i.x, y + i.y)
     occupied.push({ x, y, w: bounds.width, h: bounds.height })
   }
+  for (const i of pinned) {
+    const pos = graphModel.nodes[i.id].layoutPosition, box = i.inlineFlow || i
+    const baseX = box.x, baseY = box.y
+    // Store the card anchor, even when the card sits inside a larger flow footprint.
+    const x = pos.x * diagramState.readingScale + (baseX - i.x)
+    const y = pos.y * diagramState.readingScale + (baseY - i.y)
+    positionFootprint(i, x, y)
+    i.appliedOffset = { x: (x - baseX) / diagramState.readingScale, y: (y - baseY) / diagramState.readingScale }
+  }
   const blocked = nodes
     .filter((i) => !graphModel.nodes[i.id].layoutOffset && !isFrameNode(graphModel.nodes[i.id]))
     .map((i) => i.inlineFlow || i)
@@ -83,6 +93,7 @@ function applyLayoutEdits(nodes, links) {
     if (!isFrameNode(graphModel.nodes[i.id])) blocked.push(b)
   }
   const changed = new Set([
+    ...pinned,
     ...moved,
     ...nodes.filter((i) => active.some((g) => g.name === graphModel.nodes[i.id].group)),
   ])

@@ -55,7 +55,7 @@ html[data-theme='dark'] .nav-group button.active {
   background: var(--blue-soft);
   color: #b9d7fa;
 }
-html[data-theme='dark'] .canvas {
+html[data-theme='dark'] .canvas:not(.edit-mode) {
   background-image: radial-gradient(#304359 1px, transparent 1px);
 }
 html[data-theme='dark'] .node {
