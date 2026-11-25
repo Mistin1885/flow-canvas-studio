@@ -16,7 +16,7 @@ class Revision(BaseModel):
 
 
 def at_revision(db, canvas, base):
-    info = storage.required(db, "canvases", canvas)
+    info = storage.required(db, "canvases", canvas, lock=True)
     if info["rev"] != base:
         raise storage.Conflict("畫布已有更新，請重新整理並確認最新版本")
     return info
@@ -37,7 +37,7 @@ def delete_canvas(canvas: str, body: Revision):
         info = at_revision(db, canvas, body.base)
         expires = checkpoint(db, info)
         rev = info["rev"] + 1
-        db.execute("UPDATE canvases SET deleted_until=?,updated=?,rev=? WHERE id=?",
+        db.execute("UPDATE canvases SET deleted_until=%s,updated=%s,rev=%s WHERE id=%s",
                    (expires, storage.next_update(info["updated"]), rev, canvas))
     return {"rev": rev}
 
@@ -52,11 +52,11 @@ def clear_canvas(canvas: str, body: Revision, x_flow_editor: str = Header()):
         checkpoint(db, info)
         rev, stamp, editor = info["rev"] + 1, storage.next_update(info["updated"]), unquote(x_flow_editor)
         for table in storage.TABLES:
-            db.execute(f"DELETE FROM {table} WHERE canvas=?", (canvas,))
+            db.execute(f"DELETE FROM {table} WHERE canvas=%s", (canvas,))
         for key, value in blank.items():
             if key not in ("nodes", "edges"):
                 storage.put(db, canvas, "meta", key, value, rev)
-        db.execute("UPDATE canvases SET updated=?,editor=?,rev=?,write_floor=? WHERE id=?",
+        db.execute("UPDATE canvases SET updated=%s,editor=%s,rev=%s,write_floor=%s WHERE id=%s",
                    (stamp, editor, rev, rev, canvas))
         storage.activity.record(db, canvas, rev, stamp, editor, "cleared")
     return {"rev": rev}

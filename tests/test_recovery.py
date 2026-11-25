@@ -7,8 +7,8 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import unittest
+from pg_test_support import isolated_schema
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -20,9 +20,8 @@ ORIGIN = "http://127.0.0.1:8768"
 
 class Recovery(unittest.TestCase):
     def setUp(self):
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        env = patch.dict(os.environ, FLOW_DATA_DIR=folder.name, FLOW_AUTH="local", FLOW_DATABASE_SOCKET="")
+        self.enterContext(isolated_schema())
+        env = patch.dict(os.environ, FLOW_AUTH="local", FLOW_DATABASE_SOCKET="")
         env.start()
         self.addCleanup(env.stop)
         self.http = TestClient(app, base_url=ORIGIN, client=("127.0.0.1", 50001))
@@ -113,15 +112,17 @@ class Recovery(unittest.TestCase):
             cold = snapshots.listing(db, cold=True)
         self.assertEqual({p["name"] for p in cold}, {"C", "Unsnapshotted"})
         for p in cold:
-            with gzip.open(snapshots.directory() / p["file"], "rt") as archive:
-                self.assertEqual(json.load(archive)["item"]["name"], p["name"])
+            with storage.session() as db:
+                archive = db.execute("SELECT payload FROM recovery_archives WHERE point=%s", (p["id"],)).fetchone()[0]
+                self.assertEqual(json.loads(gzip.decompress(archive))["item"]["name"], p["name"])
         self.assertEqual(self.restore(cold[0]).status_code, 404)
         self.rename("B", "D")
         snapshots.scan()
         self.assertEqual([p["name"] for p in self.points() if p["item"] == self.canvas], ["D", "B", "A"])
         snapshots.scan(datetime.now(timezone.utc) + timedelta(days=8))
         self.assertFalse(self.points())
-        self.assertFalse(list(snapshots.directory().glob("*.gz")))
+        with storage.session() as db:
+            self.assertEqual(db.execute("SELECT count(*) FROM recovery_archives").fetchone()[0], 0)
 
     def test_cli_time_restore_and_workspace_rename(self):
         snapshots.scan()
@@ -168,7 +169,7 @@ class Recovery(unittest.TestCase):
         self.assertEqual(remove(result["canvas"]["rev"]).status_code, 200)
         snapshots.scan(datetime.now(timezone.utc) + timedelta(days=8))
         with storage.session() as db:
-            self.assertIsNone(db.execute("SELECT id FROM canvases WHERE id=?", (self.canvas,)).fetchone())
+            self.assertIsNone(db.execute("SELECT id FROM canvases WHERE id=%s", (self.canvas,)).fetchone())
         self.assertEqual(self.points(), [])
 
     def test_clear_and_restore_do_not_replay_old_edits(self):
@@ -193,7 +194,8 @@ class Recovery(unittest.TestCase):
         self.rename("A", "B")
         snapshots.scan()
         p = next(p for p in self.points() if p["name"] == "A")
-        (snapshots.directory() / p["file"]).write_bytes(b"unreadable")
+        with storage.session(True) as db:
+            db.execute("UPDATE recovery_archives SET payload=%s WHERE point=%s", (b"unreadable", p["id"]))
         self.assertEqual(self.restore(p).status_code, 422)
         self.assertEqual(self.http.get(self.path).json()["canvas"]["name"], "B")
         self.assertEqual([r["name"] for r in self.points() if r["item"] == self.canvas], ["B", "A"])

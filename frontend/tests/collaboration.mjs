@@ -4,8 +4,6 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { spawn } from 'node:child_process'
-import { once } from 'node:events'
 import { chromium, expect } from '@playwright/test'
 
 import { verifyCanvasLifecycle } from './canvas-lifecycle.mjs'
@@ -19,31 +17,10 @@ import { verifyDraftReview } from './draft-review.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const data = await mkdtemp(join(tmpdir(), 'flow-canvas-e2e-'))
-const server = spawn(
-  join(root, '.venv/bin/python'),
-  ['-m', 'uvicorn', 'backend.main:app', '--port', '0', '--no-proxy-headers'],
-  {
-    cwd: root,
-    env: { ...process.env, FLOW_AUTH: 'local', FLOW_DATA_DIR: data, FLOW_DATABASE_SOCKET: '' },
-    stdio: ['ignore', 'ignore', 'pipe'],
-  },
-)
+const origin = process.env.FLOW_E2E_ORIGIN
+if (!origin || !process.env.FLOW_E2E_COMPOSE_PROJECT) throw new Error('Run deploy/docker/verify.sh for an isolated PostgreSQL instance.')
 let browser
 try {
-  const origin = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Server did not start')), 15000)
-    server.stderr.on('data', (chunk) => {
-      const address = chunk.toString().match(/http:\/\/127\.0\.0\.1:\d+/)?.[0]
-      if (address) {
-        clearTimeout(timer)
-        resolve(address)
-      }
-    })
-    server.once('exit', (code) => {
-      clearTimeout(timer)
-      reject(new Error('Server exited ' + code))
-    })
-  })
   browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || undefined })
   const alice = await browser.newPage()
   const bob = await browser.newPage()
@@ -99,15 +76,10 @@ try {
   await verifyStylePalette(alice, origin)
   await verifyHighlightBadges(alice, bob, origin)
   await verifyCanvasLifecycle(alice, bob, origin)
-  await verifyAdminBackups(alice, bob, origin, root, data)
+  await verifyAdminBackups(alice, bob, origin, root)
   console.log('Standalone HTML reopened and edited offline.')
   console.log('Two-browser sync, draft recovery after reload, and independent fork passed.')
 } finally {
   await browser?.close()
-  if (server.exitCode === null && server.signalCode === null) {
-    const done = once(server, 'exit')
-    server.kill()
-    await done
-  }
   await rm(data, { recursive: true, force: true })
 }

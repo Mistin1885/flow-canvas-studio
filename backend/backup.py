@@ -1,25 +1,22 @@
-"""Create a portable online SQLite backup, including committed WAL pages."""
+"""Export the live PostgreSQL records to a backwards-compatible portable SQLite file."""
 
 import argparse
 from pathlib import Path
-import sqlite3
 import tempfile
 import os
 
-from .storage import location
+from .postgres import session
+from .legacy_transfer import export_database
 
 
 def backup(target):
-    source = location()
     target = Path(target).expanduser().resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as tmp:
         temp = Path(tmp.name)
     try:
-        with sqlite3.connect(source.as_uri() + "?mode=ro", uri=True) as src, sqlite3.connect(temp) as dst:
-            src.backup(dst)
-            if dst.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                raise ValueError("備份檢查失敗")
+        with session() as db:
+            export_database(db, temp)
         os.link(temp, target)  # publish atomically, never overwrite another backup
     finally:
         temp.unlink()

@@ -22,3 +22,9 @@
 !frontend/workbench/**/*.js
 !frontend/workbench/vendor/LICENSE.txt
 !frontend/vite.config.js
+!backend/migrations/
+!backend/migrations/*.sql
+!backend/legacy/
+!backend/legacy/*.sql
+!frontend/shared/
+!frontend/shared/*.js

@@ -9,6 +9,7 @@ import sys
 import time
 import tempfile
 import unittest
+from pg_test_support import isolated_schema
 from unittest.mock import patch
 from urllib.parse import unquote
 
@@ -52,6 +53,7 @@ class Deployment(unittest.TestCase):
                 self.assertEqual(list(Path(folder).iterdir()), [])
 
     def test_separate_database_process_over_unix_socket(self):
+        self.enterContext(isolated_schema())
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             address = str(root / "database.sock")
@@ -126,7 +128,7 @@ class Deployment(unittest.TestCase):
                             409,
                         )
                     self.assertEqual(web.get(path).json()["graph"]["title"], "Updated")
-                self.assertTrue((database_dir / "studio.sqlite3").is_file())
+                self.assertFalse((database_dir / "studio.sqlite3").exists())
                 self.assertFalse(web_dir.exists())
             finally:
                 database.terminate()

@@ -5,8 +5,8 @@ Flow Workspace is a self-hosted flowchart editor for a team of about five people
 ## Development Environment
 
 - Build the frontend with React, TypeScript, Vite, and React Flow. Use elkjs for automatic layout when needed.
-- Build the backend with Python, FastAPI, and WebSocket connections. Enable write-ahead logging (WAL) in SQLite and store the database on the server's local disk.
-- Use `backend.main:app` for the public web/API entry point and `backend.database_api:app` for the private SQLite service. Keep the Dockerfile and Compose configuration in `deploy/docker/` and native setup and startup scripts in `deploy/native/`.
+- Build the backend with Python, FastAPI, and WebSocket connections. Persist graph records and compressed recovery points in PostgreSQL 18. Put numbered PostgreSQL migrations in `backend/migrations/`; keep SQLite access in the offline legacy conversion and portable backup tools.
+- Use `backend.main:app` for the public web/API entry point and `backend.database_api:app` for the private data API hosted in-process by the web service. Use a separate PostgreSQL container. Keep the Dockerfile and Compose configuration in `deploy/docker/` and native setup and startup scripts in `deploy/native/`.
 
 ## Frontend structure
 

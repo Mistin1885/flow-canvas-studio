@@ -1,8 +1,8 @@
-"""Use the public proxy and disposable SQLite data to exercise filtered page boundaries."""
+"""Use the public proxy and disposable PostgreSQL schemas to exercise filtered page boundaries."""
 
 import os
-import tempfile
 import unittest
+from pg_test_support import isolated_schema
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -13,9 +13,8 @@ from backend.main import app
 
 class Paging(unittest.TestCase):
     def setUp(self):
-        folder = tempfile.TemporaryDirectory()
-        self.addCleanup(folder.cleanup)
-        self.enterContext(patch.dict(os.environ, FLOW_DATA_DIR=folder.name, FLOW_AUTH="local", FLOW_DATABASE_SOCKET=""))
+        self.enterContext(isolated_schema())
+        self.enterContext(patch.dict(os.environ, FLOW_AUTH="local", FLOW_DATABASE_SOCKET=""))
         self.web = self.enterContext(TestClient(app, base_url="http://localhost", client=("127.0.0.1", 50001)))
         self.web.post("/api/session/login").raise_for_status()
         self.workspace = self.web.get("/api/catalog/page").json()["workspaces"][0]["id"]

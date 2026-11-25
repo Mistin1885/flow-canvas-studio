@@ -1,0 +1,2 @@
+CREATE ROLE flow_app LOGIN;
+ALTER DATABASE flow OWNER TO flow_app;

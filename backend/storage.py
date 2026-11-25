@@ -1,16 +1,15 @@
-"""SQLite graph storage. The HTTP and CLI entry points use the same transactions."""
+"""PostgreSQL graph storage. The HTTP and CLI entry points use the same transactions."""
 
 import json
 import os
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
-import sqlite3
+from psycopg.types.json import Jsonb
 from uuid import uuid4
 
-from . import activity, operations, knowledge
-from .snapshot_schema import MIGRATION
+from . import activity, knowledge
+from .postgres import migrate, session
 
 
 class Invalid(ValueError):
@@ -23,14 +22,6 @@ class Conflict(Exception):
 
 class Missing(Exception):
     pass
-
-
-def location():
-    default = Path(__file__).resolve().parents[2] / "flow-canvas-studio-data"
-    folder = Path(os.getenv("FLOW_DATA_DIR", default)).expanduser().resolve()
-    if folder.is_relative_to(Path(__file__).resolve().parents[1]):
-        raise Invalid("FLOW_DATA_DIR 必須位於 repo 外")
-    return folder / "studio.sqlite3"
 
 
 def now():
@@ -54,74 +45,27 @@ def name(value):
     return value.strip()
 
 
-@contextmanager
-def session(write=False):
-    db = sqlite3.connect(location(), timeout=10, isolation_level=None)
-    db.row_factory = sqlite3.Row
-    try:
-        db.execute("PRAGMA foreign_keys=ON")
-        db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
-        yield db
-        db.commit()
-    finally:
-        db.close()  # rolls back unfinished transactions
-
-
-SCHEMA = """
-CREATE TABLE workspaces(id TEXT PRIMARY KEY, name TEXT NOT NULL, created TEXT NOT NULL);
-CREATE TABLE canvases(id TEXT PRIMARY KEY, workspace TEXT NOT NULL REFERENCES workspaces(id),
- name TEXT NOT NULL, rev INTEGER NOT NULL, updated TEXT NOT NULL, editor TEXT NOT NULL);
-CREATE INDEX canvas_workspace ON canvases(workspace);
-CREATE TABLE nodes(canvas TEXT REFERENCES canvases(id), key TEXT, value TEXT NOT NULL,
- version INTEGER NOT NULL, PRIMARY KEY(canvas,key));
-CREATE TABLE edges(canvas TEXT, key TEXT, value TEXT NOT NULL, version INTEGER NOT NULL,
- src TEXT NOT NULL, dst TEXT NOT NULL, PRIMARY KEY(canvas,key),
- FOREIGN KEY(canvas,src) REFERENCES nodes(canvas,key) ON DELETE CASCADE,
- FOREIGN KEY(canvas,dst) REFERENCES nodes(canvas,key) ON DELETE CASCADE);
-CREATE INDEX edge_src ON edges(canvas,src);
-CREATE INDEX edge_dst ON edges(canvas,dst);
-CREATE TABLE meta(canvas TEXT REFERENCES canvases(id), key TEXT, value TEXT NOT NULL,
- version INTEGER NOT NULL, PRIMARY KEY(canvas,key));
-INSERT INTO workspaces VALUES(lower(hex(randomblob(16))), '團隊工作區', strftime('%Y-%m-%dT%H:%M:%fZ','now'));
-PRAGMA user_version=1;
-"""
 TABLES = ("nodes", "edges", "meta")
 RESERVED = {"__proto__", "prototype", "constructor"}
 
 
 def initialize():
-    path = location()
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with sqlite3.connect(path) as db:
-        db.execute("PRAGMA journal_mode=WAL")
-        db.execute("BEGIN IMMEDIATE")
-        version = db.execute("PRAGMA user_version").fetchone()[0]
-        migrations = (SCHEMA, """
-            CREATE TABLE import_history(
-                canvas TEXT NOT NULL REFERENCES canvases(id), revision INTEGER NOT NULL,
-                created TEXT NOT NULL, editor TEXT NOT NULL, graph TEXT NOT NULL,
-                PRIMARY KEY(canvas,revision)
-            );
-            PRAGMA user_version=2;
-        """, MIGRATION, activity.MIGRATION, operations.MIGRATION, activity.SUMMARY_MIGRATION, """
-            ALTER TABLE canvases ADD COLUMN deleted_until TEXT;
-            ALTER TABLE canvases ADD COLUMN write_floor INTEGER NOT NULL DEFAULT 1;
-            CREATE VIEW active_canvases AS SELECT * FROM canvases WHERE deleted_until IS NULL;
-            PRAGMA user_version=7;
-        """, knowledge.MIGRATION)
-        if version > len(migrations):
-            raise Invalid(f"資料庫版本 {version} 與程式不相容")
-        # Keep the version check and schema changes in one write transaction.
-        for script in migrations[version:]:
-            for statement in script.split(";"):
-                if statement.strip():
-                    db.execute(statement)
+    with session(True, library=True) as db:
+        if migrate(db):
+            legacy = os.getenv("FLOW_LEGACY_DIR")
+            if legacy and (Path(legacy) / "studio.sqlite3").exists():
+                from .legacy_transfer import import_database
+                import_database(db, Path(legacy))
+            else:
+                stamp = now()
+                db.execute("INSERT INTO workspaces(id,name,created,updated) VALUES(%s,%s,%s,%s)",
+                           (uuid4().hex, "團隊工作區", stamp, stamp))
 
 
-
-def required(db, table, key):
+def required(db, table, key, *, lock=False):
     source = "active_canvases" if table == "canvases" else table
-    row = db.execute(f"SELECT * FROM {source} WHERE id=?", (key,)).fetchone()
+    clause = " FOR NO KEY UPDATE" if lock else ""
+    row = db.execute(f"SELECT * FROM {source} WHERE id=%s{clause}", (key,)).fetchone()
     if row is None:
         raise Missing(key)
     return dict(row)
@@ -258,29 +202,44 @@ def snapshot(db, canvas):
     records = {}
     versions = {}
     for table in TABLES:
-        rows = db.execute(f"SELECT key,value,version FROM {table} WHERE canvas=? ORDER BY rowid", (canvas,))
+        rows = db.execute(f"SELECT key,value,version FROM {table} WHERE canvas=%s ORDER BY position", (canvas,))
         values, stamps = {}, {}
         for key, raw, stamp in rows:
-            values[key], stamps[key] = json.loads(raw), stamp
+            values[key], stamps[key] = raw, stamp
         records[table], versions[table] = values, stamps
     graph = dict(records["meta"], nodes=records["nodes"], edges=list(records["edges"].values()))
     return {"canvas": info, "graph": graph, "versions": versions}
 
 
 def put(db, canvas, table, key, value, version):
+    put_items(db, canvas, table, [(key, value)], version)
+
+
+def put_items(db, canvas, table, items, version):
     cols = ["canvas", "key", "value", "version"]
-    values = [canvas, key, encode(value), version]
     if table == "edges":
-        if not isinstance(value, dict) or edge_key(value) != key:
-            raise Invalid("連線索引無效")
         cols.extend(["src", "dst"])
-        values.extend([value["from"], value["to"]])
-    update = ",".join(f"{col}=excluded.{col}" for col in cols[2:])
-    db.execute(
-        f"INSERT INTO {table}({','.join(cols)}) VALUES({','.join('?' for _ in cols)}) "
-        f"ON CONFLICT(canvas,key) DO UPDATE SET {update}",
-        values,
-    )
+    rows = []
+    for key, value in items:
+        row = [canvas, key, Jsonb(value), version]
+        if table == "edges":
+            if not isinstance(value, dict) or edge_key(value) != key:
+                raise Invalid("連線索引無效")
+            row.extend([value["from"], value["to"]])
+        rows.append(row)
+    if rows:
+        update = ",".join(f"{col}=excluded.{col}" for col in cols[2:])
+        with db.cursor() as cur:
+            cur.executemany(
+                f"INSERT INTO {table}({','.join(cols)}) VALUES({','.join(['%s'] * len(cols))}) "
+                f"ON CONFLICT(canvas,key) DO UPDATE SET {update}", rows,
+            )
+
+
+def put_graph(db, canvas, graph, version):
+    put_items(db, canvas, "meta", ((k, v) for k, v in graph.items() if k not in ("nodes", "edges")), version)
+    put_items(db, canvas, "nodes", graph["nodes"].items(), version)
+    put_items(db, canvas, "edges", ((edge_key(edge), edge) for edge in graph["edges"]), version)
 
 
 def empty_graph(title):
@@ -298,16 +257,16 @@ def empty_graph(title):
 def create_canvas(db, workspace, title, editor, graph=None, source=None, follow=False):
     required(db, "workspaces", workspace)
     canvas = uuid4().hex
-    db.execute("INSERT INTO canvases(id,workspace,name,rev,updated,editor) VALUES(?,?,?,?,?,?)", (canvas, workspace, name(title), 1, now(), editor))
+    db.execute("INSERT INTO canvases(id,workspace,name,rev,updated,editor) VALUES(%s,%s,%s,%s,%s,%s)", (canvas, workspace, name(title), 1, now(), editor))
     if source:
-        source_info = required(db, "canvases", source)
+        source_info = required(db, "canvases", source, lock=True)
         for table in ("nodes", "edges", "meta"):
             extra = ",src,dst" if table == "edges" else ""
             db.execute(
-                f"INSERT INTO {table} SELECT ?,key,value,1{extra} FROM {table} WHERE canvas=? ORDER BY rowid",
+                f"INSERT INTO {table}(canvas,key,value,version{extra}) SELECT %s,key,value,1{extra} FROM {table} WHERE canvas=%s ORDER BY position",
                 (canvas, source),
             )
-        docs = {r[0]: json.loads(r[1]) for r in db.execute("SELECT key,value FROM meta WHERE canvas=? AND key GLOB 'knowledge.*'", (canvas,))}
+        docs = {r[0]: r[1] for r in db.execute("SELECT key,value FROM meta WHERE canvas=%s AND starts_with(key, 'knowledge.')", (canvas,))}
         knowledge.reconcile(db, docs, workspace, follow or source_info["workspace"] == workspace)
         for key, value in docs.items():
             put(db, canvas, "meta", key, value, 1)
@@ -317,13 +276,7 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None, follow=
         knowledge.reconcile(db, graph, workspace, False)
         check_graph(graph)
         knowledge.check_reference_changes(graph, None)
-        for key, value in graph.items():
-            if key not in ("nodes", "edges"):
-                put(db, canvas, "meta", key, value, 1)
-        for key, value in graph["nodes"].items():
-            put(db, canvas, "nodes", key, value, 1)
-        for value in graph["edges"]:
-            put(db, canvas, "edges", edge_key(value), value, 1)
+        put_graph(db, canvas, graph, 1)
     activity.record(db, canvas, 1, now(), editor, "created")
     return canvas
 
@@ -331,11 +284,20 @@ def create_canvas(db, workspace, title, editor, graph=None, source=None, follow=
 def commit(db, canvas, base, ops, editor, kind="edited", actor=None, reference_base=None):
     before = {}
     after = {}
-    info = required(db, "canvases", canvas)
+    info = required(db, "canvases", canvas, lock=True)
     if base < info["write_floor"]:
         raise Conflict("畫布已清空或還原，請比對最新版本")
     current = info["rev"]
     stamp = current + 1
+    # Check a batch against at most three indexed reads while the canvas row is locked.
+    existing = {}
+    for table in TABLES:
+        keys = [op["key"] for op in ops if op["table"] == table]
+        if keys:
+            for key, version, value in db.execute(
+                f"SELECT key,version,value FROM {table} WHERE canvas=%s AND key=ANY(%s)", (canvas, keys)
+            ):
+                existing[table, key] = version, value
     visited = set()
     for op in ops:
         table, key = op["table"], op["key"]
@@ -344,49 +306,43 @@ def commit(db, canvas, base, ops, editor, kind="edited", actor=None, reference_b
         if (table, key) in visited:
             raise Invalid("重複的編輯項目")
         visited.add((table, key))
-        result = db.execute(
-            f"SELECT version,value FROM {table} WHERE canvas=? AND key=?", (canvas, key)
-        ).fetchone()
+        result = existing.get((table, key))
         if table == "nodes":
             if result:
-                before[key] = json.loads(result[1])
+                before[key] = result[1]
             if not op["remove"]:
                 after[key] = op["value"]
         if (result[0] if result else None) != op["version"]:
-            if table == "meta" and result and not op["remove"] and json.loads(result[1]) == op["value"]:
+            if table == "meta" and result and not op["remove"] and result[1] == op["value"]:
                 continue
             raise Conflict(f"{table} · {key} 已由其他人變更")
-        if table == "nodes" and op["remove"]:
-            if db.execute(
-                "SELECT 1 FROM edges WHERE canvas=? AND (src=? OR dst=?) AND version>? LIMIT 1",
-                (canvas, key, key, base),
-            ).fetchone():
-                raise Conflict("此節點的連線已由其他人變更")
-    # Keep referential integrity even during a compound import or deletion.
-    for table, remove in (
-        ("edges", True),
-        ("nodes", True),
-        ("meta", True),
-        ("nodes", False),
-        ("meta", False),
-        ("edges", False),
-    ):
+    removed_nodes = [op["key"] for op in ops if op["table"] == "nodes" and op["remove"]]
+    if removed_nodes and db.execute(
+        "SELECT 1 FROM edges WHERE canvas=%s AND (src=ANY(%s) OR dst=ANY(%s)) AND version>%s LIMIT 1",
+        (canvas, removed_nodes, removed_nodes, base),
+    ).fetchone():
+        raise Conflict("此節點的連線已由其他人變更")
+
+    # Delete edges before nodes and insert nodes before edges, in one transaction.
+    for table in ("edges", "nodes", "meta"):
+        keys = [op["key"] for op in ops if op["table"] == table and op["remove"]]
+        if keys:
+            db.execute(f"DELETE FROM {table} WHERE canvas=%s AND key=ANY(%s)", (canvas, keys))
+    for table in ("nodes", "meta", "edges"):
+        items = []
         for op in ops:
-            if op["table"] != table or op["remove"] != remove:
+            if op["table"] != table or op["remove"]:
                 continue
-            if remove:
-                db.execute(f"DELETE FROM {table} WHERE canvas=? AND key=?", (canvas, op["key"]))
-            else:
-                value = op["value"]
-                if table == "meta" and op["key"].startswith(knowledge.PREFIX) and isinstance(value,dict) and "source" in value:
-                    source = value["source"]
-                    origin = knowledge.allowed(db, source, info["workspace"]) if isinstance(source,str) else None
-                    if not origin or knowledge.document(value) != json.loads(origin["document"]):
-                        if kind == "imported":
-                            value = knowledge.document(value)
-                        else:
-                            raise Conflict("共用原文或分享範圍已變更，請重新選取或建立副本")
-                put(db, canvas, table, op["key"], value, stamp)
+            key, value = op["key"], op["value"]
+            if table == "meta" and key.startswith(knowledge.PREFIX) and isinstance(value, dict) and "source" in value:
+                source = value["source"]
+                origin = knowledge.allowed(db, source, info["workspace"]) if isinstance(source, str) else None
+                if not origin or knowledge.document(value) != origin["document"]:
+                    if kind != "imported":
+                        raise Conflict("共用原文或分享範圍已變更，請重新選取或建立副本")
+                    value = knowledge.document(value)
+            items.append((key, value))
+        put_items(db, canvas, table, items, stamp)
     graph = snapshot(db, canvas)["graph"]
     check_graph(graph)
     if reference_base is not None:
@@ -397,5 +353,5 @@ def commit(db, canvas, base, ops, editor, kind="edited", actor=None, reference_b
         if any(op["table"] == table for op in ops):
             items.append({"action": label})
     activity.record(db, canvas, stamp, updated, editor, kind, items, actor)
-    db.execute("UPDATE canvases SET rev=?,updated=?,editor=? WHERE id=?", (stamp, updated, editor, canvas))
+    db.execute("UPDATE canvases SET rev=%s,updated=%s,editor=%s WHERE id=%s", (stamp, updated, editor, canvas))
     return stamp

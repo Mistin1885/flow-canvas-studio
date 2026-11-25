@@ -1,7 +1,8 @@
-"""Private data API. Each successful mutation finishes its SQLite transaction before returning."""
+"""Private data API. Each successful mutation finishes its PostgreSQL transaction before returning."""
 
 from contextlib import asynccontextmanager
-import sqlite3
+import psycopg
+from psycopg.types.json import Json
 from typing import Any, Literal
 from uuid import UUID, uuid4
 from urllib.parse import unquote
@@ -44,7 +45,23 @@ async def invalid(request, exc):
     return JSONResponse({"detail": str(exc)}, status_code=422)
 
 
-@app.exception_handler(sqlite3.IntegrityError)
+@app.exception_handler(psycopg.errors.DeadlockDetected)
+@app.exception_handler(psycopg.errors.SerializationFailure)
+async def retry_write(request, exc):
+    return JSONResponse({"detail": "內容正在更新，請重試並保留草稿"}, status_code=409)
+
+
+@app.exception_handler(psycopg.OperationalError)
+async def unavailable(request, exc):
+    return JSONResponse({"detail": "資料庫暫時無法連線"}, status_code=503)
+
+
+@app.exception_handler(psycopg.DataError)
+async def invalid_data(request, exc):
+    return JSONResponse({"detail": "資料超出 PostgreSQL 欄位允許的範圍或包含無效字元"}, status_code=422)
+
+
+@app.exception_handler(psycopg.IntegrityError)
 @app.exception_handler(store.Conflict)
 async def conflict(request, exc):
     return JSONResponse(
@@ -101,14 +118,14 @@ def workspace(body: Named):
     key = uuid4().hex
     with store.session(True) as db:
         stamp = store.now()
-        db.execute("INSERT INTO workspaces(id,name,created,updated) VALUES(?,?,?,?)", (key, store.name(body.name), stamp, stamp))
+        db.execute("INSERT INTO workspaces(id,name,created,updated) VALUES(%s,%s,%s,%s)", (key, store.name(body.name), stamp, stamp))
     return {"id": key}
 
 
 @app.patch("/api/{kind}/{key}")
 def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename, x_flow_editor: str = Header()):
     with store.session(True) as db:
-        row = store.required(db, kind, key)
+        row = store.required(db, kind, key, lock=True)
         if row["name"] != body.previous:
             raise store.Conflict("名稱剛被其他人修改，請重新整理")
         name = store.name(body.name)
@@ -116,7 +133,7 @@ def rename(kind: Literal["workspaces", "canvases"], key: str, body: Rename, x_fl
             # Also distinguish multiple renames in one millisecond.
             stamp = store.next_update(row["updated"])
             revision = ", rev=rev+1" if kind == "canvases" else ""
-            db.execute(f"UPDATE {kind} SET name=?,updated=?{revision} WHERE id=?", (name, stamp, key))
+            db.execute(f"UPDATE {kind} SET name=%s,updated=%s{revision} WHERE id=%s", (name, stamp, key))
             if kind == "canvases":
                 activity.record(db, key, row["rev"] + 1, stamp, unquote(x_flow_editor), "renamed")
         if kind == "canvases":
@@ -140,11 +157,11 @@ def read(canvas: str):
 def write_batch(canvas, body, editor, principal, route):
     with store.session(True) as db:
         operation = str(body.operation_id) if body.operation_id else None
-        store.required(db, "canvases", canvas)
+        store.required(db, "canvases", canvas, lock=True)
         if operation:
             key = (canvas, principal, operation)
             digest = operations.fingerprint(route, body)
-            receipt = db.execute("SELECT digest,revision FROM edit_receipts WHERE canvas=? AND principal=? AND operation=?", key).fetchone()
+            receipt = db.execute("SELECT digest,revision FROM edit_receipts WHERE canvas=%s AND principal=%s AND operation=%s", key).fetchone()
             if receipt:
                 if receipt["digest"] != digest:
                     raise store.Conflict("儲存識別碼已用於另一項修改")
@@ -161,7 +178,7 @@ def write_batch(canvas, body, editor, principal, route):
             rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor,
                                actor=principal, reference_base=reference_base)
         if operation:
-            db.execute("INSERT INTO edit_receipts VALUES(?,?,?,?,?)", (*key, digest, rev))
+            db.execute("INSERT INTO edit_receipts VALUES(%s,%s,%s,%s,%s)", (*key, digest, rev))
         return {"rev": rev}
 
 
@@ -189,8 +206,8 @@ def commit_import(db, canvas, body, editor):
     rev = store.commit(db, canvas, body.base, [op.model_dump() for op in body.ops], editor,
                        kind="imported", reference_base=before["graph"])
     db.execute(
-        "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(?,?,?,?,?)",
-        (canvas, body.base, store.now(), editor, store.encode(before["graph"])),
+        "INSERT INTO import_history(canvas,revision,created,editor,graph) VALUES(%s,%s,%s,%s,%s)",
+        (canvas, body.base, store.now(), editor, Json(before["graph"])),
     )
     return {"rev": rev}
 
@@ -200,7 +217,7 @@ def import_history(canvas: str):
     with store.session() as db:
         store.required(db, "canvases", canvas)
         return [dict(r) for r in db.execute(
-            "SELECT revision,created,editor FROM import_history WHERE canvas=? ORDER BY revision DESC",
+            "SELECT revision,created,editor FROM import_history WHERE canvas=%s ORDER BY revision DESC",
             (canvas,),
         )]
 
@@ -209,11 +226,11 @@ def import_history(canvas: str):
 def before_import(canvas: str, revision: int):
     with store.session() as db:
         store.required(db, "canvases", canvas)
-        row = db.execute("SELECT graph FROM import_history WHERE canvas=? AND revision=?",
+        row = db.execute("SELECT graph FROM import_history WHERE canvas=%s AND revision=%s",
                          (canvas, revision)).fetchone()
         if row is None:
             raise store.Missing(revision)
-        return Response(content=row[0], media_type="application/json")
+        return row[0]
 
 
 @app.get("/api/canvases/{canvas}/activity/{after}")
@@ -226,7 +243,7 @@ def canvas_activity(canvas: str, after: int):
 @app.get("/revision")
 def revision(canvas: str):
     with store.session() as db:
-        row = db.execute("SELECT rev FROM canvases WHERE id=?", (canvas,)).fetchone()
+        row = db.execute("SELECT rev FROM canvases WHERE id=%s", (canvas,)).fetchone()
         if row is None:
             raise store.Missing(canvas)
         return {"rev": row["rev"]}

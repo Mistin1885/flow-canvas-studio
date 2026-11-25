@@ -1,8 +1,7 @@
 import { execFileSync } from 'node:child_process'
-import { join } from 'node:path'
 import { expect } from '@playwright/test'
 
-export async function verifyAdminBackups(owner, member, origin, root, data) {
+export async function verifyAdminBackups(owner, member, origin, root) {
   const catalog = await (await owner.request.get(origin + '/api/catalog')).json()
   const space = catalog.workspaces[0].id
   const result = await owner.request.post(origin + '/api/workspaces/' + space + '/canvases', {
@@ -10,10 +9,8 @@ export async function verifyAdminBackups(owner, member, origin, root, data) {
   })
   const { id } = await result.json()
   const scan = () =>
-    execFileSync(join(root, '.venv/bin/python'), ['-m', 'backend.recovery', 'scan'], {
-      cwd: root,
-      env: { ...process.env, FLOW_DATA_DIR: data },
-    })
+    execFileSync('docker', ['compose', '-p', process.env.FLOW_E2E_COMPOSE_PROJECT, '-f',
+      'deploy/docker/docker-compose.yml', 'exec', '-T', 'web', 'python', '-m', 'backend.recovery', 'scan'], { cwd: root })
   scan()
   await owner.request.patch(origin + '/api/canvases/' + id, {
     data: { name: 'Later change', previous: 'Before restore' },

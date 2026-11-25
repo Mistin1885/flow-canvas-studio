@@ -19,7 +19,7 @@ def identity(x_flow_principal: str = Header(), x_flow_realm: str = Header()):
 
 
 def owns(db, user):
-    row = db.execute("SELECT principal FROM admin_owner WHERE realm=?", (user[0],)).fetchone()
+    row = db.execute("SELECT principal FROM admin_owner WHERE realm=%s", (user[0],)).fetchone()
     return row is not None and row[0] == user[1]
 
 
@@ -34,7 +34,7 @@ def session(user=Depends(identity)):
 def login(user=Depends(identity)):
     with storage.session(True) as db:
         # A first verified Access login replaces the local development owner once.
-        db.execute("""INSERT INTO admin_owner(singleton,realm,principal) VALUES(1,?,?)
+        db.execute("""INSERT INTO admin_owner(singleton,realm,principal) VALUES(1,%s,%s)
             ON CONFLICT(singleton) DO UPDATE SET realm=excluded.realm, principal=excluded.principal
             WHERE admin_owner.realm='local' AND excluded.realm='cloudflare'""", user)
         return {"admin": owns(db, user)}
@@ -72,5 +72,5 @@ class Expected(BaseModel):
 
 @router.post("/api/admin/backups/{point}/restore", dependencies=[Depends(require_admin)])
 def restore(point: int, body: Expected, x_flow_editor: str = Header()):
-    with storage.session(True) as db:
+    with storage.session(True, library=True) as db:
         return snapshots.restore(db, point, unquote(x_flow_editor), (body.updated, body.revision))

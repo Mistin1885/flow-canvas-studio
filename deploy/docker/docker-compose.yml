@@ -9,9 +9,14 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    user: "${FLOW_UID:-1000}:${FLOW_GID:-1000}"
     network_mode: host
     command: ["uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "${FLOW_PORT:-8768}", "--workers", "1", "--no-proxy-headers"]
     environment:
+      PGHOST: /var/run/postgresql
+      PGDATABASE: flow
+      PGUSER: flow_app
+      FLOW_LEGACY_DIR: /legacy
       FLOW_PORT: "${FLOW_PORT:-8768}"
       FLOW_AUTH: ${FLOW_AUTH:-local}
       CF_ACCESS_ISSUER: ${CF_ACCESS_ISSUER:-}
@@ -26,30 +31,35 @@ services:
       start_period: 5s
       retries: 5
     volumes:
-      - database-socket:/run/flow-canvas:ro
+      - postgres-socket:/var/run/postgresql:ro
+      - type: bind
+        source: ${FLOW_DATA_DIR:-../../../flow-canvas-studio-data}
+        target: /legacy
+        read_only: true
+        bind:
+          create_host_path: false
     restart: unless-stopped
 
   database:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile
-      target: database
-    user: "${FLOW_UID:-1000}:${FLOW_GID:-1000}"
+    image: postgres:18-bookworm
     network_mode: none
+    environment:
+      POSTGRES_DB: flow
+      # Only local peer authentication is enabled for the bootstrap role.
+      POSTGRES_PASSWORD_FILE: /proc/sys/kernel/random/uuid
+    command: ["postgres", "-c", "listen_addresses=", "-c", "hba_file=/etc/flow/pg_hba.conf"]
     volumes:
-      - database-socket:/run/flow-canvas
-      - type: bind
-        source: ${FLOW_DATA_DIR:-../../../flow-canvas-studio-data}
-        target: /data
-        bind:
-          create_host_path: false
+      - ${FLOW_PGDATA:-postgres-data}:/var/lib/postgresql
+      - postgres-socket:/var/run/postgresql
+      - ./pg_hba.conf:/etc/flow/pg_hba.conf:ro
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/10-flow.sql:ro
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; c=httpx.Client(transport=httpx.HTTPTransport(uds='/run/flow-canvas/database.sock')); c.get('http://database/ready').raise_for_status()"]
-      interval: 10s
+      test: ["CMD-SHELL", "psql -U flow_app -d flow -Atqc 'SELECT 1' | grep -qx 1"]
+      interval: 3s
       timeout: 5s
-      start_period: 5s
-      retries: 5
+      retries: 20
     restart: unless-stopped
 
 volumes:
-  database-socket:
+  postgres-data:
+  postgres-socket:

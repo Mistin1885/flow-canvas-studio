@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
+from pg_test_support import isolated_schema
 from unittest.mock import patch
 from uuid import uuid4
 import zipfile
@@ -16,10 +17,11 @@ URL = "http://127.0.0.1:8768"
 
 class Operations(unittest.TestCase):
     def setUp(self):
+        self.enterContext(isolated_schema())
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.root = Path(folder.name)
-        env = patch.dict(os.environ, FLOW_DATA_DIR=str(self.root / "live"), FLOW_AUTH="local", FLOW_DATABASE_SOCKET="")
+        env = patch.dict(os.environ, FLOW_AUTH="local", FLOW_DATABASE_SOCKET="")
         env.start()
         self.addCleanup(env.stop)
         self.http = TestClient(app, base_url=URL, client=("127.0.0.1", 50100))
@@ -110,7 +112,7 @@ class Operations(unittest.TestCase):
         self.assertEqual(bundle.verify_or_restore(file, target), result)
         with self.assertRaises(ValueError):
             bundle.verify_or_restore(file, target)
-        with patch.dict(os.environ, FLOW_DATA_DIR=str(target)):
+        with isolated_schema(target):
             storage.initialize()
             with storage.session() as db:
                 self.assertEqual(storage.snapshot(db, key)["canvas"]["name"], "First")

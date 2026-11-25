@@ -1,4 +1,4 @@
-"""Create and restore a portable SQLite and recovery archive bundle."""
+"""Export a consistent PostgreSQL snapshot and verify or unpack a portable migration bundle."""
 import argparse
 from contextlib import closing
 import gzip
@@ -13,6 +13,7 @@ import tempfile
 import zipfile
 
 from . import storage
+from .legacy_transfer import export_database
 
 DATABASE = "studio.sqlite3"
 ARCHIVE = re.compile(r"backups/[0-9a-f]{32}\.json\.gz")
@@ -45,30 +46,25 @@ def check_gzip(path):
 
 
 def create(destination):
-    source = storage.location()
     target = Path(destination).absolute()
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists():
         raise FileExistsError(target)
-    if not source.is_file():
-        raise FileNotFoundError(source)
-    with tempfile.TemporaryDirectory(dir=source.parent) as folder:
+    with tempfile.TemporaryDirectory() as folder:
         stage = Path(folder)
         (stage / "backups").mkdir()
-        # Pin a WAL read snapshot and immutable file links under the same write lock.
-        # Editors can resume as soon as these references are pinned.
-        with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as reader:
-            with storage.session(True):
-                reader.execute("BEGIN")
-                for (filename,) in reader.execute("SELECT file FROM recovery_points"):
-                    name = "backups/" + filename
-                    if not ARCHIVE.fullmatch(name) or (source.parent / name).is_symlink():
-                        raise ValueError("Invalid recovery archive")
-                    os.link(source.parent / name, stage / name)
-            with closing(sqlite3.connect(stage / DATABASE)) as copy:
-                reader.backup(copy)
-                copy.execute("PRAGMA journal_mode=DELETE")
-                archives, counts = inventory(copy)
+        # All table scans and gzip payloads share one MVCC snapshot.
+        with storage.session() as db:
+            export_database(db, stage / DATABASE)
+            with db.cursor(name="bundle_archives") as rows:
+                rows.itersize = 1
+                rows.execute("SELECT p.file,a.payload FROM recovery_points p JOIN recovery_archives a ON a.point=p.id")
+                for filename, payload in rows:
+                    if not ARCHIVE.fullmatch("backups/" + filename):
+                        raise ValueError("Invalid archive filename")
+                    (stage / "backups" / filename).write_bytes(payload)
+        with closing(sqlite3.connect(stage / DATABASE)) as copy:
+            archives, counts = inventory(copy)
         files = {}
         with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as out:
             temp = Path(out.name)

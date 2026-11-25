@@ -12,17 +12,17 @@ INTERVAL_SECONDS = 15 * 60
 
 def scheduled_scan():
     with storage.session(True) as db:
-        db.execute("UPDATE scan_status SET state='running',attempted=?,captured=0 WHERE id=1",
+        db.execute("UPDATE scan_status SET state='running',attempted=%s,captured=0 WHERE id=1",
                    (storage.now(),))
     try:
         scan(scheduled=True)
     except Exception as exc:
         with storage.session(True) as db:
-            db.execute("UPDATE scan_status SET state='failed',failed=?,error=? WHERE id=1",
+            db.execute("UPDATE scan_status SET state='failed',failed=%s,error=%s WHERE id=1",
                        (storage.now(), f"{type(exc).__name__}: {exc}"[:500]))
         raise
     with storage.session(True) as db:
-        db.execute("UPDATE scan_status SET state='success',succeeded=? WHERE id=1", (storage.now(),))
+        db.execute("UPDATE scan_status SET state='success',succeeded=%s WHERE id=1", (storage.now(),))
 
 
 @asynccontextmanager

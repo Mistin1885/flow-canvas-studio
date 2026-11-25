@@ -26,7 +26,7 @@ In a workspace, **從 JSON 建立** creates an independent canvas from a workflo
 
 Teammates can keep editing during review. Unrelated edits are kept automatically. If a teammate changes the same item or adds a connection to a node marked for deletion, the preview asks you to choose **保留團隊版本** or **採用 JSON**. Related nodes and connections are reviewed together. A new edit to an already reviewed conflict reopens that choice. Apply the finished selection in one transaction.
 
-Every successful update saves the previous graph in SQLite. From **匯入前的版本**, compare a saved version against the current canvas or open it as an independent copy. These versions travel with the database backup.
+Every successful update saves the previous graph in PostgreSQL. From **匯入前的版本**, compare a saved version against the current canvas or open it as an independent copy. These versions travel with the database backup.
 
 ## Architecture
 
@@ -37,13 +37,14 @@ flowchart TD
     access -->|Tunnel| web
     subgraph compose["Docker Compose on Linux"]
         web["web · React UI, FastAPI and WebSockets"]
-        db["database · private data API and SQLite"]
+        db["database · PostgreSQL 18"]
         web -->|Unix socket| db
     end
-    db --> files[("Host data directory")]
+    db --> files[("postgres-data volume")]
 ```
 
-The **web** container serves the built frontend, verifies the user's identity, and broadcasts canvas updates. The **database** container is the sole owner of the SQLite file and its WAL. It exposes a small data API over a shared Unix socket and has no network interface for external clients. Both services use one worker. The web container binds to the host's loopback interface so local browser authentication and a host-installed Cloudflare Tunnel use the same origin.
+The **web** container serves the UI, verifies identities, runs the private data API and broadcasts committed edits. The **database** container runs PostgreSQL 18 with a dedicated data volume and a Unix socket shared only with the app. The web process binds to host loopback for local sign-in and Cloudflare Tunnel. Keep one web worker for in-memory presence and immediate WebSocket notifications.
+
 
 | Path | Responsibility |
 | --- | --- |
@@ -55,7 +56,8 @@ The **web** container serves the built frontend, verifies the user's identity, a
 | `frontend/build/workbench.js` | Assembles the hosted workbench HTML, JavaScript and CSS during the Vite build |
 | `backend/main.py` | Public FastAPI entry point, authentication middleware and WebSockets |
 | `backend/database_api.py` | Private data API and transaction boundaries |
-| `backend/storage.py`, `backend/backup.py` | SQLite schema, graph persistence and online backup |
+| `backend/storage.py`, `backend/backup.py` | PostgreSQL graph persistence and portable export |
+| `backend/migrations/` | Numbered SQL migrations applied transactionally during startup |
 | `deploy/native/` | Shell scripts to install dependencies, build the frontend and start the native server |
 | `deploy/docker/` | Multi-stage Dockerfile, build-context allowlist and Compose configuration |
 
@@ -104,22 +106,16 @@ docker compose -f deploy/docker/docker-compose.yml up -d --build --wait
 docker compose -f deploy/docker/docker-compose.yml ps
 ```
 
-In local mode, open **[Flow Canvas Studio](http://127.0.0.1:8768/)**. An existing native installation can use the same database directory, schema and canvas URLs. **Stop the native server before switching to Compose with the same database** so one web process owns the live editing sessions. To test alongside the native server, use a separate directory **and** port. Run this in a separate terminal so the test settings stay isolated:
+Open [Flow Canvas Studio](http://127.0.0.1:8768/) in local mode. Both containers restart automatically. The Compose project name identifies the PostgreSQL volume. Keep that name stable across upgrades. Ordinary `docker compose down` preserves the volume. The `-v` option deletes it.
 
-```bash
-export FLOW_DATA_DIR="$(mktemp -d)" FLOW_PORT=8769 COMPOSE_PROJECT_NAME=flow-canvas-preview
-export FLOW_UID="$(id -u)" FLOW_GID="$(id -g)"
-docker compose -f deploy/docker/docker-compose.yml up -d --build --wait
-```
+### Upgrade an existing SQLite installation
 
-Open [the test instance](http://127.0.0.1:8769/). To read logs or stop the stack:
+1. Pause edits and stop the old web and database services with their original Compose file. Keep the old data directory, including WAL sidecars and the `backups/` folder. Keep a verified pre-upgrade backup.
+2. Set `FLOW_DATA_DIR` to that directory's absolute path in your deployment environment. By default Compose mounts `../flow-canvas-studio-data` from the repo's parent at `/legacy` read-only. Set `FLOW_UID` and `FLOW_GID` to a user who can read it.
+3. Start the updated Compose project with the commands above. On a new PostgreSQL volume the web service imports the legacy database and indexed gzip archives in one transaction. A failed conversion rolls back the schema and data. Fix the reported cause and restart the web service to retry.
+4. Compare the workspace and canvas counts, open a known canvas by its original URL, and check active and cold recovery points. Reopen editing after verification. To revert before resuming edits, stop the new services and run the old version with the original directory. Edits accepted by PostgreSQL after cutover require a fresh export for rollback.
 
-```bash
-docker compose -f deploy/docker/docker-compose.yml logs -f web database
-docker compose -f deploy/docker/docker-compose.yml down
-```
-
-The default database path is **`../flow-canvas-studio-data/studio.sqlite3`**, outside the repo. For a custom location, set `FLOW_DATA_DIR` to **an existing absolute path** on a local disk and grant the database process read/write access. `FLOW_UID` and `FLOW_GID` select the numeric owner used by the database container and default to `1000:1000`. Compose's named volume carries only the communication socket.
+If the legacy mount is empty, startup creates one blank workspace. Each later startup checks the PostgreSQL migration history. An already initialized database keeps its records. Production data, active points and cold gzip payloads live together in the project’s `postgres-data` volume. For a dedicated PostgreSQL host directory, set `FLOW_PGDATA=/srv/flow-canvas-postgres` before first startup. Keep it separate from the legacy directory. Use a logical dump for a live, portable copy. `FLOW_DATA_DIR` selects only the read-only migration source. To rehearse a deployment, use a different Compose project name and host port.
 
 ### Enable GitHub sign-in through Cloudflare Access
 
@@ -167,7 +163,7 @@ If Access omits both the GitHub ID and login, an operator can set `FLOW_GITHUB_I
 
 ## Scheduled backups and recovery
 
-The database service scans on startup and every 15 minutes while running. The first scan records existing items. Subsequent scans compare workspace update times and canvas update times and revisions. Creating or renaming an item, editing its graph, and applying an import are captured at the next scan. Multiple edits between scans produce one point. A workspace point preserves its name and identity. Each canvas has its own timeline including its name, graph and workspace ID.
+The web service scans on startup and every 15 minutes while running. The first scan records existing items. Subsequent scans compare workspace update times and canvas update times and revisions. Creating or renaming an item, editing its graph, and applying an import are captured at the next scan. Multiple edits between scans produce one point. A workspace point preserves its name and identity. Each canvas has its own timeline including its name, graph and workspace ID.
 
 Use the trash button on a canvas card to remove it from its workspace. **工具 → 清空畫布** resets the graph and keeps the canvas in place. Both operations check the displayed revision and save a recovery point before changing data. An administrator can restore the content within seven days, including a deleted canvas at its original URL.
 
@@ -177,9 +173,9 @@ The admin page displays the last scheduled attempt, last successful and failed c
 
 Restoring B in an A → B → C timeline keeps A and B visible. C and any newer unsnapshotted edits become cold archives. A subsequent edit creates a new point on the active timeline. A canvas restore preserves its ID and advances its live revision so connected editors can synchronize. A workspace restore changes only its name. If the item changes during confirmation, refresh and review the restore again.
 
-Active points expire seven days after capture. Cold points expire seven days after archiving. Expired points are hidden immediately and their files are collected on the next scan. An idle item can have no retained point after seven days. Each archive is an independent gzip file under `FLOW_DATA_DIR/backups/`; the SQLite database tracks which points are active. Cold files keep their gzip payload and are available to the host operator.
+Active points expire seven days after capture. Cold points expire seven days after archiving. Expired points are hidden immediately and their files are collected on the next scan. An idle item can have no retained point after seven days. PostgreSQL stores the immutable gzip bytes alongside the recovery catalog in the same transaction. Expiry deletes the bytes together with the catalog entry. Operators can export cold points by ID.
 
-Run these native commands from the repository root with the same `FLOW_DATA_DIR` as the service:
+Run these native commands from the repository root with the same PostgreSQL connection settings as the service:
 
 ```bash
 .venv/bin/python -m backend.recovery list
@@ -188,57 +184,54 @@ Run these native commands from the repository root with the same `FLOW_DATA_DIR`
 .venv/bin/python -m backend.recovery restore --id BACKUP_ID
 ```
 
-Time-based restore selects the latest retained active point for that canvas at or before the supplied time. Include a timezone offset. The CLI applies the restore immediately. An already-open canvas receives CLI changes at its next revision check (within about 25 seconds on an idle connection). Use `scan` to run the regular change check on demand. In Compose, run the same module inside the database container:
+Time-based restore selects the latest retained active point for that canvas at or before the supplied time. Include a timezone offset. The CLI applies the restore immediately. An already-open canvas receives CLI changes at its next revision check (within about 25 seconds on an idle connection). Use `scan` to run the regular change check on demand. In Compose, run the same module inside the web container:
 
 ```bash
-docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.recovery list
-docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.recovery restore --id BACKUP_ID
+docker compose -f deploy/docker/docker-compose.yml exec -T web python -m backend.recovery list
+docker compose -f deploy/docker/docker-compose.yml exec -T web python -m backend.recovery restore --id BACKUP_ID
 ```
 
-For an independent copy of a cold canvas, use the filename from `list --cold`. Extract its graph and use **從 JSON 建立** in a workspace:
+To download a retained cold canvas, take its ID from `list --cold` and extract the graph.
 
 ```bash
-gzip -dc "/path/to/data/backups/ARCHIVE.json.gz" | jq '.graph' > recovered-canvas.json
+docker compose -f deploy/docker/docker-compose.yml exec -T web python -m backend.recovery export-gzip --id BACKUP_ID > point.json.gz
+gzip -dc point.json.gz | jq '.graph' > recovered-canvas.json
 ```
 
 ## Back up or move to another machine
 
-A migration bundle contains a consistent SQLite database, all indexed active and cold recovery files, and a SHA-256 manifest. Creation pins one database revision and its recovery files together. Edits can continue while the ZIP is written. For a final cutover, pause editing before creating the last bundle.
-
-**Docker on the source host** (run from the repo root with your deployment environment):
+A PostgreSQL custom-format dump includes graph records, versions, operation receipts, admin ownership, shared knowledge, and active and cold recovery payloads. Create it outside the repo. Use a fresh Compose project or empty database on the destination.
 
 ```bash
-archive="flow-$(date -u +%Y%m%dT%H%M%SZ).zip"
-docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.bundle create "/data/$archive"
-docker compose -f deploy/docker/docker-compose.yml exec -T database python -m backend.bundle verify "/data/$archive"
+# Source, from the repo root
+docker compose -f deploy/docker/docker-compose.yml exec -T -u postgres database pg_dump -d flow -Fc > ../flow.dump
+
+# Destination, with flow.dump copied to the repo's parent directory
+docker compose -f deploy/docker/docker-compose.yml up -d --wait database
+docker compose -f deploy/docker/docker-compose.yml exec -T -u postgres database pg_restore --exit-on-error --single-transaction -d flow < ../flow.dump
+docker compose -f deploy/docker/docker-compose.yml up -d --build --wait web
 ```
 
-Copy the ZIP from the host data directory to the destination. Clone the matching application version there. The following commands assume the ZIP is in the current directory. Set `archive` to its filename and use a new destination data directory. The mount used for restoration must be writable by the configured database UID.
+The format-1 ZIP remains available for moving between PostgreSQL and older versions of Flow Canvas Studio. Create and verify the bundle on the source machine. Set `archive_dir` outside the repo and choose a new filename for each backup.
 
 ```bash
-archive=flow-YYYYMMDDTHHMMSSZ.zip
-mkdir -p ../flow-migration
-docker compose -f deploy/docker/docker-compose.yml build database
-FLOW_DATA_DIR="$(realpath ../flow-migration)" docker compose -f deploy/docker/docker-compose.yml run --rm --no-deps \
-  -v "$(realpath "$archive"):/incoming.zip:ro" \
-  database python -m backend.bundle restore /incoming.zip /data/data
-export FLOW_DATA_DIR="$(realpath ../flow-migration/data)"
-docker compose -f deploy/docker/docker-compose.yml up -d --build
+archive_dir="$(realpath ../flow-archives)"
+mkdir -p "$archive_dir"
+docker compose -f deploy/docker/docker-compose.yml run --rm --no-deps -v "$archive_dir:/export" web python -m backend.bundle create /export/flow.zip
+docker compose -f deploy/docker/docker-compose.yml run --rm --no-deps -v "$archive_dir:/export:ro" web python -m backend.bundle verify /export/flow.zip
 ```
 
-Keep the deployment environment and Cloudflare Tunnel configuration separately.
-
-**Native CLI** (or any machine with the repo and Python 3.12):
+On the destination, unpack into a new directory, point `FLOW_DATA_DIR` at it and start with a fresh PostgreSQL volume. Bundle verification checks file hashes, gzip integrity, the portable SQLite file and the recovery catalog. The migration preserves IDs, revisions, edit history, insertion order and original expiry dates. Keep the deployment environment and tunnel configuration separately.
 
 ```bash
-FLOW_DATA_DIR=/path/to/live-data python3 -m backend.bundle create /path/to/migration.zip
-python3 -m backend.bundle verify /path/to/migration.zip
-python3 -m backend.bundle restore /path/to/migration.zip /path/to/new-data
+docker compose -f deploy/docker/docker-compose.yml build web
+docker compose -f deploy/docker/docker-compose.yml run --rm --no-deps -v "$archive_dir:/export" web python -m backend.bundle restore /export/flow.zip /export/restored
+FLOW_DATA_DIR="$archive_dir/restored" docker compose -f deploy/docker/docker-compose.yml up -d --build --wait
 ```
-
-Verify performs a full rehearsal in a temporary directory. Restore performs the same checks before publishing into a new or empty directory. Both check file hashes, gzip integrity, SQLite integrity and foreign keys, the archive catalog, and workspace, canvas, active and cold backup counts. Allow disk space for the extracted bundle. The original seven-day expiry dates carry over. The existing `python -m backend.backup /path/to/new.sqlite3` command remains available for a database-only copy.
 
 ## Collaborative editing
+
+A writer locks its canvas row before checking revisions and operation receipts. Edits on different canvases can commit independently. Concurrent changes to different nodes on the same canvas are checked per record. A stale edit to the same node returns a conflict, and a stale whole-canvas import requires another review. Readers get a consistent graph snapshot while an import is in progress. Live graph records and shared documents use JSONB. Explicit record positions preserve node and edge order. Pre-import graphs use PostgreSQL JSON to retain the original order of their node dictionaries.
 
 Each saved edit batch carries an operation ID. If a response is lost, retrying the same batch returns its original committed revision, including after a restart. Receipts contain the request digest and revision and are stored with the canvas data. A changed payload must use a new operation ID.
 
@@ -246,34 +239,32 @@ Opening an existing node form announces that node over the canvas's existing Web
 
 ## Native development
 
-Requires Python 3.12 with uv or venv/pip, and Node.js 22.12+ or 24. Native mode runs the same database API in-process. The default data path matches the Compose deployment.
+Requires Python 3.12, Node.js 22.12+ or 24, and a PostgreSQL 18 database owned by the application role. For a native PostgreSQL install, export `FLOW_DATABASE_URL` (a libpq connection string) or set `PGHOST`, `PGUSER`, `PGDATABASE` and any required credentials. For an initial SQLite conversion set `FLOW_LEGACY_DIR` to the source directory. The Docker socket configuration is private to Compose.
 
 ```bash
 ./deploy/native/setup.sh
 ./deploy/native/start.sh --local
 ```
 
-For Cloudflare mode, configure the repo-root `.env` and run `./deploy/native/start.sh`. To back up a native instance, run `.venv/bin/python -m backend.backup /path/to/new-backup.sqlite3` with the same `FLOW_DATA_DIR` as the server.
-
-To rebuild after frontend changes, run `npm run build` in `frontend/`. The server serves the result from `frontend/dist/`. The hosted editor loads separate JavaScript and CSS files. Downloading a canvas embeds its graph, runtime and stylesheet in one HTML file that can reopen and be edited offline.
+For Cloudflare mode, configure the repo-root `.env` and run `./deploy/native/start.sh`. Rebuild frontend changes with `npm run build --prefix frontend`.
 
 ## Verification
 
-```bash
-.venv/bin/python -m unittest discover -s tests -v
-(cd frontend && npm run build)
-docker compose -f deploy/docker/docker-compose.yml config --quiet
-```
-
-The backend suite covers the private service boundary, database outages, concurrent edits, conflicts, rollback, canvas duplication, backup/restore and Access authentication. Set `FLOW_TEST_GRAPH` to an external workflow JSON to include the full import/export round-trip check. To exercise two independent browser sessions against a temporary database:
+From the repo root on a host with Docker Compose, Node and Chrome, run:
 
 ```bash
-cd frontend
-npx playwright install chromium
-npm run test:browser
+./deploy/docker/verify.sh
 ```
 
-For an installed Chrome browser, use `CHROME_BIN=/usr/bin/google-chrome npm run test:browser`.
+The script creates a fresh Compose project and PostgreSQL volume on port 18797, runs the backend tests in temporary database schemas, opens two independent browser profiles, and checks persistence across a container restart. Its temporary project is removed on exit. Set `FLOW_TEST_PORT` for a different free port and `CHROME_BIN` for a different Chromium executable. Alternatively install Chromium with `cd frontend && npx playwright install chromium`.
+
+For a migration rehearsal include a read-only source directory and an exported graph. The test compares every supported table with a round trip through PostgreSQL.
+
+```bash
+FLOW_TEST_LEGACY_DIR=/path/to/old-data FLOW_TEST_GRAPH=/path/to/flow.json ./deploy/docker/verify.sh
+```
+
+For just the Python suite, configure `FLOW_TEST_DATABASE_URL` with a disposable database where the test role can create schemas, then run `.venv/bin/python -m unittest discover -s tests -v`.
 
 ## Knowledge library
 

@@ -1,16 +1,19 @@
 """Bound collaborative activity while preserving meaningful editing boundaries."""
-import sqlite3
 import unittest
+from pg_test_support import isolated_schema
 
-from backend import activity
+from backend import activity, storage
 
 
 class Activity(unittest.TestCase):
     def setUp(self):
-        self.db = sqlite3.connect(":memory:")
-        self.addCleanup(self.db.close)
-        self.db.row_factory = sqlite3.Row
-        self.db.executescript(activity.MIGRATION + activity.SUMMARY_MIGRATION)
+        self.enterContext(isolated_schema())
+        storage.initialize()
+        self.db = self.enterContext(storage.session(True))
+        ws = self.db.execute("SELECT id FROM workspaces").fetchone()[0]
+        for canvas in ("c", "other"):
+            self.db.execute("INSERT INTO canvases(id,workspace,name,rev,updated,editor) VALUES(%s,%s,%s,1,%s,'tester')",
+                            (canvas, ws, canvas, storage.now()))
 
     def record(self, rev, *, actor="a", second=0, action="edited", kind="edited", count=1):
         items = [{"id": f"N{i}", "action": action, "title": f"Title {rev}"} for i in range(count)]

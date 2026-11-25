@@ -4,6 +4,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+from pg_test_support import isolated_schema
 from pathlib import Path
 from unittest.mock import patch
 
@@ -35,9 +36,10 @@ def operation(table, key, version, value=None, remove=False):
 
 class Studio(unittest.TestCase):
     def setUp(self):
+        self.enterContext(isolated_schema())
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        env = patch.dict(os.environ, FLOW_DATA_DIR=self.temp.name, FLOW_AUTH="local")
+        env = patch.dict(os.environ, FLOW_DATABASE_SOCKET="", FLOW_AUTH="local")
         env.start()
         self.addCleanup(env.stop)
         self.http = TestClient(app, base_url=BASE, client=("127.0.0.1", 53000))
@@ -127,25 +129,23 @@ class Studio(unittest.TestCase):
     def test_import_history_upgrade_preserves_existing_canvas(self):
         folder = Path(self.temp.name) / "old-installation"
         folder.mkdir()
-        with patch.dict(os.environ, FLOW_DATA_DIR=str(folder)):
-            with sqlite3.connect(storage.location()) as db:
-                db.executescript(storage.SCHEMA)
-            with storage.session(True) as db:
-                workspace = db.execute("SELECT id FROM workspaces").fetchone()[0]
-                # Seed a real v1 database before running the current migrations.
-                canvas = "legacy-canvas"
-                db.execute("INSERT INTO canvases VALUES(?,?,?,?,?,?)",
-                           (canvas, workspace, "Existing canvas", 2, storage.now(), "Editor"))
-                for key, value in {"schemaVersion": 1, "documentType": "dfx-project-flow",
-                                   "title": "Existing canvas", "navigation": [], "subflows": []}.items():
-                    storage.put(db, canvas, "meta", key, value, 1)
-                storage.put(db, canvas, "nodes", "A", node("A"), 2)
+        schema = Path(storage.__file__).with_name("legacy").joinpath("sqlite.sql").read_text()
+        with sqlite3.connect(folder / "studio.sqlite3") as db:
+            db.executescript(schema.split("PRAGMA user_version=1;")[0] + "PRAGMA user_version=1;")
+            workspace = db.execute("SELECT id FROM workspaces").fetchone()[0]
+            canvas = "legacy-canvas"
+            db.execute("INSERT INTO canvases VALUES(?,?,?,?,?,?)", (canvas, workspace, "Existing canvas", 2, storage.now(), "Editor"))
+            for key, value in storage.empty_graph("Existing canvas").items():
+                if key not in ("nodes", "edges"):
+                    db.execute("INSERT INTO meta VALUES(?,?,?,1)", (canvas, key, json.dumps(value)))
+            db.execute("INSERT INTO nodes VALUES(?,?,?,2)", (canvas, "A", json.dumps(node("A"))))
+        with isolated_schema(folder):
             storage.initialize()
             storage.initialize()
             with storage.session() as db:
                 self.assertEqual(storage.snapshot(db, canvas)["graph"]["nodes"], {"A": node("A")})
                 self.assertEqual(db.execute("SELECT count(*) FROM import_history").fetchone()[0], 0)
-                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 8)
+                self.assertEqual(db.execute("SELECT max(version) FROM schema_migrations").fetchone()[0], 2)
             with storage.session(True) as db:
                 storage.commit(db, canvas, 2, [operation("nodes", "B", None, node("B"))], "Editor")
                 self.assertEqual(db.execute("SELECT rev FROM canvas_activity").fetchone()[0], 3)
@@ -194,15 +194,21 @@ class Studio(unittest.TestCase):
         folder.mkdir()
         target = folder / "studio.sqlite3"
         backup(target)
+        # A database-only export needs its companion recovery archives for a full restore.
+        from backend import bundle
+        archive = folder.parent / "full.zip"
+        bundle.create(archive)
+        restored = folder.parent / "verified"
+        bundle.verify_or_restore(archive, restored)
         with self.assertRaises(FileExistsError):
             backup(target)
-        with patch.dict(os.environ, FLOW_DATA_DIR=str(folder)):
+        with isolated_schema(restored):
             storage.initialize()
             with storage.session() as db:
                 snap = storage.snapshot(db, clone)
                 self.assertEqual(snap["canvas"]["name"], "改名")
                 self.assertEqual(snap["graph"]["nodes"]["A"], node("A"))
-                self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(), [])
+                self.assertEqual(db.execute("SELECT count(*) FROM canvases").fetchone()[0], 2)
 
     @unittest.skipUnless(DFX.is_file(), "Set FLOW_TEST_GRAPH to an external graph for the integration check")
     def test_dfx_exact_roundtrip(self):

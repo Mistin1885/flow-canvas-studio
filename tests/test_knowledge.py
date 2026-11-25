@@ -3,8 +3,8 @@ from contextlib import ExitStack
 import os
 import json
 from pathlib import Path
-import tempfile
 import unittest
+from pg_test_support import isolated_schema
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -17,9 +17,9 @@ BASE = "http://127.0.0.1:8768"
 
 class Knowledge(unittest.TestCase):
     def setUp(self):
+        self.enterContext(isolated_schema())
         stack = self.enterContext(ExitStack())
-        folder = stack.enter_context(tempfile.TemporaryDirectory())
-        stack.enter_context(patch.dict(os.environ, FLOW_DATA_DIR=folder, FLOW_AUTH="local", FLOW_DATABASE_SOCKET=""))
+        stack.enter_context(patch.dict(os.environ, FLOW_AUTH="local", FLOW_DATABASE_SOCKET=""))
         self.web = stack.enter_context(TestClient(app, base_url=BASE, client=("127.0.0.1", 53000)))
         self.owner = self.web.get("/api/catalog").json()["workspaces"][0]["id"]
         self.guest = self.post("workspaces", {"name":"Support"})["id"]
@@ -158,7 +158,7 @@ class Knowledge(unittest.TestCase):
         self.mutate(self.guest, "pin", canvas=canvas, entry=key)
         snapshots.scan()
         with storage.session() as db:
-            point = db.execute("SELECT snapshot FROM snapshot_heads WHERE kind='workspace' AND item=?",
+            point = db.execute("SELECT snapshot FROM snapshot_heads WHERE kind='workspace' AND item=%s",
                                (self.owner,)).fetchone()[0]
         self.mutate(self.owner, "save", entry=key, version=1, shares=[self.guest], doc={"title": "Revised"})
         with storage.session(True) as db:

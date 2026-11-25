@@ -41,7 +41,7 @@ export async function verifyImport(alice, bob, origin) {
   await expect(review.getByText('新增 1 · 修改 1 · 移除 1')).toBeVisible()
   const edge = { from: 'A', to: 'B', kind: 'next', label: 'peer' }
   const change = async (base, ops) => {
-    const response = await bob.request.post(origin + path, { data: { base, ops } })
+    const response = await bob.request.post(origin + path + '/changes', { data: { base, ops } })
     assert.equal(response.status(), 200, await response.text())
     return (await response.json()).rev
   }
