@@ -1,3 +1,4 @@
+import { includeEditedWires } from '../layout/editedWires.js'
 import { selectionState } from '../editing/state.js'
 import { graphModel } from '../graph/model.js'
 import { $, el } from '../ui/dom.js'
@@ -64,10 +65,19 @@ function renderGroupPanel() {
 function fitVisible() {
   const items = diagramState.instances.filter((i) => !hiddenGroups.has(graphModel.nodes[i.id].group))
   if (!items.length) return
-  const x = Math.min(...items.map((i) => i.x)),
-    y = Math.min(...items.map((i) => i.y))
-  const w = Math.max(...items.map((i) => i.x + i.w)) - x,
-    h = Math.max(...items.map((i) => i.y + i.h)) - y
+  const {
+    left: x,
+    top: y,
+    right,
+    bottom,
+  } = includeEditedWires({
+    left: Math.min(...items.map((i) => i.x)),
+    top: Math.min(...items.map((i) => i.y)),
+    right: Math.max(...items.map((i) => i.x + i.w)),
+    bottom: Math.max(...items.map((i) => i.y + i.h)),
+  })
+  const w = right - x,
+    h = bottom - y
   const r = canvas.getBoundingClientRect(),
     z = Math.max(0.005, Math.min(1, (r.width - 50) / Math.max(1, w), (r.height - 85) / Math.max(1, h)))
   tweenView((r.width - w * z) / 2 - x * z, (r.height - h * z) / 2 - y * z, z)
@@ -99,6 +109,7 @@ function syncGroups() {
       ))
   )
     setEditTarget(null)
+  if (selectionState.editTarget?.edge) setEditTarget(selectionState.editTarget)
   diagramState.hoverTrace = null
   diagramState.focusTrace = null
   updateTrace()

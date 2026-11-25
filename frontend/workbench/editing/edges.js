@@ -21,6 +21,21 @@ function openEdge(from, to, edge) {
   endpointControls(from, to)
   $('edge-heading').textContent = edge ? '編輯連線' : '建立連線'
   $('edge-endpoints').textContent = '可連接節點、原圖外框、排版群組或子流程。'
+  const layout = edge?.wireLayout
+  $('line-reset-layout').checked = false
+  $('line-reset-row').hidden = !layout
+  for (const key of ['start', 'end']) {
+    const control = $('line-' + key + '-side')
+    control.disabled = false
+    control.value = layout?.[key] || ''
+  }
+  $('line-reset-layout').onchange = () => {
+    for (const key of ['start', 'end']) {
+      const control = $('line-' + key + '-side')
+      control.disabled = $('line-reset-layout').checked
+      control.value = control.disabled ? '' : layout?.[key] || ''
+    }
+  }
   $('line-text').value = edge?.label || ''
   $('line-color').value = labelColor(edge || { label: '' })
   $('line-auto').checked = !edge?.conditionColor
@@ -56,12 +71,14 @@ function saveEdge() {
   const from = $('edge-from-control').value,
     to = $('edge-to-control').value,
     old = editState.edgeDraft.edge
-  if (!from || !to || from === to) throw Error('請選擇兩個不同的端點。')
+  if (!from || !to || (from === to && !(old?.from === from && old.to === to)))
+    throw Error('請選擇兩個不同的端點。')
   const g = exportGraph(),
     normal = !!(graphModel.nodes[from] && graphModel.nodes[to])
   const oldIndex = old ? graphModel.edges.indexOf(old) : -1
   const owner = oldIndex >= 0 ? g.edges : g.groupLinks
   const oldPos = oldIndex >= 0 ? oldIndex : (graphModel.document.groupLinks || []).indexOf(old)
+  if (old && oldPos < 0) throw Error('連線已更新，請重新選取。')
   const e = old ? owner.splice(oldPos, 1)[0] : { kind: 'next', dashed: false, label: '' }
   const label = $('line-text').value.trim(),
     moved = old && (old.from !== from || old.to !== to)
@@ -80,6 +97,14 @@ function saveEdge() {
         delete r.resolution
       }
   }
+  const layout = moved || $('line-reset-layout').checked ? {} : { ...e.wireLayout }
+  for (const key of ['start', 'end']) {
+    const side = $('line-' + key + '-side').value
+    if (side) layout[key] = side
+    else delete layout[key]
+  }
+  if (Object.keys(layout).length) e.wireLayout = layout
+  else delete e.wireLayout
   Object.assign(e, { from, to, label })
   if ($('line-auto').checked) delete e.conditionColor
   else e.conditionColor = $('line-color').value

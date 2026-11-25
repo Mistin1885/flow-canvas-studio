@@ -1,3 +1,4 @@
+import { includeEditedWires } from '../layout/editedWires.js'
 import { diagramState } from './state.js'
 import { go, showStart, transform, tweenView } from './navigation.js'
 import { $ } from '../ui/dom.js'
@@ -57,12 +58,17 @@ function bindViewport() {
       fitVisible()
       return
     }
-    const r = $('canvas').getBoundingClientRect(),
-      z = Math.max(
-        0.005,
-        Math.min(1, (r.width - 40) / diagramState.totalW, (r.height - 100) / diagramState.totalH),
-      )
-    tweenView((r.width - diagramState.totalW * z) / 2, 40, z)
+    const { left, top, right, bottom } = includeEditedWires({
+      left: 0,
+      top: 0,
+      right: diagramState.totalW,
+      bottom: diagramState.totalH,
+    })
+    const w = Math.max(1, right - left),
+      h = Math.max(1, bottom - top),
+      r = $('canvas').getBoundingClientRect(),
+      z = Math.max(0.005, Math.min(1, (r.width - 40) / w, (r.height - 100) / h))
+    tweenView((r.width - w * z) / 2 - left * z, 40 - top * z, z)
   }
   $('home').onclick = () => {
     go(startId())

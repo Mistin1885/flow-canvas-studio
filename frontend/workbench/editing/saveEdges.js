@@ -4,6 +4,7 @@ export function applyEdgeEdits(graph, id, form, parent) {
   for (const row of form.edges) {
     const original = row.original
     const e = { ...original, from: id, to: row.to, kind: row.kind, label: row.label }
+    if (original.to !== e.to) delete e.wireLayout
     if (row.label !== original.label) e.label = row.label.trim()
     if (original.label !== e.label || original.to !== e.to || original.kind !== e.kind) {
       if (e.sourceAnnotationIds) {

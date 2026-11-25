@@ -12,6 +12,8 @@ The node form suggests the first available number for its type, such as `STEP1`,
 
 Choose **返回節點** in the node form and select a destination by ID and title. In reading mode, clicking the return node centers the destination and opens its details. Drag-edit mode lets you select and edit the return node itself.
 
+In **拖拉編輯**, drag a wire segment to move its lane or drag its label to reposition the text. Select the wire to reveal its round start handle and square end handle. Drag either handle to a side of its current node to dock there. The connection editor also offers side selectors and a reset to automatic routing. Each completed drag is one undoable edit.
+
 Each canvas has reusable owner and location options. The dropdowns include values already used by imported nodes. Add an option in the node form and apply the form to share it with other editors.
 
 ## Canvas activity

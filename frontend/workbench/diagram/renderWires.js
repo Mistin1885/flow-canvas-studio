@@ -66,6 +66,7 @@ export function renderWires(projectNodes, pathSet) {
     const view = { from: a, to: b, main, link, points, p, hit, group, d, label: null }
     diagramState.edgeViews.push(view)
     if (link) {
+      group.wireGeometry = link.geometry
       group.addEventListener('dblclick', (e) => {
         if (editState.enabled) {
           e.stopPropagation()

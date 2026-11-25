@@ -1,3 +1,4 @@
+import { editState } from '../editing/state.js'
 import { diagramState } from './state.js'
 import { rightAnglePath } from './paths.js'
 import { hiddenGroups } from '../groups/visibility.js'
@@ -32,6 +33,7 @@ function animateDiagram(oldPositions, revision) {
     }
     diagramState.displayPositions = positions
     for (const view of views) {
+      if (editState.gesture?.started && editState.gesture.group === view.group) continue
       const a = positions.get(view.from.key),
         b = positions.get(view.to.key),
         da = { x: a.x - view.from.x, y: a.y - view.from.y },
@@ -135,6 +137,7 @@ function updateTrace() {
   for (const view of links)
     if (view.label) {
       view.traceLabel = view.label.cloneNode(true)
+      view.traceLabel.removeAttribute('id')
       view.traceLabel.classList.add('trace-label')
       if (selectedCategories.size)
         view.traceLabel.style.opacity = { match: '1', neighbor: '.5', dim: '.19' }[

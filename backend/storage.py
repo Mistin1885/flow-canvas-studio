@@ -131,6 +131,30 @@ def edge_key(edge):
     return encode([edge.get(k) for k in ("from", "to", "kind", "label")])
 
 
+def check_wire_layout(edge):
+    if "wireLayout" not in edge:
+        return
+    layout = edge["wireLayout"]
+    def coordinate(value):
+        return type(value) in (float, int) and abs(value) <= 1e7
+    if not isinstance(layout, dict) or any(
+        layout[key] not in ("top", "right", "bottom", "left") for key in ("start", "end") if key in layout
+    ):
+        raise Invalid("連線接點無效")
+    if "label" in layout:
+        label = layout["label"]
+        if not isinstance(label, dict) or not all(coordinate(label.get(k)) for k in ("x", "y")):
+            raise Invalid("連線文字座標無效")
+    if "lanes" in layout:
+        lanes = layout["lanes"]
+        if not isinstance(lanes, list) or not 1 <= len(lanes) <= 2048 or any(
+            not isinstance(lane, dict) or lane.get("axis") not in ("x", "y") or
+            (lane.get("at") not in ("start", "end") and not coordinate(lane.get("at")))
+            for lane in lanes
+        ):
+            raise Invalid("連線線段座標無效")
+
+
 def check_badge_styles(graph):
     styles = graph.get("badgeStyles", {})
     if not isinstance(styles, dict):
@@ -196,6 +220,7 @@ def check_graph(graph):
             raise Invalid("連線格式無效")
         if edge.get("from") not in nodes or edge.get("to") not in nodes:
             raise Conflict("連線端點已變更或不在此畫布")
+        check_wire_layout(edge)
         key = edge_key(edge)
         if key in seen:
             raise Invalid("重複連線")
@@ -214,6 +239,7 @@ def check_graph(graph):
             raise Conflict("群組或子流程成員已變更")
     endpoints = set(nodes) | {"flow:" + key for key in flows} | {"group:" + key for key in groups}
     for link in graph.get("groupLinks", []):
+        check_wire_layout(link)
         if link.get("from") not in endpoints or link.get("to") not in endpoints:
             raise Conflict("框線或群組連線端點已變更")
     for item in [*nodes.values(), *edges]:

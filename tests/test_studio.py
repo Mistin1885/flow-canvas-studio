@@ -55,6 +55,27 @@ class Studio(unittest.TestCase):
     def change(self, base, *ops):
         return self.http.post(self.path + "/changes", json=dict(base=base, ops=ops))
 
+    def test_edge_layout_roundtrip_and_version_conflict(self):
+        edge = {"from": "A", "to": "B", "kind": "next", "label": "Review"}
+        key = storage.edge_key(edge)
+        ops = [operation("nodes", k, None, node(k)) for k in ("A", "B")]
+        result = self.change(1, *ops, operation("edges", key, None, edge))
+        self.assertEqual(result.status_code, 200, result.text)
+        current = self.http.get(self.path).json()
+        version = current["versions"]["edges"][key]
+        layout = {"start": "bottom", "end": "left", "lanes": [{"axis": "x", "at": 32}],
+                  "label": {"x": -7, "y": 25}}
+        revised = dict(edge, wireLayout=layout)
+        edit = operation("edges", key, version, revised)
+        self.assertEqual(self.change(current["canvas"]["rev"], edit).status_code, 200)
+        self.assertEqual(self.http.get(self.path).json()["graph"]["edges"], [revised])
+        stale = operation("edges", key, version, dict(edge, wireLayout={"end": "top"}))
+        self.assertEqual(self.change(current["canvas"]["rev"], stale).status_code, 409)
+        fresh = self.http.get(self.path).json()
+        invalid = operation("edges", key, fresh["versions"]["edges"][key], dict(edge, wireLayout={"end": "up"}))
+        self.assertEqual(self.change(fresh["canvas"]["rev"], invalid).status_code, 422)
+        self.assertEqual(self.http.get(self.path).json()["graph"]["edges"], [revised])
+
     def test_two_connections_and_conflict(self):
         with (
             self.http.websocket_connect(

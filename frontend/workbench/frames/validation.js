@@ -1,3 +1,5 @@
+import { validateWireLayout } from '../layout/wireGeometry.js'
+
 function validateFrameData(g) {
   const groups = new Set([
     ...Object.values(g.nodes).map((n) => n.group),
@@ -38,6 +40,7 @@ function validateFrameData(g) {
         seen.has(key)
       )
         throw Error('群組連線端點、條件或顏色無效，或已有相同連線')
+      validateWireLayout(e.wireLayout)
       seen.add(key)
     }
   }

@@ -11,13 +11,16 @@ import { explicitFrameBounds, reserveFrameHeaders } from '../frames/handles.js'
 import { edgeLabelLines } from '../layout/labels.js'
 import { clearCardRoutes } from '../layout/cardRoutes.js'
 
+import { wireGeometry, routedPoints } from '../layout/editedWires.js'
+
 export function layoutDiagram() {
   diagramState.instances = []
   diagramState.instanceMap = new Map()
   diagramState.graphLinks = []
   visibleGraph()
   sizeReadableNodes()
-  for (const sf of graphModel.document.subflows || []) if (expandedFlows.has(sf.id)) prepareInlineFlow(sf)
+  for (const sf of graphModel.document.subflows || [])
+    if (expandedFlows.has(sf.id)) prepareInlineFlow(sf)
   const projectNodes = diagramState.instances.filter((i) => i.scope === 'project'),
     projectLinks = diagramState.graphLinks.filter(
       (l) => l.from.scope === 'project' && l.to.scope === 'project',
@@ -60,5 +63,9 @@ export function layoutDiagram() {
     l.labelY = (l.points[0].y + l.points[1].y - l.labelHeight) / 2
   }
   clearCardRoutes()
+  for (const link of diagramState.graphLinks) {
+    link.geometry = wireGeometry(link.edge, link.from, link.to, link.points)
+    link.points = routedPoints(link.geometry)
+  }
   return projectNodes
 }

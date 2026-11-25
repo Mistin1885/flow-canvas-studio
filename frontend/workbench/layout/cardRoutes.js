@@ -136,7 +136,7 @@ function clearCardRoutes() {
           ...nearby,
           ...shapes.filter((i) => i === l.from || i === l.to).map((i) => box(i, pad)),
         ]
-        const route = orthogonalRoute(start, end, blocks, bounds, nearbyTracks, conflicts)
+        const route = orthogonalRoute(start, end, blocks, bounds, nearbyTracks, conflicts, diagramState.readingScale)
         if (!route) continue
         l.points = simplifyWire([a, ...route, b])
         break

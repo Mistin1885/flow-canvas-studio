@@ -12,6 +12,7 @@ import { exportGraph } from '../io/graph.js'
 import { nodeForm } from './nodeForm.js'
 import { say } from '../ui/toast.js'
 import { initGestures } from './gestures.js'
+import { restoreWireDrag } from './wireDrag.js'
 import { canvas } from '../diagram/viewport.js'
 function initGraphTools() {
   $('canvas-properties').onclick = editContext
@@ -95,6 +96,11 @@ function cancelGesture() {
   const g = editState.gesture
   if (!g) return
   editState.gesture = null
+  if (g.wire) {
+    restoreWireDrag(g)
+    if (g.capture.hasPointerCapture(g.pointer)) g.capture.releasePointerCapture(g.pointer)
+    return
+  }
   g.preview?.remove()
   g.target?.classList.remove('link-target')
   g.card.classList.remove('being-moved')

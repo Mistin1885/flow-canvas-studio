@@ -4,6 +4,8 @@ import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
 import { segmentHitsBox } from './routing.js'
 
+import { pinnedLabel } from './editedWires.js'
+
 function placeEdgeLabels() {
   const cards = diagramState.instances.filter((i) => !isFrameNode(graphModel.nodes[i.id]))
   const labelBoxes = []
@@ -40,6 +42,7 @@ function placeEdgeLabels() {
     const widths = [...view.label.querySelectorAll('tspan')].map((t) => t.getComputedTextLength())
     view.link.labelWidth = Math.ceil(Math.max(...widths)) + 16
   }
+  views.sort((a, b) => Number(!!b.link.edge.wireLayout?.label) - Number(!!a.link.edge.wireLayout?.label))
   for (const view of views) {
     const l = view.link
     const shapes = cards
@@ -53,8 +56,9 @@ function placeEdgeLabels() {
     ]
     const w = l.labelWidth,
       h = l.labelHeight
-    let best = null
-    for (let k = 1; k < l.points.length; k++) {
+    const pin = pinnedLabel(l.points, l.edge.wireLayout)
+    let best = pin && { x: pin.x - w / 2, y: pin.y - h / 2, w, h }
+    for (let k = 1; !pin && k < l.points.length; k++) {
       const u = l.points[k - 1],
         v = l.points[k],
         length = Math.hypot(v.x - u.x, v.y - u.y)

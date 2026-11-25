@@ -16,6 +16,7 @@ import { groupNamesInGraph, hiddenGroups } from '../groups/visibility.js'
 import { clearRoute, orthogonalRoute } from '../layout/routing.js'
 import { dockProjectLinks, simplifyWire } from '../layout/ports.js'
 import { rightAnglePath } from '../diagram/paths.js'
+import { wireGeometry, routedPoints, pinnedLabel } from '../layout/editedWires.js'
 import { edgeLabelLines } from '../layout/labels.js'
 
 function frameTargetAt(x, y) {
@@ -133,13 +134,16 @@ function renderGroupLinks(frag) {
           },
           [],
           [],
+          diagramState.readingScale,
         ) || defaultPath
-    const pts = simplifyWire([start, ...path, end]),
+    const geometry = wireGeometry(edge, a, b, simplifyWire([start, ...path, end])),
+      pts = routedPoints(geometry),
       d = rightAnglePath(pts),
       g = svg('g', { class: 'edge-route graph-link' })
     g.dataset.from = edge.from
     g.dataset.to = edge.to
     g._edge = edge
+    g.wireGeometry = geometry
     g.append(
       svg('path', {
         class: 'wire',
@@ -161,6 +165,7 @@ function renderGroupLinks(frag) {
           at = { x: (u.x + v.x) / 2, y: (u.y + v.y) / 2 }
         }
       }
+      at = pinnedLabel(pts, edge.wireLayout) || at
       const lines = edgeLabelLines(edge.label),
         width = Math.max(...lines.map((l) => l.length)) * 9 + 16,
         height = lines.length * 17 + 6

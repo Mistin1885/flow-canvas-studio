@@ -16,6 +16,29 @@
           <select id="edge-to-control"></select>
         </label>
       </div>
+      <div class="layout-pair wire-sides">
+        <label
+          >起點接點<select id="line-start-side">
+            <option value="">自動</option>
+            <option value="top">上方</option>
+            <option value="right">右側</option>
+            <option value="bottom">下方</option>
+            <option value="left">左側</option>
+          </select></label
+        >
+        <label
+          >終點接點<select id="line-end-side">
+            <option value="">自動</option>
+            <option value="top">上方</option>
+            <option value="right">右側</option>
+            <option value="bottom">下方</option>
+            <option value="left">左側</option>
+          </select></label
+        >
+      </div>
+      <label id="line-reset-row"
+        ><input type="checkbox" id="line-reset-layout" />還原線段、接點與文字的自動排版</label
+      >
       <label>
         條件文字
         <input id="line-text" maxlength="200" placeholder="例如：核可、退回" />

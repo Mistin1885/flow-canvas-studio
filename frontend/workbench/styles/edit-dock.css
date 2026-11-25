@@ -212,3 +212,62 @@ body[data-theme='dark'] #delete-node,
     right: -12px;
   }
 }
+
+#wire-grips {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+.wire-grip {
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%) scale(var(--port-scale, 1));
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+.wire-label-layer {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.wire-label-grip {
+  pointer-events: all;
+  cursor: move;
+  touch-action: none;
+}
+.wire-grip::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  background: var(--paper);
+  border: 2px solid var(--trace-line);
+  border-radius: 50%;
+}
+.wire-grip[data-grip='end']::before {
+  border-radius: 2px;
+}
+.edit-mode .edge-hit,
+.edit-mode .edge-annotation {
+  cursor: move;
+}
+#trace-overlay,
+#trace-overlay * {
+  pointer-events: none;
+}
+#edit-hint {
+  max-width: min(360px, 75%);
+}
+.wire-sides {
+  margin: 0;
+}
+.line-fields #line-reset-row[hidden] {
+  display: none;
+}

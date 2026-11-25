@@ -1,3 +1,4 @@
+import { validateWireLayout } from '../layout/wireGeometry.js'
 import { checkKnowledge } from '../knowledge/validate.js'
 import { checkBadges } from '../badges/model.js'
 import { directions } from '../editing/state.js'
@@ -84,6 +85,7 @@ function readGraph(value) {
   for (const [index, e] of value.edges.entries()) {
     const p = 'edges[' + index + ']'
     obj(e, p)
+    validateWireLayout(e.wireLayout)
     str(e.from, p + '.from', 64)
     str(e.to, p + '.to', 64)
     if (!has(e.from)) bad(p + '.from', '找不到來源節點 ' + e.from)

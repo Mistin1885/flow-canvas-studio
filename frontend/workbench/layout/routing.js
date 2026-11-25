@@ -1,5 +1,3 @@
-import { diagramState } from '../diagram/state.js'
-
 // Keep long merge edges outside unrelated cards. Dagre supplies the layout;
 // only obstructed routes receive a short orthogonal detour, retaining their label.
 function segmentHitsBox(a, b, r) {
@@ -51,10 +49,10 @@ function parallelRun(a, b, gap) {
   return Math.max(0, Math.min(a.hi, b.hi) - Math.max(a.lo, b.lo))
 }
 
-function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts) {
+function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts, scale) {
   const { left, right, min, max } = bounds
   const obstacles = boxes.filter((r) => r.x < right && r.x + r.w > left && r.y < max && r.y + r.h > min)
-  const spacing = 12 * diagramState.readingScale
+  const spacing = 12 * scale
   const lanes = (axis) =>
     conflicts.filter((t) => t.axis === axis).flatMap((t) => [t.at - spacing, t.at + spacing])
   const xs = [
@@ -132,14 +130,14 @@ function orthogonalRoute(start, end, boxes, bounds, tracks, conflicts) {
         id = next * 3 + dir
       const step = wireTrack(a, b)
       const congestion = step
-        ? tracks.reduce((sum, t) => sum + parallelRun(step, t, 8 * diagramState.readingScale), 0)
+        ? tracks.reduce((sum, t) => sum + parallelRun(step, t, 8 * scale), 0)
         : 0
       const cost =
         current.cost +
         Math.abs(b.x - a.x) +
         Math.abs(b.y - a.y) +
         congestion * 6 +
-        (axis && axis !== dir ? 20 * diagramState.readingScale : 0)
+        (axis && axis !== dir ? 20 * scale : 0)
       if (cost >= (dist.get(id) ?? Infinity) || obstacles.some((r) => segmentHitsBox(a, b, r))) continue
       dist.set(id, cost)
       previous.set(id, current.id)

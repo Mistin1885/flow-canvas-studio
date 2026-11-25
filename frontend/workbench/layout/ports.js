@@ -1,3 +1,4 @@
+import { simplifyWire } from './polyline.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
@@ -171,23 +172,6 @@ function dockProjectLinks(links, mx, my) {
     l.lines = edgeLabelLines(l.edge.label || '', 185)
     l.labelHeight = l.lines.length ? (18 * l.lines.length + 10) * s : 0
   }
-}
-
-function simplifyWire(points) {
-  const result = []
-  for (const p of points) {
-    const v = result.at(-1)
-    if (v && Math.abs(p.x - v.x) < 0.01 && Math.abs(p.y - v.y) < 0.01) continue
-    const u = result.at(-2)
-    if (
-      u &&
-      ((u.x === v.x && v.x === p.x && (v.y - u.y) * (p.y - v.y) >= 0) ||
-        (u.y === v.y && v.y === p.y && (v.x - u.x) * (p.x - v.x) >= 0))
-    )
-      result.pop()
-    result.push(p)
-  }
-  return result
 }
 
 export { dockProjectLinks, simplifyWire }

@@ -1,3 +1,4 @@
+import { showWireGrips } from './wireDrag.js'
 import { selectionState, editState } from './state.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { graphModel } from '../graph/model.js'
@@ -29,6 +30,7 @@ function setEditTarget(next) {
     v.group.classList.toggle('edit-picked', v.link.edge === next?.edge)
   for (const line of $('paths').querySelectorAll('.graph-link'))
     line.classList.toggle('edit-picked', line._edge === next?.edge)
+  showWireGrips(next?.edge && $('paths').querySelector('.edge-route.edit-picked'))
   $('canvas-properties').disabled = !(next?.node || next?.edge || diagramState.selected)
 }
 
