@@ -1,12 +1,16 @@
 import { diagramState } from '../diagram/state.js'
 import { movingWirePoints } from '../layout/movingWire.js'
+import { centerConnection } from '../layout/cardCenters.js'
+import { clearRoute } from '../layout/routing.js'
 import { rightAnglePath } from '../diagram/paths.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { graphModel } from '../graph/model.js'
 import { replaceGraph } from '../graph/replace.js'
 import { hiddenGroups } from '../groups/visibility.js'
 import { exportGraph } from '../io/graph.js'
-import { dropPositions, snappedDisplacement } from '../layout/nodePlacement.js'
+import { dropPositions } from '../layout/nodePlacement.js'
+import { alignNodeDrag, centerPeers } from '../layout/nodeAlignment.js'
+import { showAlignmentGuides, clearAlignmentGuides } from './alignmentGuides.js'
 import { say } from '../ui/toast.js'
 import { selectionState } from './state.js'
 import { setNodeSelection } from './selection.js'
@@ -21,25 +25,37 @@ export function prepareMove(item) {
   const roots = items.filter(i => !carried.has(i))
   const moving = new Set([...roots, ...carried])
   const wires = diagramState.edgeViews.filter(v => moving.has(v.from) || moving.has(v.to))
-  return { roots, moving, wires, keys: items.map(i => i.key) }
+  const visibleCards = diagramState.instances.filter(i =>
+    !hiddenGroups.has(graphModel.nodes[i.id].group) && !isFrameNode(graphModel.nodes[i.id]))
+  const connected = new Set(wires.filter(v => v.from === item || v.to === item)
+    .map(v => v.from === item ? v.to : v.from))
+  const peers = centerPeers(item, visibleCards.filter(i => !moving.has(i)), connected)
+  return { roots, moving, wires, peers, visibleCards, keys: items.map(i => i.key) }
 }
 
 function displacement(g, e) {
-  return snappedDisplacement(g.item, e.clientX - g.x, e.clientY - g.y, diagramState.readingScale, diagramState.scale)
+  return alignNodeDrag(g.item, e.clientX - g.x, e.clientY - g.y, diagramState.readingScale, diagramState.scale, g.peers)
 }
 
 export function previewMove(g, e) {
-  const delta = displacement(g, e)
+  const { delta, guides } = displacement(g, e)
+  showAlignmentGuides(guides, delta, diagramState.scale)
   for (const item of g.moving) {
     const card = diagramState.domNodes.get(item.key)
     if (!card) continue
     card.classList.add('being-moved')
     card.style.transform = `translate(${item.x + delta.x}px,${item.y + delta.y}px)`
   }
+  const shifted = i => g.moving.has(i) ? { x: i.x + delta.x, y: i.y + delta.y, w: i.w, h: i.h } : i
   for (const v of g.wires) {
     const from = Number(g.moving.has(v.from)), to = Number(g.moving.has(v.to))
-    const zero = { x: 0, y: 0 }
-    const d = rightAnglePath(movingWirePoints(v.points, from ? delta : zero, to ? delta : zero))
+    const start = { x: delta.x * from, y: delta.y * from }
+    const end = { x: delta.x * to, y: delta.y * to }
+    const centered = from !== to && centerConnection(shifted(v.from), shifted(v.to), v.link?.edge.wireLayout)
+    const points = centered && clearRoute(centered.points,
+      g.visibleCards.filter(i => i !== v.from && i !== v.to).map(shifted))
+      ? centered.points : movingWirePoints(v.points, start, end)
+    const d = rightAnglePath(points)
     v.p.setAttribute('d', d)
     v.hit.setAttribute('d', d)
     v.label?.setAttribute('transform', `translate(${delta.x * (from + to) / 2},${delta.y * (from + to) / 2})`)
@@ -47,6 +63,7 @@ export function previewMove(g, e) {
 }
 
 export function resetMove(g) {
+  clearAlignmentGuides()
   for (const item of g.moving) {
     const card = diagramState.domNodes.get(item.key)
     if (!card || diagramState.instanceMap.get(item.key) !== item) continue
@@ -62,7 +79,7 @@ export function resetMove(g) {
 
 export function commitMove(g, e) {
   if (g.roots.some(i => diagramState.instanceMap.get(i.key) !== i)) return
-  const delta = displacement(g, e)
+  const { delta } = displacement(g, e)
   if (!delta.x && !delta.y) return
   const isFrame = item => isFrameNode(graphModel.nodes[item.id])
   const obstacles = diagramState.instances.filter(i => !g.moving.has(i) && !isFrame(i) &&

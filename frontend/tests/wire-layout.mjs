@@ -138,7 +138,7 @@ test('old staircase coordinates lose a small jog but keep a deliberately offset 
   assert.deepEqual(path.slice(1, -1), [{ x: 50, y: 73 }, { x: 162, y: 73 }, { x: 162, y: 90 }])
 })
 
-test('near-aligned opposite faces share one axis for both directions, zoom-independent', () => {
+test('near-aligned opposite faces keep their midpoints in both directions at every reading scale', () => {
   for (const scale of [0.8, 1, 1.4]) {
     for (const orientation of ['horizontal', 'vertical']) {
       const flip = orientation === 'vertical'
@@ -146,12 +146,13 @@ test('near-aligned opposite faces share one axis for both directions, zoom-indep
       const rect = (x, y, w, h) => ({ ...point(x, y), w: scale * (flip ? h : w), h: scale * (flip ? w : h) })
       const near = rect(0, 0, 80, 50), far = rect(200, -3, 60, 80)
       const dogleg = [point(80, 25), point(145, 25), point(145, 37), point(200, 37)]
-      const straight = [point(80, 31), point(200, 31)]
-      assert.deepEqual(straightenAutomaticWire(near, far, dogleg, scale, undefined, () => true), straight)
-      assert.deepEqual(straightenAutomaticWire(far, near, dogleg.toReversed(), scale, {}, () => true), straight.toReversed())
+      const tips = [dogleg[0], dogleg.at(-1)]
+      assert.deepEqual(straightenAutomaticWire(near, far, dogleg, scale, undefined, () => true), dogleg)
+      assert.deepEqual(straightenAutomaticWire(far, near, dogleg.toReversed(), scale, {}, () => true), dogleg.toReversed())
       const pinnedSides = { start: flip ? 'bottom' : 'right', end: flip ? 'top' : 'left' }
       const view = { from: near, to: far, autoPoints: dogleg }
-      assert.deepEqual(resolveWire(view, pinnedSides, scale), straight)
+      const placed = resolveWire(view, pinnedSides, scale)
+      assert.deepEqual([placed[0], placed.at(-1)], tips)
     }
   }
 })
@@ -163,7 +164,7 @@ test('automatic straightening respects route clearance, intended detours, manual
   assert.equal(straightenAutomaticWire(near, far, dogleg, 1, {}, ps => clearRoute(ps, blocked)), dogleg)
   assert.equal(straightenAutomaticWire(near, far, dogleg, 1, { lanes: [{ axis: 'y', at: 25 }] }, () => true), dogleg)
   assert.deepEqual(straightenAutomaticWire(near, far, dogleg, 1, { label: { x: 4, y: 8 } }, () => true),
-    [{ x: 100, y: 30 }, { x: 200, y: 30 }])
+    dogleg)
   const wide = [dogleg[0], { x: 150, y: 25 }, { x: 150, y: 41 }, { x: 200, y: 41 }]
   assert.equal(straightenAutomaticWire(near, { ...to, y: 16 }, wide, 1, {}, () => true), wide)
   const detour = [dogleg[0], { x: 125, y: 25 }, { x: 125, y: -10 }, { x: 175, y: -10 }, { x: 175, y: 35 }, dogleg.at(-1)]
@@ -265,7 +266,7 @@ test('terminal snapping respects the face and radius; a grip can also place a fr
   assert.equal(snap(10), true)
   assert.deepEqual(layout, { end: 'top', endRatio: 0.7 })
   placeDock(layout, 'end', card, 'bottom', {x:65, y:50}, [peer], 6)
-  assert.deepEqual(layout, {end:'bottom', endRatio:0.45})
+  assert.deepEqual(layout, {end:'bottom', endRatio:0.5})
   for (const ratio of [-1, 1.1, null, '0.5']) assert.throws(() => validateWireLayout({end:'left', endRatio:ratio}))
   assert.throws(() => validateWireLayout({startRatio:0.5}))
 })
@@ -274,7 +275,7 @@ test('straightening honors pinned docks instead of averaging them away', () => {
   const view = { ...wire, to: { ...to,y:4 } }
   const layout = { start:'right', startRatio:0.56, end:'left' }
   const path = resolveWire(view, layout, 1)
-  assert.deepEqual(path, [{x:100,y:50*0.56},{x:200,y:50*0.56}])
+  assert.deepEqual([path[0], path.at(-1)], [{x:100,y:50*0.56},{x:200,y:29}])
   const pinned = resolveWire(view, { ...layout, endRatio:0.5 }, 1)
   assert.equal(pinned[0].y, 50*0.56)
   assert.equal(pinned.at(-1).y, 29)

@@ -83,7 +83,10 @@ function prepareInlineFlow(sf) {
     }
     if (custom) dockProjectLinks(links)
     bounds = { width: widths[0] + (widths[1] ? gap + widths[1] : 0), height: y - gap }
-  } else bounds = layoutGraph(nodes, links, 'TB')
+  } else {
+    bounds = layoutGraph(nodes, links, 'TB')
+    dockProjectLinks(links)
+  }
   const editedBounds = applyLayoutEdits(nodes, links)
   if (editedBounds) {
     bounds = editedBounds

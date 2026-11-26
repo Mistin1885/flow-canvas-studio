@@ -23,7 +23,10 @@ function sideAxis(side) {
 export function placeDock(layout, key, card, side, cursor, peers, radius, onlySnap = false) {
   const axis = sideAxis(side), size = axis === 'x' ? card.w : card.h
   if (!size) return false
-  let at = cursor[axis], distance = Infinity
+  const middle = card[axis] + size / 2
+  const centerDistance = Math.abs(cursor[axis] - middle)
+  const onCenter = !onlySnap && centerDistance <= radius
+  let at = onCenter ? middle : cursor[axis], distance = onCenter ? centerDistance : Infinity
   for (const point of peers) {
     if (nearestFace(card, point) !== side) continue
     const offset = Math.abs(point[axis] - cursor[axis])

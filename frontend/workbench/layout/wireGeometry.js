@@ -1,3 +1,4 @@
+import { centerConnection } from './cardCenters.js'
 import { orthogonalPoints, simplifyWire } from './polyline.js'
 import { pinnedRoute } from './pinnedBends.js'
 import { legacyRoute } from './legacyWire.js'
@@ -130,6 +131,8 @@ export function closestSegment(points, p) {
 
 export function resolveWire(view, layout, scale) {
   if (!layout?.start && !layout?.end && !layout?.lanes) return view.autoPoints
+  const centered = centerConnection(view.from, view.to, layout)
+  if (centered && clearRoute(centered.points, view.obstacles || [])) return centered.points
   const [a, b] = wirePorts(view, layout, scale)
   const single = layout.lanes?.length === 1 && layout.lanes[0]
   // A dragged lane is stored relative to the ports' midpoint. Let a user

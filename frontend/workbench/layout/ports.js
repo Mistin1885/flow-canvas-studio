@@ -3,65 +3,19 @@ import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
 
-import { facePort, facingSide } from './dockPoints.js'
+import { linkPorts } from './linkPorts.js'
 import { segmentHitsBox } from './routing.js'
 import { edgeLabelLines } from './labels.js'
 
-// Preserve the worksheet's entry/exit faces, while docking to the actual card.
-// Separate several arrows on one side so their tips and first bends stay visible.
-const pinSides = ['left', 'right', 'top', 'bottom']
-
 function dockProjectLinks(links, mx, my) {
-  const s = diagramState.readingScale,
-    sides = new Map()
-  function port(i, other, p, adjacent) {
-    const b = p && graphModel.nodes[i.id].drawingBox
-    let side,
-      ratio = 0.5
-    if (b) {
-      const [x, y, w, h] = b,
-        [px, py] = p
-      const distances = [Math.abs(px - x), Math.abs(px - x - w), Math.abs(py - y), Math.abs(py - y - h)]
-      side = distances.indexOf(Math.min(...distances))
-      // Some Excel endpoints terminate just outside a corner. Follow the drawn
-      // final leg there so a horizontal arrow still meets a vertical card face.
-      if (adjacent && (px < x || px > x + w) && (py < y || py > y + h)) {
-        const dx = adjacent[0] - px,
-          dy = adjacent[1] - py
-        const toward = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 1) : dy < 0 ? 2 : 3
-        if (distances[toward] <= distances[side] + 18) side = toward
-      }
-      ratio = side < 2 ? (py - y) / h : (px - x) / w
-    } else {
-      side = pinSides.indexOf(facingSide(i, other))
-    }
-    const key = i.key + '|' + side,
-      pin = {
-        i,
-        side,
-        ratio: Math.max(0.12, Math.min(0.88, ratio)),
-        remote: side < 2 ? other.y + other.h / 2 : other.x + other.w / 2,
-      }
-    if (!sides.has(key)) sides.set(key, [])
-    sides.get(key).push(pin)
-    return pin
-  }
+  if (!links.length) return
+  const s = diagramState.readingScale
   for (const l of links) {
     const r = l.edge.drawingRoute,
       raw = mx && r?.from === l.from.id && r?.to === l.to.id ? r.points : null
-    l.pins = [port(l.from, l.to, raw?.[0], raw?.[1]), port(l.to, l.from, raw?.at(-1), raw?.at(-2))]
+    l.pins = linkPorts(l.from, l.to, l.edge.wireLayout, raw,
+      graphModel.nodes[l.from.id].drawingBox, graphModel.nodes[l.to.id].drawingBox, 14 * s)
     l.guides = raw ? raw.slice(1, -1).map(([x, y]) => ({ x: mx(x), y: my(y) })) : []
-  }
-  for (const pins of sides.values()) {
-    pins.sort((a, b) => Math.round(a.ratio * 12) - Math.round(b.ratio * 12) || a.remote - b.remote)
-    pins.forEach((p, k) => {
-      const i = p.i,
-        side = p.side,
-        u = pins.length === 1 ? p.ratio : 0.14 + (0.72 * k) / (pins.length - 1)
-      const dock = facePort(i, pinSides[side], 14 * s, u)
-      p.at = dock.point
-      p.stub = dock.stub
-    })
   }
   const boxes = diagramState.instances.filter(
     (i) => i.scope === 'project' && !isFrameNode(graphModel.nodes[i.id]),

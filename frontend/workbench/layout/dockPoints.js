@@ -46,7 +46,7 @@ export function nearStraightRoute(from, to, points, scale, layout) {
   const tolerance = 2 * portSnapRadius * scale
   if (Math.abs(a[across] - b[across]) > tolerance) return
   const pinnedStart = layout?.startRatio !== undefined, pinnedEnd = layout?.endRatio !== undefined
-  if (pinnedStart && pinnedEnd && a[across] !== b[across]) return
+  if ((!layout?.lanes || (pinnedStart && pinnedEnd)) && Math.abs(a[across] - b[across]) > 1e-7 * scale) return
   const at = pinnedStart ? a[across] : pinnedEnd ? b[across] : (a[across] + b[across]) / 2
   const dimension = dx ? 'h' : 'w'
   for (const card of [from, to]) {

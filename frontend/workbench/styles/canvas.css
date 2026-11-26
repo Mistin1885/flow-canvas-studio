@@ -25,6 +25,12 @@
   width: 1px;
   height: 1px;
 }
+#node-alignment {
+  z-index: 3;
+  stroke: var(--blue);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+}
 .wire {
   fill: none;
   stroke: #a2b2c2;
