@@ -1,3 +1,4 @@
+import { duplicateSelectedNode } from './duplicateNode.js'
 import { selectionState, editState } from './state.js'
 import { $ } from '../ui/dom.js'
 import { editContext, preferredFrame, setEditTarget } from './selection.js'
@@ -25,6 +26,7 @@ function setBoxMode(on) {
 
 function initGraphTools() {
   $('canvas-box').onclick = () => setBoxMode(!editState.boxMode)
+  $('canvas-duplicate').onclick = duplicateSelectedNode
   $('canvas-properties').onclick = editContext
   $('manage-frames').onclick = $('canvas-members').onclick = () => editMembers(preferredFrame())
   $('canvas-connect').onclick = () =>
@@ -39,7 +41,8 @@ function initGraphTools() {
     $('edit-tools-list').hidden = !editState.enabled
     $('edit-hint').hidden = !editState.enabled
     cancelGesture()
-    setEditTarget(null)
+    const selected = diagramState.selected
+    setEditTarget(editState.enabled && selected ? { node: selected.id } : null)
   }
   document.addEventListener('keydown', (e) => {
     if (

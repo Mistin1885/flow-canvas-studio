@@ -41,4 +41,16 @@ export async function verifyNodeCreation(alice, bob, origin) {
     const { graph } = await (await alice.request.get(origin + '/api/canvases/' + id)).json()
     return [graph.nodes.DEC1?.title, graph.nodes.DEC2?.title, graph.ownerRoleOptions, graph.locationOptions, graph.edges.map(e => [e.from, e.to])]
   }).toEqual(['Decision 0', 'Decision 1', ['role0', 'role1'], ['where0', 'where1'], [['Root', 'DEC1'], ['Root', 'DEC2']]])
+
+  const [a, b] = frames
+  await expect(a.locator('.node[data-node-id="DEC2"]')).toBeVisible()
+  await a.locator('#canvas-edit').click()
+  await a.locator('.node[data-node-id="DEC1"] .node-body').click()
+  await a.locator('#canvas-duplicate').click()
+  await expect(b.locator('.node[data-node-id="DEC3"] .node-title')).toHaveText('Decision 0')
+  const { graph } = await (await alice.request.get(origin + '/api/canvases/' + id)).json()
+  const { layoutPosition, ...copy } = graph.nodes.DEC3
+  expect(copy).toEqual({ ...graph.nodes.DEC1, id: 'DEC3' })
+  expect(layoutPosition).toEqual({ x: expect.any(Number), y: expect.any(Number) })
+  expect(graph.edges).toHaveLength(2)
 }

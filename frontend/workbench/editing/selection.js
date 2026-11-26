@@ -39,6 +39,7 @@ function setEditTarget(next) {
     line.classList.toggle('edit-picked', line._edge === next?.edge)
   showWireGrips(next?.edge && $('paths').querySelector('.edge-route.edit-picked'))
   const multi = !!next?.nodes
+  $('canvas-duplicate').disabled = !next?.node || !graphModel.nodes[next.node]
   $('canvas-properties').disabled = multi || !(next?.node || next?.edge || diagramState.selected)
   $('canvas-members').disabled = $('canvas-connect').disabled = multi
   $('edit-selection-hint').textContent = multi ? `已選取 ${next.nodes.size} 個節點，拖曳其中一個一起移動。Esc 取消選取。` : ''

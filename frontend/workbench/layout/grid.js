@@ -1,16 +1,17 @@
 import { diagramState } from '../diagram/state.js'
 
-function gridPlacement(x, y, w, h, boxes) {
+function gridPlacement(x, y, w, h, boxes, allowNegative = false) {
   const step = 20 * diagramState.readingScale,
     gap = 12 * diagramState.readingScale
-  const rounded = (v) => Math.max(0, Math.round(v / step))
+  const bound = (k) => allowNegative ? k : Math.max(0, k)
+  const rounded = (v) => bound(Math.round(v / step))
   const xs = new Set([0, rounded(x)]),
     ys = new Set([0, rounded(y)])
   // A closest legal grid point is at the requested coordinate or next to an obstacle on each axis.
   for (const b of boxes) {
-    xs.add(Math.max(0, Math.floor((b.x - w - gap) / step)))
+    xs.add(bound(Math.floor((b.x - w - gap) / step)))
     xs.add(Math.ceil((b.x + b.w + gap) / step))
-    ys.add(Math.max(0, Math.floor((b.y - h - gap) / step)))
+    ys.add(bound(Math.floor((b.y - h - gap) / step)))
     ys.add(Math.ceil((b.y + b.h + gap) / step))
   }
   const closest = (values, target) =>

@@ -1,5 +1,5 @@
 import { edgeKey, type Graph, type Link, type Snapshot } from '../api'
-import { suggestNodeId } from '../../workbench/graph/nodeIds.js'
+import { suggestIdForNode } from '../../workbench/graph/nodeIds.js'
 import type { Draft } from './draftMerge'
 
 // A node form creates one node and may add incoming or outgoing links. Only rewrite
@@ -8,7 +8,7 @@ export function resolveCreation(draft: Draft, latest: Snapshot) {
   const id = draft.createdNode
   if (!draft.confirmedConflict || !id || !Object.hasOwn(latest.graph.nodes, id)) return { draft }
   const mine = draft.graph.nodes[id]
-  const replacement = suggestNodeId(mine.type, { ...latest.graph.nodes, ...draft.graph.nodes })
+  const replacement = suggestIdForNode(mine, { ...latest.graph.nodes, ...draft.graph.nodes })
   const node = { ...mine, id: replacement }
   const nodes: Graph['nodes'] = { ...draft.graph.nodes, [replacement]: node }
   delete nodes[id]
