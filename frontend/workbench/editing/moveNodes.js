@@ -1,4 +1,5 @@
 import { diagramState } from '../diagram/state.js'
+import { movingWirePoints } from '../layout/movingWire.js'
 import { rightAnglePath } from '../diagram/paths.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { graphModel } from '../graph/model.js'
@@ -37,10 +38,8 @@ export function previewMove(g, e) {
   }
   for (const v of g.wires) {
     const from = Number(g.moving.has(v.from)), to = Number(g.moving.has(v.to))
-    const d = rightAnglePath(v.points.map((p, k) => {
-      const t = k / Math.max(1, v.points.length - 1), pull = from * (1 - t) + to * t
-      return { x: p.x + pull * delta.x, y: p.y + pull * delta.y }
-    }))
+    const zero = { x: 0, y: 0 }
+    const d = rightAnglePath(movingWirePoints(v.points, from ? delta : zero, to ? delta : zero))
     v.p.setAttribute('d', d)
     v.hit.setAttribute('d', d)
     v.label?.setAttribute('transform', `translate(${delta.x * (from + to) / 2},${delta.y * (from + to) / 2})`)

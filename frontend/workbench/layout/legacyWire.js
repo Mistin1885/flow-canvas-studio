@@ -1,5 +1,6 @@
 // Old documents stored every generated bend, including short steps the user
 // never moved. Accept a simpler route only if it stays in the old corridor.
+import { removeBacktracks } from './backtracks.js'
 import { clearRoute } from './routing.js'
 import { simplifyWire } from './polyline.js'
 import { bypassEndpoints, routeBetweenPorts } from './wireDocking.js'
@@ -81,5 +82,8 @@ export function legacyRoute(a, b, lanes, view, scale) {
     const axis = u.x === v.x ? 'x' : 'y'
     lane = { axis, at: u[axis] }
   }
-  return equivalent(lane) || mergeSmallSteps(original, [view.from, view.to, ...(view.obstacles || [])], tolerance)
+  const boxes = [view.from, view.to, ...(view.obstacles || [])]
+  const path = equivalent(lane) || mergeSmallSteps(original, boxes, tolerance)
+  return view.from === view.to || lanes.some(l => l.exact) ? path :
+    removeBacktracks(path, shortcut => clearRoute(shortcut, boxes))
 }

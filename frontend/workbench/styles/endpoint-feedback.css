@@ -1,0 +1,30 @@
+#endpoint-feedback {
+  position: absolute;
+  z-index: 14;
+  pointer-events: none;
+  max-width: min(30ch, calc(100% - 12px));
+  overflow: hidden;
+  padding: 4px 10px;
+  border: 1px solid #8de3cd;
+  border-radius: 6px;
+  color: white;
+  background: #12564a;
+  box-shadow: 0 2px 6px #0004;
+  font: 600 13px/1.4 var(--ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#endpoint-feedback::before { content: '✓ '; }
+#endpoint-feedback.blocked { background: #80382f; border-color: #ffb7a6; }
+#endpoint-feedback.blocked::before { content: '× '; }
+#canvas.edit-mode .link-target,
+#canvas.edit-mode .link-blocked {
+  outline: 3px solid #138a70;
+  outline-offset: 3px;
+}
+html[data-theme='dark'] #canvas.edit-mode .link-target { outline-color: #67e1c0; }
+#canvas.edit-mode .link-blocked { outline-color: #e3715d; outline-style: dashed; }
+@media (prefers-reduced-motion: no-preference) {
+  #canvas.edit-mode .link-target { animation: endpoint-acquired 220ms ease-out; }
+  @keyframes endpoint-acquired { from { outline-offset: 8px; } to { outline-offset: 3px; } }
+}

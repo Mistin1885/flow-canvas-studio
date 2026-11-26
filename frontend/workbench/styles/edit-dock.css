@@ -77,9 +77,6 @@
   z-index: 10;
   opacity: 0.85;
 }
-.edit-mode .link-target {
-  outline: 4px solid #479dff;
-}
 .draft-wire {
   stroke: #458de2;
   stroke-width: 3;

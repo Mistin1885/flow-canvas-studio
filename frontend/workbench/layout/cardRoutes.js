@@ -3,6 +3,7 @@ import { diagramState } from '../diagram/state.js'
 
 import { graphModel } from '../graph/model.js'
 import { clearRoute, orthogonalRoute, parallelRun, tracksOf, wireTrack } from './routing.js'
+import { removeBacktracks } from './backtracks.js'
 import { straightenAutomaticWire } from './dockPoints.js'
 import { simplifyWire } from './ports.js'
 
@@ -208,6 +209,15 @@ function clearCardRoutes() {
         points[k + 1] = vv
         break
       }
+    }
+    if (l.from !== l.to && !l.edge.wireLayout?.lanes) {
+      l.points = removeBacktracks(points, (shortcut, original) => {
+        if (!clearRoute(shortcut, [...other.map(i => box(i, clearance)), ...endpoints.map(i => box(i, -0.25))]))
+          return false
+        const before = tracksOf(original), after = tracksOf(shortcut)
+        const overlap = (tracks, peer) => tracks.reduce((sum, t) => sum + parallelRun(t, peer, clearance), 0)
+        return peers.every(peer => overlap(after, peer) <= overlap(before, peer) + 0.01)
+      })
     }
     footprints.set(l, tracksOf(l.points))
   }

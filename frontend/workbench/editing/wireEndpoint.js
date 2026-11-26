@@ -1,3 +1,4 @@
+import { showEndpointTarget } from './endpointFeedback.js'
 import { diagramState } from '../diagram/state.js'
 import { frameTargetAt } from '../frames/handles.js'
 import { frameHandles } from '../frames/membership.js'
@@ -26,12 +27,7 @@ export function previewEndpoint(g, event, cursor) {
   // its position just outside the original card.
   if (!card && nearCard(original, cursor, 2 * g.radius)) card = original
   if (card === fixed && card !== original) card = null
-  const target = card && card !== original ? hit : null
-  if (g.target !== target) {
-    g.target?.classList.remove('link-target')
-    g.target = target
-    target?.classList.add('link-target')
-  }
+  showEndpointTarget(g, card && card !== original ? hit : null)
   const previousEndpoint = g.endpoint
   g.endpoint = card?.id
   if (!card) {

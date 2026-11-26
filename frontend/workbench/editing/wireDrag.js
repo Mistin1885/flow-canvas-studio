@@ -1,3 +1,4 @@
+import { objectName } from '../frames/membership.js'
 import { previewEndpoint } from './wireEndpoint.js'
 import { editConnection } from '../graph/edgeMutation.js'
 import { say } from '../ui/toast.js'
@@ -167,7 +168,6 @@ export function moveWireDrag(g, e) {
 }
 
 export function restoreWireDrag(g) {
-  g.target?.classList.remove('link-target')
   for (const p of g.paths) p.setAttribute('d', g.originalPath)
   if (g.labelTransform) g.label?.setAttribute('transform', g.labelTransform)
   else g.label?.removeAttribute('transform')
@@ -194,6 +194,7 @@ export function commitWireDrag(g) {
     graph[field][index].wireLayout = g.next
     replaceGraph(graph, { keepView: true })
     setEditTarget({ edge: graphModel.document[field][index] })
+    if (reconnect) say((changingStart ? '起點' : '終點') + '已改接至「' + objectName(g.endpoint) + '」')
   } catch (error) {
     say(error.message)
   }

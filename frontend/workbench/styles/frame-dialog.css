@@ -115,10 +115,6 @@
 .canvas:not(.edit-mode) .group-port {
   display: none;
 }
-.edit-mode .graph-handle.link-target,
-.edit-mode .style-group-frame.link-target rect {
-  outline: 3px solid var(--teal);
-}
 .edit-mode .style-group-frame rect,
 .edit-mode .flow-outline {
   pointer-events: stroke;

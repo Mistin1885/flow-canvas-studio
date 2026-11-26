@@ -1,5 +1,6 @@
 import { editState } from '../editing/state.js'
 import { diagramState } from './state.js'
+import { movingWirePoints } from '../layout/movingWire.js'
 import { rightAnglePath } from './paths.js'
 import { hiddenGroups } from '../groups/visibility.js'
 import { graphModel } from '../graph/model.js'
@@ -38,13 +39,8 @@ function animateDiagram(oldPositions, revision) {
       const a = positions.get(view.from.key),
         b = positions.get(view.to.key),
         da = { x: a.x - view.from.x, y: a.y - view.from.y },
-        db = { x: b.x - view.to.x, y: b.y - view.to.y },
-        last = Math.max(1, view.points.length - 1)
-      const points = view.points.map((p, k) => ({
-        x: p.x + da.x * (1 - k / last) + (db.x * k) / last,
-        y: p.y + da.y * (1 - k / last) + (db.y * k) / last,
-      }))
-      view.d = rightAnglePath(points)
+        db = { x: b.x - view.to.x, y: b.y - view.to.y }
+      view.d = rightAnglePath(movingWirePoints(view.points, da, db))
       view.p.setAttribute('d', view.d)
       view.hit.setAttribute('d', view.d)
       view.label?.setAttribute('transform', `translate(${(da.x + db.x) / 2},${(da.y + db.y) / 2})`)

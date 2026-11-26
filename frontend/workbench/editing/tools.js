@@ -1,3 +1,4 @@
+import { showEndpointTarget } from './endpointFeedback.js'
 import { duplicateSelectedNode } from './duplicateNode.js'
 import { selectionState, editState } from './state.js'
 import { $ } from '../ui/dom.js'
@@ -110,10 +111,8 @@ function cancelGesture() {
   if (g.box) clearBox(g)
   else if (g.wire) restoreWireDrag(g)
   else if (g.moving) resetMove(g)
-  else {
-    g.preview?.remove()
-    g.target?.classList.remove('link-target')
-  }
+  else g.preview?.remove()
+  if (g.target) showEndpointTarget(g, null)
   if (g.capture?.hasPointerCapture(g.pointer)) g.capture.releasePointerCapture(g.pointer)
 }
 

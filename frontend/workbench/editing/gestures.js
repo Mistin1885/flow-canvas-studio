@@ -10,6 +10,7 @@ import { $, svg } from '../ui/dom.js'
 import { updateTrace } from '../diagram/animation.js'
 import { rightAnglePath } from '../diagram/paths.js'
 import { frameTargetAt } from '../frames/handles.js'
+import { showEndpointTarget } from './endpointFeedback.js'
 import { cancelGesture } from './tools.js'
 
 import { beginWireDrag, moveWireDrag, commitWireDrag } from './wireDrag.js'
@@ -147,9 +148,8 @@ function initGestures() {
           rightAnglePath([start, { x: lane, y: start.y }, { x: lane, y }, { x, y }]),
         )
         const target = frameTargetAt(e.clientX, e.clientY)
-        g.target?.classList.remove('link-target')
-        g.target = target !== g.card ? target : null
-        g.target?.classList.add('link-target')
+        const key = target?.dataset.endpoint || target?.dataset.key
+        showEndpointTarget(g, key && key !== g.item.id ? target : null)
       } else previewMove(g, e)
     },
     true,
