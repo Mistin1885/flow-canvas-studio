@@ -1,3 +1,4 @@
+import { validLabelBackground } from '../appearance/edgeColors.js'
 import { validateWireLayout } from '../layout/wireGeometry.js'
 
 function validateFrameData(g) {
@@ -37,6 +38,7 @@ function validateFrameData(g) {
         typeof e.label !== 'string' ||
         e.label.length > 200 ||
         (e.conditionColor && !/^#[a-f0-9]{6}$/i.test(e.conditionColor)) ||
+        !validLabelBackground(e.labelBackgroundColor) ||
         seen.has(key)
       )
         throw Error('群組連線端點、條件或顏色無效，或已有相同連線')

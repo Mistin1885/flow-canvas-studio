@@ -1,20 +1,13 @@
 import { reconcileEdgeReviews, updateEdge } from '../graph/edgeMutation.js'
-import { readableInk } from '../appearance/contrast.js'
+import { openEdgePalette, saveEdgePalette } from './edgePalette.js'
 import { editState } from './state.js'
-import { $, el } from '../ui/dom.js'
+import { $ } from '../ui/dom.js'
 
 import { endpointControls } from './selection.js'
 import { graphModel } from '../graph/model.js'
 import { exportGraph } from '../io/graph.js'
 import { replaceGraph } from '../graph/replace.js'
 import { say } from '../ui/toast.js'
-
-function labelColor(e) {
-  return (
-    e.conditionColor ||
-    (/^(yes|pass)$/i.test(e.label) ? '#247148' : /^(no|fail)\b/i.test(e.label) ? '#a34935' : '#476a91')
-  )
-}
 
 function openEdge(from, to, edge) {
   if ($('line-dialog').open) return
@@ -37,33 +30,8 @@ function openEdge(from, to, edge) {
       control.value = control.disabled ? '' : layout?.[key] || ''
     }
   }
-  $('line-text').value = edge?.label || ''
-  $('line-color').value = labelColor(edge || { label: '' })
-  $('line-auto').checked = !edge?.conditionColor
+  openEdgePalette(edge || {}, [...graphModel.edges, ...(graphModel.document.groupLinks || [])])
   $('line-error').textContent = ''
-  const palette = $('line-palette')
-  palette.replaceChildren()
-  const used = new Set()
-  for (const e of [...graphModel.edges, ...(graphModel.document.groupLinks || [])]) {
-    if (!e.label && !e.conditionColor) continue
-    const label = e.label || '',
-      color = labelColor(e).toLowerCase(),
-      key = JSON.stringify([label, color])
-    if (used.has(key)) continue
-    used.add(key)
-    const b = el('button', 'color-chip', label || '無條件文字')
-    b.type = 'button'
-    b.style.backgroundColor = color
-    b.style.color = readableInk(color)
-    b.title = b.ariaLabel = '套用 ' + (label || '無條件文字') + ' · ' + color
-    b.onclick = () => {
-      $('line-text').value = label
-      $('line-color').value = color
-      $('line-auto').checked = false
-    }
-    palette.append(b)
-  }
-  if (!used.size) palette.append(el('small', 'source-meta', '尚無已使用的條件'))
   $('line-dialog').showModal()
   $('line-text').focus()
 }
@@ -91,8 +59,7 @@ function saveEdge() {
   }
   if (Object.keys(layout).length) e.wireLayout = layout
   else delete e.wireLayout
-  if ($('line-auto').checked) delete e.conditionColor
-  else e.conditionColor = $('line-color').value
+  saveEdgePalette(e)
   for (const key of [from, to])
     if (key.startsWith('group:') && !g.layoutGroups?.some((r) => r.name === key.slice(6)))
       (g.layoutGroups ??= []).push({ name: key.slice(6), direction: 'auto' })
@@ -105,4 +72,4 @@ function saveEdge() {
   say(old ? '已更新連線' : '已建立連線')
 }
 
-export { labelColor, openEdge, readableInk, saveEdge }
+export { openEdge, saveEdge }

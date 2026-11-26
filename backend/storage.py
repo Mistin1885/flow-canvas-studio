@@ -75,6 +75,13 @@ def edge_key(edge):
     return encode([edge.get(k) for k in ("from", "to", "kind", "label")])
 
 
+def check_edge_appearance(edge):
+    background = edge.get("labelBackgroundColor", "auto")
+    if background != "auto" and (not isinstance(background, str) or not re.fullmatch(r"#[a-fA-F0-9]{6}", background)):
+        raise Invalid("條件文字底色無效")
+    check_wire_layout(edge)
+
+
 def check_wire_layout(edge):
     if "wireLayout" not in edge:
         return
@@ -168,7 +175,7 @@ def check_graph(graph):
             raise Invalid("連線格式無效")
         if edge.get("from") not in nodes or edge.get("to") not in nodes:
             raise Conflict("連線端點已變更或不在此畫布")
-        check_wire_layout(edge)
+        check_edge_appearance(edge)
         key = edge_key(edge)
         if key in seen:
             raise Invalid("重複連線")
@@ -187,7 +194,7 @@ def check_graph(graph):
             raise Conflict("群組或子流程成員已變更")
     endpoints = set(nodes) | {"flow:" + key for key in flows} | {"group:" + key for key in groups}
     for link in graph.get("groupLinks", []):
-        check_wire_layout(link)
+        check_edge_appearance(link)
         if link.get("from") not in endpoints or link.get("to") not in endpoints:
             raise Conflict("框線或群組連線端點已變更")
     for item in [*nodes.values(), *edges]:

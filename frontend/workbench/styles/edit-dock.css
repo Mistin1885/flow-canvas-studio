@@ -96,15 +96,6 @@
 #paths .user-color .wire {
   stroke: var(--edge-color);
 }
-#paths .user-color .edge-label-bg,
-#trace-overlay .user-color .edge-label-bg {
-  fill: var(--edge-color);
-  stroke: var(--edge-ink);
-}
-#paths .user-color .edge-label,
-#trace-overlay .user-color .edge-label {
-  fill: var(--edge-ink);
-}
 .layout-fields {
   grid-column: 1/-1;
   border: 1px solid var(--line);
@@ -141,49 +132,6 @@
 body[data-theme='dark'] #delete-node,
 [data-theme='dark'] #delete-node {
   color: #ffabab;
-}
-#line-dialog {
-  width: min(400px, 94vw);
-  max-height: 85dvh;
-  overflow: auto;
-  padding: 0;
-  background: var(--paper);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-.line-fields {
-  display: grid;
-  padding: 15px;
-  gap: 10px;
-}
-.line-fields p {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.line-fields label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.line-fields input:not([type='checkbox']) {
-  flex: 1;
-  min-width: 0;
-}
-#line-palette {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 5px;
-}
-.color-chip {
-  min-width: 30px;
-  max-width: 100%;
-  min-height: 28px;
-  padding: 3px 8px;
-  overflow-wrap: anywhere;
-  border: 1px solid var(--line);
-  border-radius: 4px;
 }
 .editor-footer {
   flex-wrap: wrap;
@@ -265,13 +213,6 @@ body[data-theme='dark'] #delete-node,
 #edit-hint {
   max-width: min(360px, 75%);
 }
-.wire-sides {
-  margin: 0;
-}
-.line-fields #line-reset-row[hidden] {
-  display: none;
-}
-
 .canvas.box-mode { cursor: crosshair; }
 .selection-box {
   position: absolute;

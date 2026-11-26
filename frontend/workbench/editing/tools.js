@@ -86,9 +86,6 @@ function initGraphTools() {
     }
   }
   $('line-close').onclick = () => $('line-dialog').close()
-  $('line-color').oninput = () => {
-    $('line-auto').checked = false
-  }
   $('line-form').onsubmit = (e) => {
     e.preventDefault()
     try {

@@ -1,3 +1,4 @@
+import { validLabelBackground } from '../appearance/edgeColors.js'
 import { validateWireLayout } from '../layout/wireGeometry.js'
 import { checkKnowledge } from '../knowledge/validate.js'
 import { checkBadges } from '../badges/model.js'
@@ -251,7 +252,7 @@ function readGraph(value, { deferKnowledgePins = false } = {}) {
       bad(n.id, '群組樣式繼承設定無效')
   }
   for (const e of value.edges)
-    if (e.conditionColor !== undefined && !/^#[0-9a-f]{6}$/i.test(e.conditionColor))
+    if ((e.conditionColor !== undefined && !/^#[0-9a-f]{6}$/i.test(e.conditionColor)) || !validLabelBackground(e.labelBackgroundColor))
       bad('edges', '條件顏色無效')
   for (const n of Object.values(value.nodes))
     if (n.layoutOrder !== undefined && (!Number.isSafeInteger(n.layoutOrder) || n.layoutOrder < 0))

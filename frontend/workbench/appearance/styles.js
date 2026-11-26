@@ -2,7 +2,7 @@ import { categoryTags, legendState } from '../categories/model.js'
 import { groupStyle, defaultColors } from './schema.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 
-import { readableInk } from '../editing/edges.js'
+import { readableInk } from './contrast.js'
 import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
 

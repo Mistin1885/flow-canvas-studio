@@ -9,7 +9,9 @@ import { updateTrace } from './animation.js'
 import { drawStyleFrames } from '../appearance/styles.js'
 
 import { flowKey } from '../frames/membership.js'
-import { labelColor, openEdge, readableInk } from '../editing/edges.js'
+import { labelColor } from '../appearance/edgeColors.js'
+import { readableInk } from '../appearance/contrast.js'
+import { openEdge } from '../editing/edges.js'
 import { placeEdgeLabels } from '../layout/edgeLabels.js'
 
 export function renderWires(projectNodes, pathSet) {
@@ -77,7 +79,6 @@ export function renderWires(projectNodes, pathSet) {
       if (link.edge.conditionColor) {
         group.classList.add('user-color')
         group.style.setProperty('--edge-color', link.edge.conditionColor)
-        group.style.setProperty('--edge-ink', readableInk(link.edge.conditionColor))
       }
     }
     group.addEventListener('pointermove', (e) => {
@@ -131,7 +132,7 @@ export function renderWires(projectNodes, pathSet) {
       group.append(label)
       view.label = label
       const color = labelColor(link.edge)
-      label.classList.add('user-color')
+      if (link.edge.conditionColor || link.edge.labelBackgroundColor) bg.style.stroke = readableInk(color)
       bg.style.setProperty('fill', color, 'important')
       t.style.setProperty('fill', readableInk(color), 'important')
     }

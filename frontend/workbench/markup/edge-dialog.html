@@ -36,25 +36,30 @@
           </select></label
         >
       </div>
-      <label id="line-reset-row"
-        ><input type="checkbox" id="line-reset-layout" />還原線段、接點與文字的自動排版</label
-      >
-      <label>
-        條件文字
+      <label id="line-reset-row" class="line-check">
+        <input type="checkbox" id="line-reset-layout" />還原線段、接點與文字的自動排版
+      </label>
+      <div class="condition-fields">
+        <div class="condition-heading">
+          <label for="line-text">條件文字</label>
+          <select id="line-preset" aria-label="套用既有條件文字與配色"></select>
+        </div>
         <input id="line-text" maxlength="200" placeholder="例如：核可、退回" />
-      </label>
-      <label>
-        條件顏色
-        <input type="color" id="line-color" />
-      </label>
-      <label>
-        <input type="checkbox" id="line-auto" />
-        依條件自動配色
-      </label>
-      <div>
-        套用已使用的條件文字與顏色
-        <div id="line-palette"></div>
       </div>
+      <div class="edge-color-field">
+        <label for="line-color">線段顏色</label>
+        <label class="line-check"><input id="line-auto" type="checkbox" aria-label="線段顏色自動配色" />自動</label>
+        <input type="color" id="line-color" />
+        <div id="line-color-palette" class="edge-swatches" role="group" aria-label="線段顏色已用色"></div>
+      </div>
+      <div class="edge-color-field">
+        <label for="line-label-color">條件文字底色</label>
+        <label class="line-check"><input id="line-label-auto" type="checkbox" aria-label="條件文字底色自動配色" />自動</label>
+        <input type="color" id="line-label-color" />
+        <div id="line-label-color-palette" class="edge-swatches" role="group" aria-label="條件文字底色已用色"></div>
+      </div>
+    </div>
+    <div class="editor-footer line-actions">
       <small id="line-error" role="alert"></small>
       <button type="submit" class="editor-primary">套用連線</button>
     </div>
