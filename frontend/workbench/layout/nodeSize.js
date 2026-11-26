@@ -9,7 +9,7 @@ import { tagList } from '../diagram/visibleGraph.js'
 import { paintCard } from '../appearance/styles.js'
 
 // Presentation preferences do not modify the flow graph or commands.
-function sizeReadableNodes(items = diagramState.instances) {
+function sizeReadableNodes() {
   const s = diagramState.readingScale,
     flows = graphModel.document.subflows || []
   diagramState.W = Math.round(280 * s)
@@ -17,7 +17,7 @@ function sizeReadableNodes(items = diagramState.instances) {
   const probe = el('div')
   probe.style.cssText =
     'position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;width:0;height:0;overflow:hidden'
-  const samples = items.map((i) => {
+  const samples = diagramState.instances.map((i) => {
     const n = graphModel.nodes[i.id],
       step = i.scope !== 'project',
       card = el('div', 'node'),
@@ -40,7 +40,7 @@ function sizeReadableNodes(items = diagramState.instances) {
     return card
   })
   $('nodes').append(probe)
-  items.forEach((i, k) => {
+  diagramState.instances.forEach((i, k) => {
     const card = samples[k]
     const railHeight = side => {
       const rail = card.querySelector('.badge-rail-' + side)

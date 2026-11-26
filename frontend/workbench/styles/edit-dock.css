@@ -226,7 +226,5 @@ body[data-theme='dark'] #delete-node,
   outline-offset: 2px;
 }
 .edit-mode .node.being-moved { transition: none; }
-#arrange-dialog { width: min(430px, calc(100vw - 32px)); }
-#arrange-dialog p { margin: 14px 0 0; color: var(--muted); line-height: 1.6; }
 .edit-dock { max-width: calc(100% - 24px); overflow-x: auto; }
 .edit-dock button, #edit-tools-list { white-space: nowrap; flex-shrink: 0; }
