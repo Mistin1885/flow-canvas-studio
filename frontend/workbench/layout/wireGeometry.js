@@ -1,4 +1,5 @@
 import { orthogonalPoints, simplifyWire } from './polyline.js'
+import { pinnedRoute } from './pinnedBends.js'
 import { legacyRoute } from './legacyWire.js'
 import { routeBetweenPorts } from './wireDocking.js'
 
@@ -78,8 +79,7 @@ export function parallelGuides(routes, points, index, radius) {
   return guides
 }
 
-// Only the line the user moved is a constraint. The bends that connected it
-// to the ports are disposable, otherwise each new drag accumulates old bends.
+// Snap the coordinate of the segment under the pointer.
 export function dragLanes(points, index, delta, ports, scale, guides = [], radius = 0) {
   const p = points[index]
   const axis = p.x === points[index + 1].x ? 'x' : 'y'
@@ -147,7 +147,13 @@ export function resolveWire(view, layout, scale) {
       axis, at: (a.point[axis] + b.point[axis]) / 2 + at * scale,
     })
   } else if (layout.lanes?.length) {
-    return legacyRoute(a, b, layout.lanes, view, scale)
+    if (!layout.lanes.every(lane => lane.exact === true))
+      return legacyRoute(a, b, layout.lanes, view, scale)
+    const pinned = pinnedRoute([a, b], layout.lanes, scale, view)
+    if (pinned) return pinned
+    // Cards or dock sides may have moved since the edit. Keep the saved bends
+    // and draw a safe automatic connection until that route fits again.
+    middle = routeBetweenPorts(a, b, view, scale)
   } else {
     middle = routeBetweenPorts(a, b, view, scale)
   }

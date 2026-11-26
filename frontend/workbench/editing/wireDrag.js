@@ -4,6 +4,7 @@ import { replaceGraph } from '../graph/replace.js'
 import { diagramState } from '../diagram/state.js'
 import { rightAnglePath } from '../diagram/paths.js'
 import { collectDockGuides, placeDock, snapTerminalSegment } from '../layout/dockSnap.js'
+import { interiorLanes, moveBend, pinnedRoute } from '../layout/pinnedBends.js'
 import { routedPoints } from '../layout/editedWires.js'
 import {
   closestSegment,
@@ -133,8 +134,20 @@ export function moveWireDrag(g, e) {
         restoreWireDrag(g)
         return
       }
-      if (!snapTerminalSegment(layout, g.geometry, g.points, g.index, delta, g.dockGuides, g.radius))
-        layout.lanes = dragLanes(g.points, g.index, delta, wirePorts(g.geometry, layout, scale), scale, g.guides, g.radius)
+      const snappedDock = snapTerminalSegment(layout, g.geometry, g.points, g.index, delta, g.dockGuides, g.radius)
+      const ports = wirePorts(g.geometry, layout, scale)
+      if (snappedDock && g.points.length >= 4) {
+        // Dock snapping changes the midpoint used to store offsets. Rebase the
+        // untouched segments on the new ports to keep them at their visible positions.
+        const lanes = interiorLanes(g.points, ports, scale)
+        if (!pinnedRoute(ports, lanes, scale, g.geometry)) return
+        layout.lanes = lanes
+      } else if (!snappedDock) {
+        const [moved] = dragLanes(g.points, g.index, delta, ports, scale, g.guides, g.radius)
+        const lanes = moveBend(g.points, g.index, moved, ports, scale, g.geometry)
+        if (!lanes) return
+        layout.lanes = lanes
+      }
     } else {
       const card = g.mode === 'start' ? g.geometry.from : g.geometry.to
       const side = nearestFace(card, cursor)
