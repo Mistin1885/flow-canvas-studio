@@ -28,3 +28,6 @@
 !backend/legacy/*.sql
 !frontend/shared/
 !frontend/shared/*.js
+
+# Local development guidance
+.agent/

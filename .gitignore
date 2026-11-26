@@ -51,3 +51,6 @@ dfx-project-workbench.html
 
 # Standalone draft conflict review preview
 draft-conflict-review.html
+
+# Local development guidance
+/.agent/

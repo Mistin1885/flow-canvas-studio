@@ -2,6 +2,10 @@
 
 Flow Workspace is a self-hosted flowchart editor for a team of about five people working across multiple canvases. Each canvas defines its own workflows, groups, and categories. DFx and Debug Playbook can serve as example datasets.
 
+## Before development
+
+Read `.agent/README.md` and `.agent/regressions.md` before planning or changing code in this checkout. They record the owner's working preferences and regression scenarios from earlier development sessions. The local `.agent/` directory is excluded from Git and Docker builds. On a fresh clone without these files, use this document and the project README. To carry the detailed guidance to another machine, copy the directory separately.
+
 ## Development Environment
 
 - Build the frontend with React, TypeScript, Vite, and React Flow. Use elkjs for automatic layout when needed.
