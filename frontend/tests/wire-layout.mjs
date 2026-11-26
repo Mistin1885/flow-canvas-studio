@@ -10,6 +10,7 @@ import {
   routeAnchor,
   nearestFace,
 } from '../workbench/layout/wireGeometry.js'
+import { collectDockGuides, placeDock, snapTerminalSegment } from '../workbench/layout/dockSnap.js'
 import { clearRoute } from '../workbench/layout/routing.js'
 import { straightenAutomaticWire } from '../workbench/layout/dockPoints.js'
 import { rightAnglePath } from '../workbench/diagram/paths.js'
@@ -231,4 +232,50 @@ test('a snapped peer near the port midpoint keeps its exact lane after serializa
   const path = resolveWire(view, JSON.parse(JSON.stringify(layout)), 1)
   assert.ok(path.some((p,i) => i && p.y === 32 && path[i-1].y === 32))
   assert.ok(clearRoute(path, [view.from, view.to]))
+})
+
+
+test('a branch dragged to a shared source snaps its actual dock and preserves its existing bend', () => {
+  const view = { ...wire, to: { ...to, y: 100 } }
+  const layout = { start: 'right', end: 'left', lanes: [{ axis: 'x', at: -15 }] }
+  const path = resolveWire(view, layout, 1)
+  const peer = { x: 100, y: 30 }
+  const guides = collectDockGuides(view, [
+    { wireGeometry: { from: to, to: from }, wirePoints: [{x:200,y:30}, peer] },
+    { wireGeometry: { from: {...from}, to }, wirePoints: [{x:100,y:28}, {x:200,y:28}] },
+  ])
+  assert.deepEqual(guides.start, [peer])
+  assert.equal(snapTerminalSegment(layout, view, path, 0, { x: 0, y: 4 }, guides, 6), true)
+  const saved = JSON.parse(JSON.stringify(layout))
+  validateWireLayout(saved)
+  const result = resolveWire(view, saved, 1)
+  assert.deepEqual(result[0], peer)
+  assert.deepEqual(result[1], { ...path[1], y: peer.y })
+  assert.deepEqual(result.slice(2), path.slice(2))
+})
+
+test('terminal snapping respects the face and radius; a grip can also place a free dock', () => {
+  const card = { x: 20, y: 10, w: 100, h: 40 }
+  const layout = {}, peer = { x: 90, y: 10 }
+  const path = [{x:75,y:-50}, {x:75,y:10}]
+  const snap = dx => snapTerminalSegment(layout, { from, to: card }, path, 0, { x: dx, y: 0 },
+    {start: [], end: [peer, { x: 81, y: 50 }]}, 6)
+  assert.equal(snap(6), false)
+  assert.deepEqual(layout, {})
+  assert.equal(snap(10), true)
+  assert.deepEqual(layout, { end: 'top', endRatio: 0.7 })
+  placeDock(layout, 'end', card, 'bottom', {x:65, y:50}, [peer], 6)
+  assert.deepEqual(layout, {end:'bottom', endRatio:0.45})
+  for (const ratio of [-1, 1.1, null, '0.5']) assert.throws(() => validateWireLayout({end:'left', endRatio:ratio}))
+  assert.throws(() => validateWireLayout({startRatio:0.5}))
+})
+
+test('straightening honors pinned docks instead of averaging them away', () => {
+  const view = { ...wire, to: { ...to,y:4 } }
+  const layout = { start:'right', startRatio:0.56, end:'left' }
+  const path = resolveWire(view, layout, 1)
+  assert.deepEqual(path, [{x:100,y:50*0.56},{x:200,y:50*0.56}])
+  const pinned = resolveWire(view, { ...layout, endRatio:0.5 }, 1)
+  assert.equal(pinned[0].y, 50*0.56)
+  assert.equal(pinned.at(-1).y, 29)
 })

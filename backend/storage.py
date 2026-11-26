@@ -85,6 +85,10 @@ def check_wire_layout(edge):
         layout[key] not in ("top", "right", "bottom", "left") for key in ("start", "end") if key in layout
     ):
         raise Invalid("連線接點無效")
+    for side in ("start", "end"):
+        key = side + "Ratio"
+        if key in layout and (side not in layout or not coordinate(layout[key]) or not 0 <= layout[key] <= 1):
+            raise Invalid("連線接點位置無效")
     if "label" in layout:
         label = layout["label"]
         if not isinstance(label, dict) or not all(coordinate(label.get(k)) for k in ("x", "y")):

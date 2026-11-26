@@ -116,7 +116,9 @@ function initGestures() {
       e.stopImmediatePropagation()
       const dx = e.clientX - g.x,
         dy = e.clientY - g.y
-      if (!g.started && Math.hypot(dx, dy) < 4) return
+      // A small mouse correction can cover the entire gap between two docks.
+      const threshold = g.wire && g.mode !== 'label' && e.pointerType === 'mouse' ? 2 : 4
+      if (!g.started && Math.hypot(dx, dy) < threshold) return
       if (!g.started) {
         if (g.keys?.length === 1) setEditTarget({ node: g.item.id })
         diagramState.hoverTrace = null

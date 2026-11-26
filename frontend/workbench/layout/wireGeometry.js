@@ -15,6 +15,10 @@ export function validateWireLayout(layout) {
     typeof layout !== 'object' ||
     Array.isArray(layout) ||
     [layout.start, layout.end].some((s) => s !== undefined && !dockSides.includes(s)) ||
+    ['start', 'end'].some(key => {
+      const ratio = layout[key + 'Ratio']
+      return ratio !== undefined && (!layout[key] || !Number.isFinite(ratio) || ratio < 0 || ratio > 1)
+    }) ||
     (layout.label !== undefined && !(finite(layout.label?.x) && finite(layout.label?.y))) ||
     (layout.lanes !== undefined &&
       (!Array.isArray(layout.lanes) ||
@@ -35,7 +39,7 @@ export function wirePorts(view, layout, scale) {
     ['start', view.from, ports[0]],
     ['end', view.to, ports.at(-1)],
   ].map(([key, card, auto]) => layout[key]
-    ? facePort(card, layout[key], 12 * scale)
+    ? facePort(card, layout[key], 12 * scale, layout[key + 'Ratio'])
     : { point: auto, stub: extendPort(auto, nearestFace(card, auto), 12 * scale) })
 }
 
@@ -132,7 +136,7 @@ export function resolveWire(view, layout, scale) {
   // pull it back onto their common axis without having to reset the wire.
   if (!layout.lanes || (single && single.exact !== true && finite(single.at) && Math.abs(single.at) <= portSnapRadius)) {
     const corridor = layout.start || layout.end ? [a.point, b.point] : view.autoPoints
-    const straight = nearStraightRoute(view.from, view.to, corridor, scale)
+    const straight = nearStraightRoute(view.from, view.to, corridor, scale, layout)
     if (straight && (!single || straight[0][single.axis] === straight[1][single.axis]) &&
         clearRoute(straight, view.obstacles || [])) return straight
   }

@@ -85,6 +85,7 @@ function saveEdge() {
   const layout = $('line-reset-layout').checked ? {} : { ...e.wireLayout }
   for (const key of ['start', 'end']) {
     const side = $('line-' + key + '-side').value
+    if (side !== layout[key]) delete layout[key + 'Ratio']
     if (side) layout[key] = side
     else delete layout[key]
   }

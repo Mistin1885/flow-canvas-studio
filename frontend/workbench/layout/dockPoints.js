@@ -35,7 +35,7 @@ export function nearestFace(card, p) {
 }
 
 // Align only the ports. The cards and their stored coordinates stay in place.
-export function nearStraightRoute(from, to, points, scale) {
+export function nearStraightRoute(from, to, points, scale, layout) {
   if (from === to || points.length < 2) return
   const a = points[0], b = points.at(-1)
   const side = nearestFace(from, a), otherSide = nearestFace(to, b)
@@ -45,7 +45,9 @@ export function nearStraightRoute(from, to, points, scale) {
   if ((b[along] - a[along]) * direction <= 0) return
   const tolerance = 2 * portSnapRadius * scale
   if (Math.abs(a[across] - b[across]) > tolerance) return
-  const at = (a[across] + b[across]) / 2
+  const pinnedStart = layout?.startRatio !== undefined, pinnedEnd = layout?.endRatio !== undefined
+  if (pinnedStart && pinnedEnd && a[across] !== b[across]) return
+  const at = pinnedStart ? a[across] : pinnedEnd ? b[across] : (a[across] + b[across]) / 2
   const dimension = dx ? 'h' : 'w'
   for (const card of [from, to]) {
     const inset = Math.min(4 * scale, card[dimension] / 4)

@@ -3,6 +3,7 @@ import { exportGraph } from '../io/graph.js'
 import { replaceGraph } from '../graph/replace.js'
 import { diagramState } from '../diagram/state.js'
 import { rightAnglePath } from '../diagram/paths.js'
+import { collectDockGuides, placeDock, snapTerminalSegment } from '../layout/dockSnap.js'
 import { routedPoints } from '../layout/editedWires.js'
 import {
   closestSegment,
@@ -73,10 +74,10 @@ export function beginWireDrag(group, e, grip) {
   const mode = grip || (e.target.closest('.edge-annotation') ? 'label' : 'segment')
   const index = closestSegment(points, start)
   const radius = 6 / diagramState.scale
+  const peers = mode === 'label' ? [] : Array.from($('paths').querySelectorAll('.edge-route:not(.group-off)'))
+    .filter(other => other !== group && other.wirePoints)
   const guides = mode === 'segment'
-    ? parallelGuides(Array.from($('paths').querySelectorAll('.edge-route:not(.group-off)'))
-        .filter(other => other !== group && other.wirePoints)
-        .map(other => other.wirePoints), points, index, radius)
+    ? parallelGuides(peers.map(other => other.wirePoints), points, index, radius)
     : []
   const capture = e.target
   capture.setPointerCapture(e.pointerId)
@@ -95,6 +96,7 @@ export function beginWireDrag(group, e, grip) {
     index,
     radius,
     guides,
+    dockGuides: collectDockGuides(geometry, peers),
     paths: group.querySelectorAll('.wire,.edge-hit'),
     label,
     originalPath: group.querySelector('.wire').getAttribute('d'),
@@ -131,11 +133,13 @@ export function moveWireDrag(g, e) {
         restoreWireDrag(g)
         return
       }
-      layout.lanes = dragLanes(g.points, g.index, delta, wirePorts(g.geometry, layout, scale), scale, g.guides, g.radius)
+      if (!snapTerminalSegment(layout, g.geometry, g.points, g.index, delta, g.dockGuides, g.radius))
+        layout.lanes = dragLanes(g.points, g.index, delta, wirePorts(g.geometry, layout, scale), scale, g.guides, g.radius)
     } else {
-      const side = nearestFace(g.mode === 'start' ? g.geometry.from : g.geometry.to, cursor)
-      if (g.next?.[g.mode] === side) return
-      layout[g.mode] = side
+      const card = g.mode === 'start' ? g.geometry.from : g.geometry.to
+      const side = nearestFace(card, cursor)
+      placeDock(layout, g.mode, card, side, cursor, g.dockGuides[g.mode], g.radius)
+      if (g.next?.[g.mode] === side && g.next[g.mode + 'Ratio'] === layout[g.mode + 'Ratio']) return
     }
     const next = routedPoints(g.geometry, layout),
       d = rightAnglePath(next)
