@@ -1,3 +1,4 @@
+import { ungrouped } from '../options/catalog.js'
 import { showEndpointTarget } from './endpointFeedback.js'
 import { duplicateSelectedNode } from './duplicateNode.js'
 import { selectionState, editState } from './state.js'
@@ -68,7 +69,8 @@ function initGraphTools() {
   $('group-direction').onchange = () =>
     editState.groupDraft.set($('node-group').value, $('group-direction').value)
   $('add-group').onclick = () => {
-    const name = $('group-name').value.trim(),
+    const typed = $('group-name').value.trim(),
+      name = typed === '未指定' ? ungrouped : typed,
       picker = $('node-group')
     if (!name) {
       $('group-message').textContent = '請輸入群組名稱'

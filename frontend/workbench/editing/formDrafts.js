@@ -1,3 +1,7 @@
+import { annotateOptions } from '../options/controls.js'
+import { showOptionStatus } from '../options/manager.js'
+import { optionEdits, optionGraph, restoreOptionEdits } from '../options/draft.js'
+import { showNodeFields } from '../modeling/fields.js'
 import { validateReferences } from '../knowledge/formValidation.js'
 import { pendingKnowledge } from '../knowledge/insert.js'
 import { badgeDraft, showBadges } from '../badges/editor.js'
@@ -73,7 +77,7 @@ export function formValues() {
   return {
     adding: nodeForm.adding, node: nodeForm.node, parent: nodeForm.parent,
     fields: Object.fromEntries(valueIds.map(id => [id, $(id).value])),
-    knowledge: pendingKnowledge.docs, badges: badgeDraft(), options: pendingOptions, autoId: nodeForm.autoId,
+    optionEdits, knowledge: pendingKnowledge.docs, badges: badgeDraft(), options: pendingOptions, autoId: nodeForm.autoId,
     groups: [...editState.groupDraft], categories: categoryDraft.items,
     tags: [...$('legend-fields').querySelectorAll('input')].filter(i => i.checked).map(i => i.value),
     values: Object.fromEntries([...$('custom-values').querySelectorAll('[data-field]')].map(i => [i.dataset.field, i.value])),
@@ -131,6 +135,9 @@ function resume(key) {
   }
   context.restore(base)
   populateEditor(saved.adding ? saved.parent : saved.node, saved.adding)
+  restoreOptionEdits(saved.optionEdits)
+  showOptionStatus()
+  showNodeFields(optionGraph().nodes[saved.node] || {}, optionGraph())
   pendingKnowledge.docs = saved.knowledge || {}
   if (saved.badges) showBadges({}, saved.badges)
   editState.groupDraft = new Map(saved.groups)
@@ -166,6 +173,7 @@ function resume(key) {
     row.querySelector('.edge-fallback').value = fallbackText
   }
   for (const [id, label] of saved.incoming) appendIncoming(id, label)
+  annotateOptions()
   validateReferences()
   baseKey = saved.baseKey || key + ':base'
   lastSaved = JSON.stringify(formValues())

@@ -29,7 +29,7 @@ export function DraftReview({canvas,draft,revision,done,close,submit}:{submit:(i
       validate(plan.graph, latest.graph)
       if (plan.ops.length) {
         const before = records(latest.graph)
-        submit({ graph: plan.graph, base: latest.canvas.rev, ops: plan.ops, strict: true,
+        submit({ graph: plan.graph, base: latest.canvas.rev, ops: plan.ops, strict: true, optionEdits: draft.optionEdits,
           operation_id: crypto.randomUUID(), createdNode: creation?.replacement ?? draft.createdNode,
           originals: plan.ops.map(op => before[op.table][op.key] ?? null) })
         close()

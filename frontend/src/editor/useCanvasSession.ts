@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { api, ApiError, differences, records, errorText, type Canvas, type Graph, type Snapshot } from '../api'
 import type { Workbench } from './WorkbenchWindow'
 import { nodePresence } from './nodePresence'
+import type { SharedOptionEdit } from './sharedOptionReview'
 import type { Draft } from './draftMerge'
 
 export function useCanvasSession(
@@ -110,7 +111,7 @@ export function useCanvasSession(
           retryTimer = window.setTimeout(refresh, 500)
       }
     }
-    async function save(item: Draft) {
+    async function save(item: Draft, fromCurrentView = false) {
       if (writing) return
       writing = true
       setBusy(true)
@@ -125,7 +126,7 @@ export function useCanvasSession(
         })
         if (!active) return
         const base = current.current
-        if (item.strict) {
+        if (item.strict && !fromCurrentView) {
           // The review may include remote records that were never loaded into the iframe.
           current.current = null
           setReady(false)
@@ -181,16 +182,16 @@ export function useCanvasSession(
     }
     function change(event: Event) {
       if (!current.current || writing || recovered.current) return
-      const { previous, next, createdNode } = (event as CustomEvent<{ previous: Graph; next: Graph; createdNode?: string }>).detail
+      const { previous, next, createdNode, optionEdits } = (event as CustomEvent<{ previous: Graph; next: Graph; optionEdits?: SharedOptionEdit[]; createdNode?: string }>).detail
       const ops = differences(previous, next, current.current.versions)
       if (!ops.length) {
         editor.saved()
         return
       }
       const originals = records(previous)
-      const item = { createdNode, operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
+      const item = { createdNode, ...(optionEdits?.length ? { strict: true, optionEdits } : {}), operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
       keep(item)
-      void save(item)
+      void save(item, true)
     }
     function connect() {
       if (!active) return

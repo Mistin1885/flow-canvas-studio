@@ -1,3 +1,5 @@
+import { manageButton } from '../options/controls.js'
+import { optionCounts } from '../options/catalog.js'
 import { $, el } from '../ui/dom.js'
 import { graphModel } from '../graph/model.js'
 
@@ -13,18 +15,24 @@ export function properties(node, graph = graphModel.document) {
   return definitions(graph).filter(f => Object.hasOwn(node.fieldValues || {}, f.id)).map(f =>
     [f.name, String(node.fieldValues[f.id]) + (f.unit ? ' ' + f.unit : '')])
 }
-export function showNodeFields(n) {
+export function showNodeFields(n, graph = graphModel.document) {
   $('node-gateway').value = n.gatewayRule || ''
   $('custom-values').replaceChildren()
-  for (const f of definitions(graphModel.document)) {
+  for (const f of definitions(graph)) {
     const label = el('label', '', f.name + (f.unit ? ' (' + f.unit + ')' : ''))
     const input = el(f.type === 'select' ? 'select' : 'input')
-    if (f.type === 'select') input.append(new Option('未填寫',''), ...(f.options || []).map(v => new Option(v,v)))
+    if (f.type === 'select') {
+      const names = new Set([...(f.options || []), ...optionCounts(graph, 'field:' + f.id).keys()])
+      input.append(new Option('未指定',''), ...[...names].map(v => new Option(v,v)))
+    }
     else { input.type = f.type; if (f.type === 'number') input.step = 'any' }
     input.dataset.field = f.id
     input.value = n.fieldValues?.[f.id] ?? ''
     label.append(input)
-    $('custom-values').append(label)
+    const wrap = el('div', 'custom-value-field')
+    wrap.append(label)
+    if (f.type === 'select') wrap.append(manageButton('field:' + f.id, f.name))
+    $('custom-values').append(wrap)
   }
 }
 export function readNodeFields(n, before) {

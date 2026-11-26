@@ -54,6 +54,7 @@
           <div class="edit-row">
             <input id="group-name" aria-label="新群組名稱" placeholder="新群組名稱" maxlength="80" />
             <button type="button" id="add-group">建立群組</button>
+            <button type="button" class="manage-options" data-manage-options="group" data-option-label="排版群組" aria-label="管理排版群組選項">管理選項</button>
           </div>
           <small id="group-message" role="status"></small>
         </fieldset>
@@ -69,6 +70,7 @@
             />
             <input id="category-color" aria-label="分類顏色" type="color" value="#387ab4" />
             <button id="add-category" type="button">新增分類</button>
+            <button type="button" class="manage-options" data-manage-options="category" data-option-label="圖例分類" aria-label="管理圖例分類選項">管理選項</button>
           </div>
           <small id="category-error" role="status"></small>
         </fieldset>
@@ -77,6 +79,7 @@
           <div class="edit-row">
             <select id="badge-picker" aria-label="選擇醒目標籤"></select>
             <button type="button" id="badge-new">＋ 新增標籤</button>
+            <button type="button" class="manage-options" data-manage-options="badge" data-option-label="醒目標籤" aria-label="管理醒目標籤選項">管理選項</button>
           </div>
           <div id="badge-assignments"></div>
           <p>點選標籤可編輯共用樣式。在畫布編輯模式中可拖曳標籤到節點上方或下方。</p>
@@ -100,6 +103,7 @@
           <div class="edit-row">
             <input id="role-name" maxlength="80" aria-label="新負責角色/負責人" placeholder="新負責角色/負責人" />
             <button id="add-role" type="button">新增</button>
+            <button type="button" class="manage-options" data-manage-options="role" data-option-label="負責角色／負責人" aria-label="管理負責角色／負責人選項">管理選項</button>
           </div>
           <small id="role-message" role="status"></small>
         </fieldset>
@@ -120,6 +124,7 @@
           <div class="edit-row">
             <input id="where-name" maxlength="500" aria-label="新操作位置" placeholder="新操作位置" />
             <button id="add-where" type="button">新增</button>
+            <button type="button" class="manage-options" data-manage-options="where" data-option-label="操作位置" aria-label="管理操作位置選項">管理選項</button>
           </div>
           <small id="where-message" role="status"></small>
         </fieldset>
@@ -156,6 +161,7 @@
       </p>
       <div id="edge-editor"></div>
       <p class="editor-tip" id="editor-main-note"></p>
+      <p id="option-changes" role="status"></p>
       <p id="editor-error" class="editor-error" role="alert"></p>
     </div>
     <footer class="editor-footer">
@@ -164,5 +170,22 @@
       <span>套用後，請匯出 JSON 或下載 HTML 保存。</span>
       <button type="submit" class="editor-primary">套用變更</button>
     </footer>
+  </form>
+</dialog>
+
+<dialog id="option-dialog" aria-labelledby="option-title">
+  <form id="option-form">
+    <header class="editor-head"><h2 id="option-title">管理選項</h2>
+      <button type="button" id="option-close" aria-label="關閉選項管理">✕</button></header>
+    <div class="editor-scroll">
+      <label>目前畫布的選項<select id="managed-option"></select></label>
+      <p id="option-impact" role="status"></p>
+      <label>選項名稱<input id="option-name" required /></label>
+      <p class="editor-tip">完成後，請在節點編輯器按「套用變更」發佈到此畫布。</p>
+      <p id="option-error" class="editor-error" role="alert"></p>
+    </div>
+    <footer class="editor-footer"><button id="option-delete" type="button">刪除選項</button>
+      <button id="option-add" type="button" hidden>新增為另一個選項</button>
+      <button id="option-rename" type="submit" class="editor-primary">套用新名稱</button></footer>
   </form>
 </dialog>

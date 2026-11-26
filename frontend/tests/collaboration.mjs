@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium, expect } from '@playwright/test'
 
+import { verifySharedOptions } from './shared-options.mjs'
 import { verifyGroupMove } from './group-move.mjs'
 import { verifyCanvasLifecycle } from './canvas-lifecycle.mjs'
 import { verifyAdminBackups } from './admin-backups.mjs'
@@ -77,6 +78,7 @@ try {
   await verifyStylePalette(alice, origin)
   await verifyGroupMove(alice, bob, origin)
   await verifyHighlightBadges(alice, bob, origin)
+  await verifySharedOptions(alice, bob, origin)
   await verifyCanvasLifecycle(alice, bob, origin)
   await verifyAdminBackups(alice, bob, origin, root)
   console.log('Standalone HTML reopened and edited offline.')

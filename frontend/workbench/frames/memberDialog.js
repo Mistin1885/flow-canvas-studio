@@ -4,6 +4,7 @@ import { suggestNodeId } from '../graph/nodeIds.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { $, el } from '../ui/dom.js'
 import { flowKey, frameObjects, getMembers } from './membership.js'
+import { reservedOption } from '../options/catalog.js'
 import { graphModel } from '../graph/model.js'
 
 import { sheetFor } from '../diagram/visibleGraph.js'
@@ -109,6 +110,8 @@ function editMembers(initial) {
         : type() === 'flow'
           ? graphModel.document.subflows.find((f) => flowKey(f.id) === key).title
           : graphModel.nodes[key].title
+    const reserved = type() === 'group' && reservedOption('group', key.slice(6))
+    $('frame-rename').disabled = $('frame-remove').disabled = reserved
     $('object-type').value = type()
     $('frame-remove').textContent =
       type() === 'source'

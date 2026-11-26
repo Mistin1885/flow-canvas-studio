@@ -15,7 +15,7 @@ const sync = { receiving: false }
 
 function replaceGraph(
   value,
-  { record = true, keepView = false, selection = diagramState.selected?.key, createdNode } = {},
+  { record = true, keepView = false, selection = diagramState.selected?.key, optionEdits, createdNode } = {},
 ) {
   const previous = graphModel.document,
     next = validateGraph(value),
@@ -60,7 +60,7 @@ function replaceGraph(
   markDebugChanged()
   if (!sync.receiving)
     window.dispatchEvent(
-      new CustomEvent('studio-change', { detail: { previous, createdNode, next: graphModel.document } }),
+      new CustomEvent('studio-change', { detail: { previous, optionEdits, createdNode, next: graphModel.document } }),
     )
 }
 

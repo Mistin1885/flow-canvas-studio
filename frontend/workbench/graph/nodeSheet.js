@@ -7,3 +7,17 @@ export function moveToSheet(node, previous, next) {
   delete node.layoutOffset
   delete node.layoutOrder
 }
+
+export function sheetInGraph(graph, id) {
+  const n = graph.nodes[id]
+  if (!n) return 'project'
+  if (n.sheetId === 'project') return 'project'
+  if (n.sheetId && (graph.subflows || []).some((s) => s.id === n.sheetId)) return n.sheetId
+  if (n.sourceKind === 'subflow')
+    return (
+      (graph.subflows || []).find(
+        (s) => s.root === id || graph.nodes[s.root]?.group === n.group,
+      )?.id || 'project'
+    )
+  return 'project'
+}

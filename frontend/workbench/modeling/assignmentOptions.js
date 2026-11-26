@@ -1,10 +1,6 @@
 import { $ } from '../ui/dom.js'
-import { graphModel } from '../graph/model.js'
-
-const lists = [
-  { control: 'role', field: 'ownerRole', list: 'ownerRoleOptions' },
-  { control: 'where', field: 'where', list: 'locationOptions' },
-]
+import { assignments as lists } from '../options/catalog.js'
+import { optionGraph } from '../options/draft.js'
 export let pendingOptions = {}
 
 export function showAssignments(node, pending = {}) {
@@ -12,7 +8,7 @@ export function showAssignments(node, pending = {}) {
   for (const { control, field, list } of lists) {
     pendingOptions[list] = [...(pending[list] ?? [])]
     const names = new Set([
-      ...(graphModel.document[list] || []), ...Object.values(graphModel.nodes).map(n => n[field]),
+      ...(optionGraph()[list] || []), ...Object.values(optionGraph().nodes).map(n => n[field]),
       ...pendingOptions[list], node[field],
     ].filter(name => typeof name === 'string' && name))
     const select = $('node-' + control)

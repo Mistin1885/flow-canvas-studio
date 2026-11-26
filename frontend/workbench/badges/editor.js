@@ -1,10 +1,10 @@
-import { graphModel } from '../graph/model.js'
+import { optionGraph } from '../options/draft.js'
 import { $, el } from '../ui/dom.js'
 import { badgeChip } from './chip.js'
 import { defaultBadge, validBadgeName } from './model.js'
 
 let placements, changedStyles
-const catalog = () => ({ ...graphModel.document.badgeStyles, ...changedStyles })
+const catalog = () => ({ ...optionGraph().badgeStyles, ...changedStyles })
 
 function currentStyle() {
   return { color: $('badge-color').value, style: $('badge-style').value, icon: $('badge-icon').value }
@@ -26,7 +26,7 @@ function render() {
     position.append(new Option('上方', 'top'), new Option('下方', 'bottom'))
     position.value = side
     position.onchange = () => { placements[name] = position.value }
-    const remove = el('button', '', '移除')
+    const remove = el('button', '', '從此節點移除')
     remove.type = 'button'
     remove.ariaLabel = '移除標籤 ' + name
     remove.onclick = () => { delete placements[name]; render() }

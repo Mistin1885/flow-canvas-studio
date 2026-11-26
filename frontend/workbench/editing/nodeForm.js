@@ -4,7 +4,9 @@ import { draftOpened } from './formDrafts.js'
 import { suggestNodeId } from '../graph/nodeIds.js'
 import { showAssignments } from '../modeling/assignmentOptions.js'
 import { showNodeFields } from '../modeling/fields.js'
-import { legendState } from '../categories/model.js'
+import { optionGraph, restoreOptionEdits } from '../options/draft.js'
+import { annotateOptions } from '../options/controls.js'
+import { bindOptionManager, showOptionStatus } from '../options/manager.js'
 import { selectionState, editState } from './state.js'
 import { cloneGraph } from '../graph/json.js'
 import { effectiveType, nodeTypes } from '../graph/nodeTypes.js'
@@ -190,6 +192,8 @@ function populateEditor(id, add = false) {
       }
     : graphModel.nodes[id]
   if (!n) return
+  restoreOptionEdits()
+  showOptionStatus()
   categoryDraft.items = []
   $('category-name').value = ''
   $('category-error').textContent = ''
@@ -227,6 +231,7 @@ function populateEditor(id, add = false) {
   $('editor-error').textContent = ''
   $('new-node').hidden = add
   window.dispatchEvent(new Event('studio-edit-target'))
+  annotateOptions()
   draftOpened()
 }
 
@@ -262,6 +267,7 @@ function openNodeEditor() {
 function bindNodeForm() {
   bindInsert()
   bindBadges()
+  bindOptionManager()
   $('node-id').oninput = () => {
     nodeForm.autoId = !$('node-id').value
     checkNodeId()
@@ -285,11 +291,11 @@ function bindNodeForm() {
     const input = $('category-name'),
       name = input.value.trim(),
       msg = $('category-error')
-    const existing = [...legendState.legendNames, ...categoryDraft.items.map((c) => c.name)]
+    const existing = [...$('legend-fields').querySelectorAll('input')].map(i => i.value)
     if (
       !name ||
       existing.some((s) => s.toLowerCase() === name.toLowerCase()) ||
-      Object.values(graphModel.nodes).some((n) =>
+      Object.values(optionGraph().nodes).some((n) =>
         [n.group, ...(n.tags || [])].some((t) => t?.toLowerCase() === name.toLowerCase()),
       )
     ) {

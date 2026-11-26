@@ -1,3 +1,6 @@
+import { optionEdits } from '../options/draft.js'
+import { applyOptionEdit } from '../options/catalog.js'
+import { alignedBaseline } from '../options/baseline.js'
 import { equalJson } from '../../shared/jsonComparison.js'
 import { addNode } from '../graph/addNode.js'
 import { bindReferenceValidation, validateReferences } from '../knowledge/formValidation.js'
@@ -6,7 +9,7 @@ import { draftApplied, formValues } from './formDrafts.js'
 import { saveAssignmentOptions } from '../modeling/assignmentOptions.js'
 import { readNodeFields } from '../modeling/fields.js'
 import { editState } from './state.js'
-import { originalNames, unmappedTag } from '../categories/model.js'
+import { unmappedTag } from '../categories/model.js'
 import { savedBlock } from './contentValues.js'
 import { applyEdgeEdits } from './saveEdges.js'
 import { $ } from '../ui/dom.js'
@@ -28,7 +31,8 @@ function applyEditor() {
   const graph = exportGraph(),
     n = nodeForm.adding ? { id } : graph.nodes[id]
   finishBadgeEditor()
-  const before = nodeForm.initial, after = formValues()
+  for (const edit of optionEdits) applyOptionEdit(graph, edit)
+  const before = alignedBaseline(nodeForm.initial, optionEdits), after = formValues()
   const differs = (key) => !equalJson(before[key], after[key])
   const edited = (key) => nodeForm.adding || before.fields[key] !== after.fields[key]
   for (const key of ['group', 'title', 'description', 'where', 'expect', 'note']) {
@@ -53,6 +57,7 @@ function applyEditor() {
   }
   if (categoryDraft.items.length)
     graph.customCategories = [...(graph.customCategories || []), ...categoryDraft.items]
+  const originalNames = new Set(graph.sourceLegend?.items?.map(item => item.name))
   if (
     categories.includes(unmappedTag) &&
     categories.some((c) => c !== unmappedTag && originalNames.has(c))
@@ -90,7 +95,7 @@ function applyEditor() {
   if (nodeForm.adding) addNode(graph, n)
   if (differs('edges') || after.incoming.length || nodeForm.parent)
     applyEdgeEdits(graph, id, after, nodeForm.parent)
-  if (!equalJson(graph, graphModel.document)) replaceGraph(graph, { createdNode: nodeForm.adding ? id : undefined })
+  if (!equalJson(graph, graphModel.document)) replaceGraph(graph, { optionEdits, createdNode: nodeForm.adding ? id : undefined })
   draftApplied()
   go(id)
   return id

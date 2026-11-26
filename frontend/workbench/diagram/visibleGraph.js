@@ -1,3 +1,4 @@
+import { sheetInGraph } from '../graph/nodeSheet.js'
 import { categoryTags, legendState, unmappedTag } from '../categories/model.js'
 import { graphModel, outgoing } from '../graph/model.js'
 import { diagramState } from './state.js'
@@ -7,19 +8,7 @@ export const foldedNodes = new Set()
 let index
 const expandedFlows = new Set()
 
-function sheetFor(id) {
-  const n = graphModel.nodes[id]
-  if (!n) return 'project'
-  if (n.sheetId === 'project') return 'project'
-  if (n.sheetId && (graphModel.document.subflows || []).some((s) => s.id === n.sheetId)) return n.sheetId
-  if (n.sourceKind === 'subflow')
-    return (
-      (graphModel.document.subflows || []).find(
-        (s) => s.root === id || graphModel.nodes[s.root]?.group === n.group,
-      )?.id || 'project'
-    )
-  return 'project'
-}
+function sheetFor(id) { return sheetInGraph(graphModel.document, id) }
 
 function startId() {
   return (

@@ -43,7 +43,7 @@ export async function verifyFormDrafts(alice, bob) {
   await alice.reload()
   await edit(alice, a, 'Alpha')
   await expect(a.locator('#draft-prompt')).toBeVisible()
-  await expect(a.locator('.editor-footer')).toHaveAttribute('inert', '')
+  await expect(a.locator('#node-form .editor-footer')).toHaveAttribute('inert', '')
   await a.locator('#draft-resume').click()
   await expect(a.locator('#node-title')).toHaveValue('Local title')
   await expect(a.locator('.block-value')).toHaveValue('Unpublished content')

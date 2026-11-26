@@ -1,4 +1,5 @@
-import { legendState } from './model.js'
+import { optionGraph } from '../options/draft.js'
+import { categoryNames } from '../options/catalog.js'
 import { $, el } from '../ui/dom.js'
 
 const categoryDraft = {}
@@ -8,7 +9,9 @@ categoryDraft.items = []
 function editorLegend(n) {
   const wrap = $('legend-fields')
   wrap.replaceChildren()
-  for (const name of [...legendState.legendNames, ...categoryDraft.items.map((c) => c.name)]) {
+  const names = categoryNames(optionGraph())
+  for (const item of categoryDraft.items) names.add(item.name)
+  for (const name of names) {
     const label = el('label'),
       input = el('input')
     input.type = 'checkbox'

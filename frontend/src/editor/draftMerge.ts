@@ -1,8 +1,9 @@
 import { records, type Graph, type Snapshot, type NodeData, differences } from '../api'
 import { equalJson, signature } from '../../shared/jsonComparison.js'
+import { reviewSharedOptions, type SharedOptionEdit } from './sharedOptionReview'
 import { compare, resolve, type Choices } from '../import/merge'
 
-export type Draft = { operation_id?: string; strict?: boolean; createdNode?: string; confirmedConflict?: boolean; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
+export type Draft = { operation_id?: string; strict?: boolean; optionEdits?: SharedOptionEdit[]; createdNode?: string; confirmedConflict?: boolean; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
 type Question = { token: string; label: string; mine: unknown; team: unknown }
 type Fields = Record<string, unknown>
 
@@ -98,5 +99,8 @@ export function draftPlan(draft: Draft, latest: Snapshot, choices: Choices) {
     }
   }
   const plan = resolve(latest, groups, automatic)
-  return { graph: plan.graph, ops: differences(latest.graph, plan.graph, latest.versions), questions }
+  const reviewed = draft.optionEdits?.length
+    ? reviewSharedOptions(plan.graph, draft.graph, draft.optionEdits, choices, latest) : plan
+  if ('questions' in reviewed) questions.push(...reviewed.questions)
+  return { graph: reviewed.graph, ops: differences(latest.graph, reviewed.graph, latest.versions), questions }
 }

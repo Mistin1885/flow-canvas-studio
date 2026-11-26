@@ -1,4 +1,5 @@
 import { unmappedTag } from './constants.js'
+import { categoryNames } from '../options/catalog.js'
 import { graphModel } from '../graph/model.js'
 import { cloneGraph } from '../graph/json.js'
 
@@ -18,10 +19,7 @@ function useCategories(graph) {
       custom: true,
     })),
   ]
-  legendState.legendNames = new Set([
-    ...legendState.legendItems.map((i) => i.name),
-    ...(sourceItems.length ? [unmappedTag] : []),
-  ])
+  legendState.legendNames = categoryNames(graph)
 }
 
 useCategories(graphModel.document)

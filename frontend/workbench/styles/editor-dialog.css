@@ -234,3 +234,12 @@ dialog code {
 
 .node-id-field { display: grid; align-content: start; gap: 4px; }
 .node-id-field button { justify-self: start; }
+
+#option-dialog { width: min(460px, calc(100vw - 32px)); }
+#option-dialog label { display: grid; gap: 6px; }
+#option-dialog p { margin: 12px 0; }
+#option-impact { color: var(--muted); line-height: 1.6; }
+#option-delete { margin-right: auto; color: var(--danger, #b95042); }
+#option-add[hidden] { display: none; }
+.custom-value-field .manage-options { margin-top: 6px; }
+#node-form .manage-options { width: auto; }
