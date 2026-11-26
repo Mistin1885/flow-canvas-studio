@@ -65,7 +65,7 @@ function initGestures() {
           setEditTarget({ edge: route.wireGeometry.edge })
           editState.gesture = beginWireDrag(route, e, grip?.dataset.grip)
           e.stopImmediatePropagation()
-          if (e.pointerType === 'touch' || grip?.dataset.grip === 'label' || e.target.closest('.edge-annotation')) {
+          if ((!grip && e.pointerType === 'touch') || grip?.dataset.grip === 'label' || e.target.closest('.edge-annotation')) {
             const now = performance.now()
             if (lastTap?.route === route && now - lastTap.at < 400) {
               cancelGesture()

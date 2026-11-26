@@ -191,6 +191,9 @@ body[data-theme='dark'] #delete-node,
   cursor: move;
   touch-action: none;
 }
+.choosing-endpoint #wire-grips [data-grip] {
+  pointer-events: none;
+}
 .wire-grip::before {
   content: '';
   width: 9px;

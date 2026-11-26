@@ -1,15 +1,17 @@
+import { previewEndpoint } from './wireEndpoint.js'
+import { editConnection } from '../graph/edgeMutation.js'
+import { say } from '../ui/toast.js'
 import { graphModel } from '../graph/model.js'
 import { exportGraph } from '../io/graph.js'
 import { replaceGraph } from '../graph/replace.js'
 import { diagramState } from '../diagram/state.js'
 import { rightAnglePath } from '../diagram/paths.js'
-import { collectDockGuides, placeDock, snapTerminalSegment } from '../layout/dockSnap.js'
+import { collectDockGuides, snapTerminalSegment } from '../layout/dockSnap.js'
 import { interiorLanes, moveBend, pinnedRoute } from '../layout/pinnedBends.js'
 import { routedPoints } from '../layout/editedWires.js'
 import {
   closestSegment,
   dragLanes,
-  nearestFace,
   parallelGuides,
   routeAnchor,
   straightPoints,
@@ -41,8 +43,8 @@ export function showWireGrips(group, points) {
   }
   const ends = points || routedPoints(group.wireGeometry)
   for (const [key, point, title] of [
-    ['start', ends[0], '拖動起點接點'],
-    ['end', ends.at(-1), '拖動終點接點'],
+    ['start', ends[0], '拖曳起點調整位置或改接其他節點'],
+    ['end', ends.at(-1), '拖曳終點調整位置或改接其他節點'],
   ]) {
     let grip = host.querySelector('[data-grip="' + key + '"]')
     if (!grip) {
@@ -97,6 +99,7 @@ export function beginWireDrag(group, e, grip) {
     index,
     radius,
     guides,
+    peers,
     dockGuides: collectDockGuides(geometry, peers),
     paths: group.querySelectorAll('.wire,.edge-hit'),
     label,
@@ -113,21 +116,23 @@ export function moveWireDrag(g, e) {
   if (!g.group.isConnected) return
   const cursor = worldPoint(e),
     delta = { x: cursor.x - g.start.x, y: cursor.y - g.start.y }
-  const scale = diagramState.readingScale,
-    layout = { ...g.layout }
+  const scale = diagramState.readingScale
   const anchor = routeAnchor(g.points)
   if (g.mode === 'label') {
+    const layout = { ...g.layout }
     layout.label = {
       x: (g.center.x + delta.x - anchor.x) / scale,
       y: (g.center.y + delta.y - anchor.y) / scale,
     }
     g.label.setAttribute('transform', 'translate(' + delta.x + ' ' + delta.y + ')')
+    g.next = layout
   } else {
-    // Older group edits imply horizontal ports. Record both faces when editing
-    // a vertical auto route for the first time so preview and reload agree.
-    if (g.geometry.autoDock && !layout.start && !layout.end && !layout.lanes)
-      Object.assign(layout, g.geometry.autoDock)
+    let next
     if (g.mode === 'segment') {
+      const layout = { ...g.layout }
+      // Group links with vertical automatic docks need both faces after their first manual edit.
+      if (g.geometry.autoDock && !layout.start && !layout.end && !layout.lanes)
+        Object.assign(layout, g.geometry.autoDock)
       const axis = g.points[g.index].x === g.points[g.index + 1]?.x ? 'x' : 'y'
       if (g.points.length < 2 || Math.abs(delta[axis]) < 0.1) {
         g.next = null
@@ -148,23 +153,21 @@ export function moveWireDrag(g, e) {
         if (!lanes) return
         layout.lanes = lanes
       }
+      g.next = layout
+      next = routedPoints(g.geometry, layout)
     } else {
-      const card = g.mode === 'start' ? g.geometry.from : g.geometry.to
-      const side = nearestFace(card, cursor)
-      placeDock(layout, g.mode, card, side, cursor, g.dockGuides[g.mode], g.radius)
-      if (g.next?.[g.mode] === side && g.next[g.mode + 'Ratio'] === layout[g.mode + 'Ratio']) return
+      next = previewEndpoint(g, e, cursor)
     }
-    const next = routedPoints(g.geometry, layout),
-      d = rightAnglePath(next)
+    const d = rightAnglePath(next)
     for (const p of g.paths) p.setAttribute('d', d)
     showWireGrips(g.group, next)
     const to = routeAnchor(next)
     g.label?.setAttribute('transform', 'translate(' + (to.x - anchor.x) + ' ' + (to.y - anchor.y) + ')')
   }
-  g.next = layout
 }
 
 export function restoreWireDrag(g) {
+  g.target?.classList.remove('link-target')
   for (const p of g.paths) p.setAttribute('d', g.originalPath)
   if (g.labelTransform) g.label?.setAttribute('transform', g.labelTransform)
   else g.label?.removeAttribute('transform')
@@ -172,12 +175,26 @@ export function restoreWireDrag(g) {
 }
 
 export function commitWireDrag(g) {
-  if (!g.next || !g.group.isConnected || JSON.stringify(g.next) === JSON.stringify(g.layout)) return
-  const field = g.group.classList.contains('graph-link') ? 'groupLinks' : 'edges'
-  const index = graphModel.document[field]?.indexOf(g.geometry.edge) ?? -1
-  if (index < 0) return
+  if (!g.next || !g.group.isConnected) return
+  const old = g.geometry.edge
+  const changingStart = g.mode === 'start'
+  const reconnect = g.endpoint && g.endpoint !== (changingStart ? old.from : old.to)
+  if (!reconnect && JSON.stringify(g.next) === JSON.stringify(g.layout)) return
   const graph = exportGraph()
-  graph[field][index].wireLayout = g.next
-  replaceGraph(graph, { keepView: true })
-  setEditTarget({ edge: graphModel.document[field][index] })
+  try {
+    let field = g.group.classList.contains('graph-link') ? 'groupLinks' : 'edges'
+    let index = graphModel.document[field]?.indexOf(old) ?? -1
+    if (index < 0) return
+    if (reconnect) {
+      const result = editConnection(graph, graphModel.document, old,
+        changingStart ? g.endpoint : old.from, changingStart ? old.to : g.endpoint, old.label)
+      field = result.field
+      index = result.index
+    }
+    graph[field][index].wireLayout = g.next
+    replaceGraph(graph, { keepView: true })
+    setEditTarget({ edge: graphModel.document[field][index] })
+  } catch (error) {
+    say(error.message)
+  }
 }

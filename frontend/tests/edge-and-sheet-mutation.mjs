@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { updateEdge, reconcileEdgeReviews } from '../workbench/graph/edgeMutation.js'
+import { editConnection, updateEdge, reconcileEdgeReviews } from '../workbench/graph/edgeMutation.js'
 import { moveToSheet } from '../workbench/graph/nodeSheet.js'
 import { applyEdgeEdits } from '../workbench/editing/saveEdges.js'
 
@@ -52,4 +52,25 @@ test('in-sheet reorders keep placement and actual sheet changes clear local plac
   assert.deepEqual(n, original)
   moveToSheet(n, 'F', 'project')
   assert.deepEqual(n, { id: 'Step', sheetId: 'project', drawingBox: original.drawingBox })
+})
+
+test('reconnecting a reviewed wire moves its record between node and group connections', () => {
+  const original = reviewedGraph()
+  original.nodes = { A: {}, B: {}, C: {} }
+  Object.assign(original.edges[0], { conditionColor: '#112233', labelBackgroundColor: '#334455' })
+  const next = structuredClone(original)
+  const group = editConnection(next, original, original.edges[0], 'group:QA', 'B', 'done')
+  assert.equal(group.field, 'groupLinks')
+  assert.deepEqual(next.edges, [])
+  assert.deepEqual(next.layoutGroups, [{ name: 'QA', direction: 'auto' }])
+  assert.equal(next.review[0].resolved, false)
+  const final = structuredClone(next)
+  const node = editConnection(final, next, next.groupLinks[0], 'C', 'B', 'done')
+  assert.equal(node.field, 'edges')
+  assert.equal(node.index, 0)
+  assert.deepEqual(final.groupLinks, [])
+  assert.deepEqual([node.edge.from, node.edge.to, node.edge.conditionColor, node.edge.labelBackgroundColor],
+    ['C', 'B', '#112233', '#334455'])
+  assert.equal(original.edges[0].from, 'A')
+  assert.throws(() => editConnection(final, next, next.groupLinks[0], 'B', 'B', 'done'), /不同/)
 })
