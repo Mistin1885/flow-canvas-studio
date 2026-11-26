@@ -44,13 +44,7 @@ export function useCanvasSession(
     })
     current.current = null
     setReady(false)
-    editor.configureDrafts({user:identity,canvas:canvas.id,snapshot:()=>current.current,restore:(snap)=>{
-      if(!active)return
-      wanted=Math.max(wanted,current.current?.canvas.rev || 0)
-      editor.receive(snap.graph)
-      current.current=snap
-      setReady(true)
-    }})
+    editor.configureDrafts({ user: identity, canvas: canvas.id, snapshot: () => current.current })
     function keep(value: Draft | null) {
       recovered.current = value
       setDraft(value)
@@ -68,17 +62,18 @@ export function useCanvasSession(
       )
     }
     async function refresh() {
-      if (!active || fetching || writing || recovered.current || (current.current && editor.editing()))
+      if (!active || fetching || writing || recovered.current || (current.current && editor.editing(true)))
         return
       if (missingAt >= wanted || (current.current && current.current.canvas.rev >= wanted)) return
       fetching = true
       try {
         const snap = await api<Snapshot>('canvases/' + canvas.id)
-        if (!active || writing || recovered.current || (current.current && editor.editing())) return
+        if (!active || writing || recovered.current || (current.current && editor.editing(true))) return
         if (current.current && snap.canvas.rev <= current.current.canvas.rev) return
         missingAt = -1
         editor.receive(snap.graph)
         current.current = snap
+        editor.refreshTeamForm()
         setReady(true)
         setCanvasName(snap.canvas.name)
         win.document.body.inert = false
@@ -104,7 +99,7 @@ export function useCanvasSession(
           active &&
           current.current &&
           missingAt < wanted && current.current.canvas.rev < wanted &&
-          !editor.editing() &&
+          !editor.editing(true) &&
           !recovered.current &&
           !writing
         )
@@ -126,18 +121,19 @@ export function useCanvasSession(
         })
         if (!active) return
         const base = current.current
-        if (item.strict && !fromCurrentView) {
-          // The review may include remote records that were never loaded into the iframe.
+        if (!fromCurrentView) {
+          // Detached form submissions and reviews must reload the confirmed team graph.
           current.current = null
           setReady(false)
         } else if (base) {
+          const versions = { nodes: { ...base.versions.nodes }, edges: { ...base.versions.edges }, meta: { ...base.versions.meta } }
           for (const op of item.ops) {
-            if (op.remove) delete base.versions[op.table][op.key]
-            else base.versions[op.table][op.key] = result.rev
+            if (op.remove) delete versions[op.table][op.key]
+            else versions[op.table][op.key] = result.rev
           }
-          base.graph = item.graph
           // When peers intervened, keep the old revision until the full snapshot arrives.
-          if (result.rev === item.base + 1) base.canvas.rev = result.rev
+          const rev = result.rev === item.base + 1 ? result.rev : base.canvas.rev
+          current.current = { graph: item.graph, versions, canvas: { ...base.canvas, rev } }
           editor.saved()
           win.document.body.inert = false
         }
@@ -182,16 +178,17 @@ export function useCanvasSession(
     }
     function change(event: Event) {
       if (!current.current || writing || recovered.current) return
-      const { previous, next, createdNode, optionEdits } = (event as CustomEvent<{ previous: Graph; next: Graph; optionEdits?: SharedOptionEdit[]; createdNode?: string }>).detail
-      const ops = differences(previous, next, current.current.versions)
+      const { previous, next, createdNode, optionEdits, formBase } = (event as CustomEvent<{ previous: Graph; next: Graph; formBase?: Snapshot; optionEdits?: SharedOptionEdit[]; createdNode?: string }>).detail
+      const base = formBase ?? current.current
+      const ops = differences(previous, next, base.versions)
       if (!ops.length) {
         editor.saved()
         return
       }
       const originals = records(previous)
-      const item = { createdNode, ...(optionEdits?.length ? { strict: true, optionEdits } : {}), operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: current.current.canvas.rev }
+      const item = { createdNode, ...(optionEdits?.length ? { strict: true, optionEdits } : {}), operation_id: crypto.randomUUID(), graph: next, ops, originals:ops.map(op=>originals[op.table][op.key] ?? null), base: base.canvas.rev }
       keep(item)
-      void save(item, true)
+      void save(item, !formBase)
     }
     function connect() {
       if (!active) return

@@ -46,6 +46,10 @@ export default function Editor({
     loaded,
     open,
   )
+  const conflictId = draft?.confirmedConflict ? draft.operation_id : undefined
+  useEffect(() => {
+    if (conflictId) setReview(true)
+  }, [conflictId])
   useEffect(()=>{
     const win=frame.current?.contentWindow
     if(!loaded || !win)return

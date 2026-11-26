@@ -1,4 +1,4 @@
-import { configureDrafts } from '../editing/formDrafts.js'
+import { configureDrafts, refreshTeamForm } from '../editing/formDrafts.js'
 import { editState } from '../editing/state.js'
 import { cleanDisplayPrefs, displayState, studioFrame } from '../display/preferences.js'
 import { diagramState } from '../diagram/state.js'
@@ -17,6 +17,7 @@ function exposeStudioApi() {
   // Expose immutable data and a small inspection surface for local verification.
   window.T1Playbook = {
     configureDrafts,
+    refreshTeamForm,
     setCanvasTitle,
     setDisplayPreferences(value) {
       if (!studioFrame) return
@@ -41,8 +42,9 @@ function exposeStudioApi() {
         sync.receiving = false
       }
     },
-    editing() {
-      return !!document.querySelector('dialog[open], .node[data-badge-drop]') || !!editState.gesture
+    editing(allowNodeForm = false) {
+      const dialogs = allowNodeForm ? 'dialog[open]:not(#node-editor):not(#option-dialog):not(#discard-draft-dialog)' : 'dialog[open]'
+      return !!document.querySelector(dialogs + ', .node[data-badge-drop]') || !!editState.gesture
     },
     saved() {
       diagramState.debugDirty = false

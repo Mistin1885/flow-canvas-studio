@@ -10,9 +10,9 @@ import { layoutGraph } from '../layout/dagre.js'
 import { positionFootprint } from '../layout/inlineFlows.js'
 import { gridPlacement } from '../layout/grid.js'
 
-function setupGroups(n) {
-  editState.groupDraft = new Map(Object.values(graphModel.nodes).map((item) => [item.group, 'auto']))
-  for (const g of graphModel.document.layoutGroups || []) editState.groupDraft.set(g.name, g.direction)
+function setupGroups(n, graph = graphModel.document) {
+  editState.groupDraft = new Map(Object.values(graph.nodes).map((item) => [item.group, 'auto']))
+  for (const g of graph.layoutGroups || []) editState.groupDraft.set(g.name, g.direction)
   if (!editState.groupDraft.has(ungrouped)) editState.groupDraft.set(ungrouped, 'auto')
   if (!editState.groupDraft.has(n.group)) editState.groupDraft.set(n.group, 'auto')
   const picker = $('node-group')

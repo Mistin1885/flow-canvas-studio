@@ -2,15 +2,20 @@
   <form id="node-form">
     <header class="editor-head">
       <div>
-        <p class="editor-eyebrow">FLOW CANVAS STUDIO</p>
+        <div class="draft-badge">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <g id="draft-team-icon"><circle cx="9" cy="8" r="3"/><path d="M2 20v-2a7 7 0 0 1 14 0v2M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 4 5"/></g>
+            <g id="draft-lock-icon"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></g>
+            <g id="draft-error-icon"><path d="m12 3 10 17H2ZM12 9v5m0 2v1"/></g>
+          </svg>
+          <b id="draft-badge-label"></b>
+        </div>
         <h2 id="editor-title">編輯節點</h2>
       </div>
       <button type="button" id="editor-close" aria-label="關閉節點編輯器">✕</button>
     </header>
     <div class="editor-scroll">
-      <div id="draft-prompt" hidden>此節點有未發佈的草稿。 <button type="button" id="draft-resume">恢復草稿</button> <button type="button" id="draft-discard">捨棄草稿</button></div>
       <p role="status" id="node-presence" hidden></p>
-      <p role="status" id="form-draft-status"></p>
       <p class="editor-tip" id="editor-context"></p>
       <div class="editor-grid">
         <div class="node-id-field">
@@ -167,10 +172,20 @@
     <footer class="editor-footer">
       <button type="button" id="delete-node">刪除此節點</button>
       <button type="button" id="new-node">＋ 新增後續節點</button>
-      <span>套用後，請匯出 JSON 或下載 HTML 保存。</span>
+      <p id="form-draft-status" role="status"></p>
+      <button type="button" id="draft-discard" hidden>捨棄草稿</button>
       <button type="submit" class="editor-primary">套用變更</button>
     </footer>
   </form>
+</dialog>
+
+<dialog id="discard-draft-dialog" aria-labelledby="discard-draft-title" aria-describedby="discard-draft-description">
+  <h2 id="discard-draft-title">捨棄這個節點的草稿？</h2>
+  <p id="discard-draft-description"></p>
+  <footer>
+    <button type="button" id="discard-draft-cancel" autofocus>取消</button>
+    <button type="button" id="discard-draft-confirm" class="editor-primary">確認捨棄</button>
+  </footer>
 </dialog>
 
 <dialog id="option-dialog" aria-labelledby="option-title">

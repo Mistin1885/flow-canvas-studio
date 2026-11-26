@@ -1,5 +1,5 @@
 import { $, el } from '../ui/dom.js'
-import { graphModel } from '../graph/model.js'
+import { formGraph } from '../editing/formSource.js'
 import { studioFrame } from '../display/preferences.js'
 
 export const pendingKnowledge = { docs: {} }
@@ -25,7 +25,7 @@ export function bindInsert() {
       end = target.selectionEnd
     const label = target.value.slice(start, end)
     const insert = (key, doc, alias, section) => {
-      if (!graphModel.document['knowledge.' + key]) pendingKnowledge.docs['knowledge.' + key] = doc
+      if (!formGraph()['knowledge.' + key]) pendingKnowledge.docs['knowledge.' + key] = doc
       const token =
         '[' + alias.replace(/[\]\n]/g, ' ') + '](kb:' + key + (section ? '#' + section : '') + ')'
       target.setRangeText(token, start, end, 'end')
@@ -43,7 +43,7 @@ export function bindInsert() {
         close = el('button', '', '關閉')
       menu.append(el('h3', '', '引用知識'), close)
       close.onclick = () => menu.close()
-      for (const [key, doc] of Object.entries(graphModel.document).filter(([key]) =>
+      for (const [key, doc] of Object.entries(formGraph()).filter(([key]) =>
         key.startsWith('knowledge.'),
       )) {
         const b = el('button', '', doc.title)

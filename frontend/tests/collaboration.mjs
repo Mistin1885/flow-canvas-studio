@@ -15,6 +15,7 @@ import { verifyLegacyEdits } from './legacy-edits.mjs'
 import { verifyHighlightBadges } from './highlight-badges.mjs'
 import { verifyStylePalette } from './style-palette.mjs'
 import { verifyNodeCreation } from './node-creation.mjs'
+import { verifyFormDrafts } from './form-drafts.mjs'
 import { verifyDraftReview } from './draft-review.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
@@ -49,9 +50,10 @@ try {
   await expect(b.locator('#node-presence')).toBeHidden()
   await expect(b.locator('#node-title')).toHaveValue('第二位成員的草稿')
   await b.getByRole('button', { name: '套用變更' }).click()
-  await expect(bob.getByRole('alert')).toContainText('已由其他人變更')
+  await expect(bob.getByRole('dialog', {name: '比對草稿與團隊版本'})).toBeVisible()
   const original = bob.url()
   await bob.reload()
+  await bob.getByRole('dialog', {name: '比對草稿與團隊版本'}).getByRole('button', {name: '關閉'}).click()
   await bob.getByRole('button', { name: '另存草稿畫布' }).click()
   await expect(b.locator('.node-title').first()).toHaveText('第二位成員的草稿')
   assert.notEqual(original, bob.url())
@@ -72,6 +74,7 @@ try {
   await expect(page.locator('.node-title').first()).toHaveText('離線編輯')
   await offline.close()
   await verifyDraftReview(alice, bob)
+  await verifyFormDrafts(alice, bob)
   await verifyImport(alice, bob, origin)
   await verifyLegacyEdits(alice, origin)
   await verifyNodeCreation(alice, bob, origin)

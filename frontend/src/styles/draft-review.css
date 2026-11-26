@@ -1,0 +1,56 @@
+dialog.draftReview {
+  --review-teal: light-dark(#20665d, #92d3c2);
+  --review-amber: light-dark(#87570d, #f1c77f);
+  width: min(720px, calc(100vw - 24px));
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 20px 72px #192e3640;
+}
+.draftReview[open] { display: flex; flex-direction: column; }
+.draftReview .draftReviewHead, .draftReview footer {
+  padding: 16px 24px;
+  flex: none;
+  margin: 0;
+  gap: 12px;
+}
+.draftReview .draftReviewHead { justify-content: flex-start; border-bottom: 1px solid var(--line); }
+.draftReviewHead p { margin: 4px 0 0; font-size: .82rem; color: var(--muted); }
+.draftReviewHead .icon { margin-left: auto; align-self: flex-start; }
+.draftReviewIcon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 9px; background: var(--soft); color: var(--review-teal); }
+.draftReviewBody { padding: 20px 24px; overflow: auto; min-height: 0; }
+.draftReviewBody > p { margin: 0 0 14px; }
+.draftInstruction { color: var(--muted); font-size: .9rem; }
+.draftConflict + .draftConflict { margin-top: 22px; border-top: 1px solid var(--line); }
+.draftConflict legend { padding: 0; font-size: 1.03rem; font-weight: 650; overflow-wrap: anywhere; }
+.draftConflict code { display: inline-block; vertical-align: .08em; margin-right: 8px; border-radius: 4px; padding: 2px 6px; font-size: .74rem; color: var(--muted); background: light-dark(#edf0f3,#303d47); }
+.draftOriginal { margin: 10px 0; display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 14px; padding: 10px 13px; background: light-dark(#f4f6f8,#273138); border-radius: 7px; }
+.draftOriginal strong, .draftSideHeading { display: flex; align-items: center; gap: 7px; }
+.draftOriginal strong { white-space: nowrap; font-size: .79rem; color: var(--muted); }
+.draftSides { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 10px; }
+.draftSides .draftSide {
+  --accent: var(--review-teal);
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px; min-width: 0;
+  margin: 0; padding: 13px 14px 15px; border: 1px solid var(--line); border-radius: 9px; cursor: pointer;
+}
+.draftSides .draftSide.file { --accent: var(--review-amber); }
+.draftSideHeading { color: var(--accent); font-size: .83rem; }
+.draftSideHeading svg { flex: none; }
+.draftSide input[type='radio'] { flex: none; width: 16px; height: 16px; padding: 0; margin: 0 0 0 auto; accent-color: var(--accent); }
+.draftSide:hover, .draftSide:focus-within { border-color: var(--accent); }
+.draftSide:has(:checked) { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.draftValue { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; font: inherit; font-size: .94rem; line-height: 1.6; }
+.draftValue mark { background: color-mix(in srgb, var(--accent) 13%, var(--surface)); color: inherit; border-radius: 2px; font-weight: 650; }
+.draftCompatible { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 13px; color: var(--muted); font-size: .85rem; }
+.draftCompatible summary { cursor: pointer; }
+.draftCompatible dl { padding: 0; margin: 8px 0 0; }
+.draftCompatible dl > div { display: grid; grid-template-columns: minmax(7rem, 1fr) 2fr; padding: 8px 0; gap: 12px; }
+.draftCompatible dt { overflow-wrap: anywhere; }
+.draftCompatible small { display: block; }
+.draftCompatible dd { color: var(--ink); margin: 0; }
+.draftReview footer { position: static; justify-content: space-between; border-top: 1px solid var(--line); }
+.draftReview footer span { color: var(--muted); font-size: .85rem; }
+.draftReview footer b { color: var(--ink); }
+@media (max-width: 570px) {
+  .draftReview .draftReviewHead, .draftReview footer, .draftReviewBody { padding: 14px 16px; }
+  .draftSides { grid-template-columns: minmax(0,1fr); gap: 8px; }
+}

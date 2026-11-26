@@ -16,6 +16,8 @@ Collapse a branch with **−** and expand its descendants with **＋**. Nodes re
 
 ### Node IDs and assignments
 
+The node editor marks the published team version with a teal people badge and a solid top border. Editing switches the form to an amber lock badge and a dashed border. Private drafts resume automatically in the same browser for the same user, canvas and node. The footer keeps **捨棄草稿** beside **套用變更**. Discard reloads the current team version. If the server reports a conflict, the comparison opens automatically. Each conflicting field shows the original value when available, the team value and the private draft. Choose a version for each conflict and confirm to publish. Closing the comparison keeps the pending draft available for review.
+
 The node form suggests the first available number for its type, such as `STEP1`, `DEC1` or `FRAME1`. You can enter your own ID before creating the node. If another editor claims it first, open the draft comparison and confirm the suggested replacement to keep both nodes and their connections.
 
 Choose **返回節點** in the node form and search for a destination. The return target and incoming/outgoing connection pickers show `type | ID · title`, so identically named nodes are distinguishable. Click a return node once to select and edit it. Double-click it to center the destination and open its details, or use the jump button in the inspector.

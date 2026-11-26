@@ -1,6 +1,6 @@
 import { bindInsert, pendingKnowledge } from '../knowledge/insert.js'
 import { showBadges, bindBadges } from '../badges/editor.js'
-import { draftOpened } from './formDrafts.js'
+import { beginDraft, draftOpened } from './formDrafts.js'
 import { suggestNodeId } from '../graph/nodeIds.js'
 import { showAssignments } from '../modeling/assignmentOptions.js'
 import { showNodeFields } from '../modeling/fields.js'
@@ -12,9 +12,10 @@ import { cloneGraph } from '../graph/json.js'
 import { effectiveType, nodeTypes } from '../graph/nodeTypes.js'
 import { $, el } from '../ui/dom.js'
 import { attachSearch, nodeChoiceLabel } from './searchPicker.js'
-import { graphModel, outgoing } from '../graph/model.js'
+import { formGraph } from './formSource.js'
+import { sheetInGraph } from '../graph/nodeSheet.js'
 import { categoryDraft, editorLegend } from '../categories/editor.js'
-import { sheetFor, startId } from '../diagram/visibleGraph.js'
+import { startId } from '../diagram/visibleGraph.js'
 import { diagramState } from '../diagram/state.js'
 import { setupGroups } from '../groups/layout.js'
 import { editContext } from './selection.js'
@@ -95,7 +96,7 @@ function appendEditorEdge(edge) {
     target.value = ''
     target.required = true
   }
-  targetWrap.append(attachSearch(target, edge.to, '目標節點'))
+  targetWrap.append(attachSearch(target, edge.to, '目標節點', Object.values(formGraph().nodes)))
   const kindWrap = el('label', '', '連線類型'),
     kind = el('select', 'edge-kind')
   for (const [value, label] of [
@@ -134,7 +135,7 @@ function appendEditorEdge(edge) {
     const info = el(
       'small',
       'edge-extra',
-      '完成後接回 ' + edge.resume + ' · ' + graphModel.nodes[edge.resume]?.title,
+      '完成後接回 ' + edge.resume + ' · ' + formGraph().nodes[edge.resume]?.title,
     )
     row.append(info)
   }
@@ -154,13 +155,13 @@ function appendIncoming(id = '', condition = '') {
   remove.onclick = () => row.remove()
   label.className = 'incoming-condition'
   label.value = condition
-  row.append(attachSearch(select, id, '前序節點'), label, remove)
+  row.append(attachSearch(select, id, '前序節點', Object.values(formGraph().nodes)), label, remove)
   $('added-incoming').append(row)
 }
 
 export function showReturnTarget(value, self) {
   const field = $('return-target-field')
-  const targets = Object.values(graphModel.nodes).filter(node => node.id !== self && !node.jumpTo)
+  const targets = Object.values(formGraph().nodes).filter(node => node.id !== self && !node.jumpTo)
   const select = $('node-return-target')
   const prior = select.closest('.node-picker')
   field.append(attachSearch(select, value, '返回目標', targets))
@@ -178,19 +179,20 @@ function populateEditor(id, add = false) {
   nodeForm.adding = add
   nodeForm.parent = add ? id : null
   nodeForm.node = add ? null : id
-  const type = add && id && sheetFor(id) !== 'project' ? 'shared' : 'action'
+  const recovery = beginDraft()
+  const type = add && id && sheetInGraph(formGraph(), id) !== 'project' ? 'shared' : 'action'
   nodeForm.autoId = add
-  nodeForm.suggestion = add ? suggestNodeId(type, graphModel.nodes) : ''
+  nodeForm.suggestion = add ? suggestNodeId(type, formGraph().nodes) : ''
   const n = add
     ? {
         id: nodeForm.suggestion,
         title: '',
-        group: graphModel.nodes[id]?.group || 'Custom',
+        group: formGraph().nodes[id]?.group || 'Custom',
         decision: false,
         description: '',
         content: [],
       }
-    : graphModel.nodes[id]
+    : formGraph().nodes[id]
   if (!n) return
   restoreOptionEdits()
   showOptionStatus()
@@ -199,14 +201,14 @@ function populateEditor(id, add = false) {
   $('category-error').textContent = ''
   editorLegend(n)
   $('added-incoming').replaceChildren()
-  const previous = add ? (id ? [id] : []) : graphModel.edges.filter((e) => e.to === id).map((e) => e.from)
+  const previous = add ? (id ? [id] : []) : formGraph().edges.filter((e) => e.to === id).map((e) => e.from)
   $('current-incoming').textContent = previous.length
-    ? '目前前序：' + [...new Set(previous)].map(k => nodeChoiceLabel(graphModel.nodes[k])).join('、')
+    ? '目前前序：' + [...new Set(previous)].map(k => nodeChoiceLabel(formGraph().nodes[k])).join('、')
     : '尚無前序連線'
   $('editor-title').textContent = add ? (id ? '新增後續節點' : '建立獨立節點') : '編輯 ' + n.title
   $('editor-context').textContent = add
     ? id
-      ? '套用後會自動從「' + graphModel.nodes[id].title + '」連到這個新節點。'
+      ? '套用後會自動從「' + formGraph().nodes[id].title + '」連到這個新節點。'
       : '可先儲存獨立節點，之後再加入前序或後續連線。'
     : '節點 ID 保持不變，其他連線會沿用目前節點。'
   for (const key of ['id', 'group', 'title', 'description', 'where', 'expect', 'note'])
@@ -221,18 +223,18 @@ function populateEditor(id, add = false) {
   $('content-editor').replaceChildren()
   n.content.forEach((block, index) => appendContentBlock(block, index))
   $('edge-editor').replaceChildren()
-  if (!add) (outgoing.get(id) || []).filter((e) => e.kind !== 'spine').forEach(appendEditorEdge)
-  setupGroups(n)
+  if (!add) formGraph().edges.filter((e) => e.from === id && e.kind !== 'spine').forEach(appendEditorEdge)
+  setupGroups(n, formGraph())
   showAssignments(n)
   showBadges(n)
-  showNodeFields(n)
+  showNodeFields(n, formGraph())
   $('delete-node').hidden = add
   $('editor-main-note').textContent = ''
   $('editor-error').textContent = ''
   $('new-node').hidden = add
   window.dispatchEvent(new Event('studio-edit-target'))
   annotateOptions()
-  draftOpened()
+  draftOpened(recovery)
 }
 
 function checkNodeId() {
@@ -243,7 +245,7 @@ function checkNodeId() {
     if (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(id))
       error = '請以英文字母開頭，限 64 字，可用數字、底線或連字號。'
     else if (
-      Object.hasOwn(graphModel.nodes, id) ||
+      Object.hasOwn(formGraph().nodes, id) ||
       ['constructor', 'prototype', '__proto__'].includes(id)
     )
       error = '此 ID 已使用或為保留字，請更換。'
@@ -276,7 +278,7 @@ function bindNodeForm() {
     if (!nodeForm.adding) return
     const field = $('node-id')
     if (force) nodeForm.autoId = true
-    nodeForm.suggestion = suggestNodeId($('node-type').value, graphModel.nodes)
+    nodeForm.suggestion = suggestNodeId($('node-type').value, formGraph().nodes)
     if (nodeForm.autoId) field.value = nodeForm.suggestion
     checkNodeId()
   }

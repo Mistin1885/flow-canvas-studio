@@ -48,3 +48,6 @@ canvases/
 *-draft.json
 dfx-project-flow.json
 dfx-project-workbench.html
+
+# Standalone draft conflict review preview
+draft-conflict-review.html

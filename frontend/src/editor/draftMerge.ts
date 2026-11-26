@@ -4,7 +4,8 @@ import { reviewSharedOptions, type SharedOptionEdit } from './sharedOptionReview
 import { compare, resolve, type Choices } from '../import/merge'
 
 export type Draft = { operation_id?: string; strict?: boolean; optionEdits?: SharedOptionEdit[]; createdNode?: string; confirmedConflict?: boolean; graph: Graph; base: number; ops: ReturnType<typeof differences>; originals?: unknown[] }
-type Question = { token: string; label: string; mine: unknown; team: unknown }
+export type DraftQuestion = { token: string; label: string; subject?: string; original?: unknown; mine: unknown; team: unknown }
+export type CompatibleField = { subject: string; label: string; value: unknown; source: 'team' | 'file' }
 type Fields = Record<string, unknown>
 
 const fieldNames: Record<string, string> = {
@@ -18,25 +19,33 @@ function isFields(value: unknown): value is Fields {
 
 function mergeFields(
   old: Fields, local: Fields, remote: Fields, path: string[], label: string,
-  choices: Choices, questions: Question[], customNames: Map<string, string>,
+  choices: Choices, questions: DraftQuestion[], compatible: CompatibleField[], customNames: Map<string, string>,
 ) {
   const merged = { ...remote }
-  for (const field of new Set([...Object.keys(old), ...Object.keys(local)])) {
-    if (equalJson(old[field], local[field]) || equalJson(local[field], remote[field])) continue
+  for (const field of new Set([...Object.keys(old), ...Object.keys(local), ...Object.keys(remote)])) {
+    const name = (path.length === 1 ? fieldNames[field] : path[1] === 'fieldValues' ? customNames.get(field) : field) || field
+    if (equalJson(local[field], remote[field])) continue
+    const mineChanged = !equalJson(old[field], local[field])
+    const teamChanged = !equalJson(old[field], remote[field])
+    if (!mineChanged) {
+      compatible.push({ subject: label, label: name, value: remote[field], source: 'team' })
+      continue
+    }
     const itemPath = [...path, field]
     if (path.length === 1 && ['fieldValues', 'badges'].includes(field) &&
         [old[field], local[field], remote[field]].every(value => value === undefined || isFields(value))) {
       const values = mergeFields((old[field] ?? {}) as Fields, (local[field] ?? {}) as Fields,
-        (remote[field] ?? {}) as Fields, itemPath, label, choices, questions, customNames)
+        (remote[field] ?? {}) as Fields, itemPath, label, choices, questions, compatible, customNames)
       if (Object.keys(values).length) merged[field] = values
       else delete merged[field]
       continue
     }
-    if (!equalJson(remote[field], old[field])) {
+    if (teamChanged) {
       const token = signature([itemPath, local[field], remote[field]])
-      const name = path.length === 1 ? fieldNames[field] : path[1] === 'fieldValues' ? customNames.get(field) : field
-      questions.push({ token, label: label + ' · ' + (name || field), mine: local[field], team: remote[field] })
+      questions.push({ token, subject: label, label: name, original: old[field], mine: local[field], team: remote[field] })
       if (choices[token] !== 'file') continue
+    } else {
+      compatible.push({ subject: label, label: name, value: local[field], source: 'file' })
     }
     if (Object.hasOwn(local, field)) merged[field] = local[field]
     else delete merged[field]
@@ -59,7 +68,8 @@ export function draftPlan(draft: Draft, latest: Snapshot, choices: Choices) {
   })
   const base = { ...original.meta, nodes: original.nodes, edges: Object.values(original.edges) } as Graph
   const groups = compare(base, draft.graph, latest)
-  const questions: Question[] = []
+  const questions: DraftQuestion[] = []
+  const compatible: CompatibleField[] = []
   const automatic: Choices = { ...choices }
   const customNames = new Map<string, string>()
   if (Array.isArray(latest.graph.fieldDefinitions)) {
@@ -83,24 +93,26 @@ export function draftPlan(draft: Draft, latest: Snapshot, choices: Choices) {
     if (draft.originals && group.rows.length === 1 && row.table === 'meta' && row.key === 'badgeStyles' &&
         isFields(row.file) && isFields(row.team)) {
       row.file = mergeFields((original.meta.badgeStyles ?? {}) as Fields, row.file, row.team,
-        ['badgeStyles', 'styles'], '醒目標籤樣式', choices, questions, customNames)
+        ['badgeStyles', 'styles'], '醒目標籤樣式', choices, questions, compatible, customNames)
       automatic[group.token] = 'file'
       continue
     }
     const old = original[row.table][row.key] as NodeData
     if (draft.originals && group.rows.length === 1 && row.table === 'nodes' && old && row.file && row.team) {
       const local = row.file as NodeData
-      row.file = mergeFields(old, local, row.team as NodeData, [row.key], local.title, choices, questions, customNames)
+      row.file = mergeFields(old, local, row.team as NodeData, [row.key], row.key, choices, questions, compatible, customNames)
       automatic[group.token] = 'file'
     } else {
-      const format = (side: 'file' | 'team') =>
-        group.rows.length === 1 ? row[side] : group.rows.map(r => ({ item: r.key, value: r[side] }))
-      questions.push({ token: group.token, label: group.rows.map(r => r.key).join('、'), mine: format('file'), team: format('team') })
+      const format = (side: 'file' | 'team' | 'original') => {
+        const get = (r: typeof row) => side === 'original' ? original[r.table][r.key] : r[side]
+        return group.rows.length === 1 ? get(row) : group.rows.map(r => ({ item: r.key, value: get(r) }))
+      }
+      questions.push({ token: group.token, label: group.rows.map(r => r.key).join('、'), ...(draft.originals && { original: format('original') }), mine: format('file'), team: format('team') })
     }
   }
   const plan = resolve(latest, groups, automatic)
   const reviewed = draft.optionEdits?.length
     ? reviewSharedOptions(plan.graph, draft.graph, draft.optionEdits, choices, latest) : plan
   if ('questions' in reviewed) questions.push(...reviewed.questions)
-  return { graph: reviewed.graph, ops: differences(latest.graph, reviewed.graph, latest.versions), questions }
+  return { graph: reviewed.graph, ops: differences(latest.graph, reviewed.graph, latest.versions), questions, compatible }
 }

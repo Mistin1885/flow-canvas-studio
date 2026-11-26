@@ -34,7 +34,6 @@ export async function verifyNodeCreation(alice, bob, origin) {
   await apply(frames[0])
   await expect(frames[0].locator('#workspace-save-state')).toHaveText('已同步')
   await apply(frames[1])
-  await bob.getByRole('button', { name: '比對並合併草稿' }).click()
   await expect(bob.locator('.importDialog')).toContainText('DEC2')
   await bob.getByRole('button', { name: '確認並套用' }).click()
   await expect.poll(async () => {

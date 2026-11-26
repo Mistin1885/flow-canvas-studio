@@ -1,4 +1,4 @@
-import { graphModel } from '../graph/model.js'
+import { formGraph } from '../editing/formSource.js'
 import { pendingKnowledge } from './insert.js'
 import { references, referenceIssue, proseSegments } from './references.js'
 import { $ } from '../ui/dom.js'
@@ -16,7 +16,7 @@ function check(field) {
   for (const [, label] of references(value)) known.add(label)
   labels.set(field, known)
   const lookup = (id) =>
-    pendingKnowledge.docs['knowledge.' + id] || graphModel.document['knowledge.' + id]
+    pendingKnowledge.docs['knowledge.' + id] || formGraph()['knowledge.' + id]
   const issue = referenceIssue(value, lookup, [...known])
   let message = field.nextElementSibling
   if (!message?.classList.contains('referenceError')) message = null

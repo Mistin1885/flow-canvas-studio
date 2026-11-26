@@ -16,11 +16,10 @@ export async function verifyDraftReview(alice, bob) {
     await submit(a)
     await expect(a.locator('#workspace-save-state')).toHaveText('已同步')
     await submit(b)
-    await expect(bob.getByRole('alert')).toContainText('已由其他人變更')
+    await expect(review).toBeVisible()
   }
 
   await competingEdits('#node-note', 'Shared note', 'Team title')
-  await bob.getByRole('button', { name: '比對並合併草稿' }).click()
   await expect(review.getByRole('radio')).toHaveCount(0)
   await expect(review).toContainText('1 項待套用')
   await apply.click()
@@ -31,7 +30,6 @@ export async function verifyDraftReview(alice, bob) {
 
   await competingEdits('#node-title', 'Recovered title', 'Second team title')
   await bob.reload()
-  await bob.getByRole('button', { name: '比對並合併草稿' }).click()
   await expect(apply).toBeDisabled()
   const mine = review.getByRole('radio', { name: /採用我的草稿/ })
   await mine.check()

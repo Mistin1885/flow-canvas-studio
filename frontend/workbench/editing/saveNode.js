@@ -5,7 +5,7 @@ import { equalJson } from '../../shared/jsonComparison.js'
 import { addNode } from '../graph/addNode.js'
 import { bindReferenceValidation, validateReferences } from '../knowledge/formValidation.js'
 import { finishBadgeEditor, saveBadges } from '../badges/editor.js'
-import { draftApplied, formValues } from './formDrafts.js'
+import { draftApplied, publishForm } from './formDrafts.js'
 import { saveAssignmentOptions } from '../modeling/assignmentOptions.js'
 import { readNodeFields } from '../modeling/fields.js'
 import { editState } from './state.js'
@@ -15,20 +15,21 @@ import { applyEdgeEdits } from './saveEdges.js'
 import { $ } from '../ui/dom.js'
 import { nodeForm, populateEditor } from './nodeForm.js'
 import { graphModel } from '../graph/model.js'
-import { exportGraph } from '../io/graph.js'
-import { sheetFor } from '../diagram/visibleGraph.js'
+import { cloneGraph } from '../graph/json.js'
+import { formGraph } from './formSource.js'
+import { sheetInGraph } from '../graph/nodeSheet.js'
 
 import { categoryDraft } from '../categories/editor.js'
 
-import { replaceGraph } from '../graph/replace.js'
+import { formValues } from './formValues.js'
 import { go } from '../diagram/navigation.js'
 import { say } from '../ui/toast.js'
 
 function applyEditor() {
   if (!validateReferences()) throw new Error('請修正標紅欄位中的知識引用。')
   const id = $('node-id').value.trim()
-  if (nodeForm.adding && Object.hasOwn(graphModel.nodes, id)) throw new Error('節點 ID 已存在')
-  const graph = exportGraph(),
+  if (nodeForm.adding && Object.hasOwn(formGraph().nodes, id)) throw new Error('節點 ID 已存在')
+  const graph = cloneGraph(formGraph()),
     n = nodeForm.adding ? { id } : graph.nodes[id]
   finishBadgeEditor()
   for (const edit of optionEdits) applyOptionEdit(graph, edit)
@@ -88,16 +89,17 @@ function applyEditor() {
   }
   if (nodeForm.adding || differs('content'))
     n.content = [...$('content-editor').children].map(savedBlock)
-  if (nodeForm.adding && nodeForm.parent && sheetFor(nodeForm.parent) !== 'project') {
-    n.sheetId = sheetFor(nodeForm.parent)
+  if (nodeForm.adding && nodeForm.parent && sheetInGraph(graph, nodeForm.parent) !== 'project') {
+    n.sheetId = sheetInGraph(graph, nodeForm.parent)
     n.sourceKind = 'subflow'
   }
   if (nodeForm.adding) addNode(graph, n)
   if (differs('edges') || after.incoming.length || nodeForm.parent)
     applyEdgeEdits(graph, id, after, nodeForm.parent)
-  if (!equalJson(graph, graphModel.document)) replaceGraph(graph, { optionEdits, createdNode: nodeForm.adding ? id : undefined })
+  if (!equalJson(graph, formGraph()))
+    publishForm(graph, { optionEdits, createdNode: nodeForm.adding ? id : undefined })
   draftApplied()
-  go(id)
+  if (graphModel.nodes[id]) go(id)
   return id
 }
 
