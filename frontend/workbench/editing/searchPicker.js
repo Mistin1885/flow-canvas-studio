@@ -13,8 +13,6 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
   const box = el('span', 'node-picker'),
     input = el('input'),
     list = el('span', 'picker-options')
-  const caption = el('span', 'picker-caption')
-  caption.setAttribute('aria-hidden', 'true')
   const id = 'picker-' + ++selectionState.pickerSequence
   list.id = id
   list.setAttribute('role', 'listbox')
@@ -41,16 +39,17 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
     active = -1,
     query = ''
   function display() {
-    input.value = ''
-    input.placeholder = byId.has(select.value) ? byId.get(select.value).label : '選擇' + description
-    input.title = input.placeholder
-    caption.textContent = input.placeholder
+    input.value = byId.get(select.value)?.label || ''
+    input.placeholder = '選擇' + description
+    input.title = input.value || input.placeholder
     input.setCustomValidity(select.value ? '' : '請選擇' + description)
   }
   function choose(n) {
     select.replaceChildren(new Option(n.label, n.id, true, true))
-    select.dispatchEvent(new Event('change'))
     close()
+    input.focus()
+    input.select()
+    select.dispatchEvent(new Event('change', { bubbles: true }))
   }
   function mark(k) {
     active = k
@@ -74,9 +73,10 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
       o.id = id + '-' + i
       o.setAttribute('role', 'option')
       o.onpointerdown = (e) => e.preventDefault()
-      o.onclick = () => {
+      o.onclick = (e) => {
+        // An option inside a label would otherwise activate the input and reopen the list.
+        e.preventDefault()
         choose(n)
-        input.focus()
       }
       list.append(o)
     }
@@ -109,7 +109,13 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
       render()
     }
   }
-  input.onclick = () => (list.hidden ? open() : close())
+  input.onfocus = () => input.select()
+  input.onclick = () => {
+    if (list.hidden) {
+      open()
+      input.select()
+    } else close()
+  }
   input.oninput = () => {
     open()
     query = input.value
@@ -128,6 +134,7 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
       e.preventDefault()
       if (list.hidden) {
         open()
+        input.select()
         return
       }
       if (results.length)
@@ -136,8 +143,10 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
     }
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (list.hidden) open()
-      else if (results[active]) choose(results[active])
+      if (list.hidden) {
+        open()
+        input.select()
+      } else if (results[active]) choose(results[active])
       return
     }
     if (e.key === 'Tab') {
@@ -149,7 +158,7 @@ function attachSearch(select, value, description, rows = Object.values(graphMode
     new Option(value && byId.has(value) ? byId.get(value).label : '', value || '', true, true),
   )
   display()
-  box.append(input, caption, list, select)
+  box.append(input, list, select)
   return box
 }
 

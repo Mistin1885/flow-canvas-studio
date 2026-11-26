@@ -8,7 +8,7 @@ import { tagList } from './visibleGraph.js'
 import { graphModel } from '../graph/model.js'
 import { renderFoldControls } from './foldControls.js'
 import { $, el } from '../ui/dom.js'
-import { activateNode, nodeFor, nodeGroup, nodeKind, returnTarget } from './nodes.js'
+import { activateNode, followReturn, nodeFor, nodeGroup, nodeKind, returnTarget } from './nodes.js'
 import { scrollState } from './navigation.js'
 import { updateTrace } from './animation.js'
 import { applyLegendStyle, paintCard } from '../appearance/styles.js'
@@ -95,23 +95,17 @@ export function renderCards(oldPositions, pathSet) {
       [rules[n.gatewayRule], type === 'decision' ? '◇ 決策' : '', n.ownerRole, ...tags].filter(Boolean).join(' · ')
     dom.querySelector('.node-title').textContent =
       (type === 'return' ? '↩ ' : n.jumpTo ? '↗ ' : '') + n.title
-    dom
-      .querySelector('.node-body')
-      .setAttribute(
-        'aria-label',
-        n.title +
-          (n.jumpTo
-            ? '：跳轉到 ' + graphModel.nodes[n.jumpTo].title
-            : returnTarget(i)
-              ? '：返回原節點並查看詳情'
-              : '：查看詳情'),
-      )
-    dom
-      .querySelector('.node-body')
-      .setAttribute('aria-pressed', String(diagramState.selected?.key === i.key))
+    const target = returnTarget(i)
+    const body = dom.querySelector('.node-body')
+    body.title = target ? '單擊選取，雙擊跳轉到 ' + graphModel.nodes[target].title : ''
+    body.setAttribute('aria-label', n.title + (target ? '：' + body.title : '：查看詳情'))
+    body.setAttribute('aria-pressed', String(diagramState.selected?.key === i.key))
     const sf = graphModel.document.subflows?.find((s) => s.parent === i.id)
     dom.ondblclick = (e) => {
-      if (editState.enabled && !e.target.closest('.connect-port,.toggle,.highlight-badge')) {
+      if (e.target.closest('.connect-port,.toggle,.highlight-badge,.frame-rim')) return
+      if (target && body.contains(e.target)) {
+        followReturn(i)
+      } else if (editState.enabled) {
         setEditTarget({ node: i.id })
         editContext()
       }

@@ -94,25 +94,12 @@
 }
 .node-picker input[role='combobox'] {
   grid-area: 1/1;
-  color: transparent !important;
-  caret-color: transparent;
-  cursor: pointer;
-  width: 100%;
-  background: var(--paper);
-}
-.node-picker input[role='combobox']::placeholder {
-  color: transparent !important;
-}
-.picker-caption {
-  pointer-events: none;
-  grid-area: 1/1;
-  align-self: center;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   color: var(--ink);
-  padding: 0 23px 0 8px;
-  font-size: 13px;
+  width: 100%;
+  min-width: 0;
+  padding-inline-end: 24px;
+  text-overflow: ellipsis;
+  background: var(--paper);
 }
 .node-picker:after {
   content: '▾';
@@ -194,13 +181,4 @@
     content: '圖例';
     font: 600 13px var(--ui);
   }
-}
-
-.node-picker input[aria-expanded='true'] {
-  color: var(--ink) !important;
-  caret-color: var(--ink);
-  cursor: text;
-}
-.node-picker input[aria-expanded='true'] + .picker-caption {
-  visibility: hidden;
 }

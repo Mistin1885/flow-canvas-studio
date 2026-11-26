@@ -18,7 +18,7 @@ Collapse a branch with **−** and expand its descendants with **＋**. Nodes re
 
 The node form suggests the first available number for its type, such as `STEP1`, `DEC1` or `FRAME1`. You can enter your own ID before creating the node. If another editor claims it first, open the draft comparison and confirm the suggested replacement to keep both nodes and their connections.
 
-Choose **返回節點** in the node form and search for a destination. The return target and incoming/outgoing connection pickers show `type | ID · title`, so identically named nodes are distinguishable. In reading mode, clicking the return node centers the destination and opens its details. Drag-edit mode lets you select and edit the return node itself.
+Choose **返回節點** in the node form and search for a destination. The return target and incoming/outgoing connection pickers show `type | ID · title`, so identically named nodes are distinguishable. Click a return node once to select and edit it. Double-click it to center the destination and open its details, or use the jump button in the inspector.
 
 In **拖拉編輯**, drag a wire segment to move its lane or drag its label to reposition the text. Select the wire to reveal its round start handle and square end handle. Drag either handle to a side of its current node to dock there. The connection editor also offers side selectors and a reset to automatic routing. The router keeps the dragged segment, then minimizes bends and uses distance to break ties. Drag close to an aligned port to snap the segment back in line. Each completed drag is one undoable edit.
 

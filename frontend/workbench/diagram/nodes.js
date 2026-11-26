@@ -18,7 +18,14 @@ function isOpen(i) {
 }
 
 function returnTarget(i) {
-  return i.isExit ? i.id : null
+  return i.isExit ? i.id : nodeFor(i).jumpTo
+}
+
+function followReturn(i) {
+  const target = returnTarget(i)
+  if (!target) return
+  go(target, true)
+  if (editState.enabled) setEditTarget({ node: target })
 }
 
 function nodeKind(i) {
@@ -30,11 +37,7 @@ function activateNode(key) {
   if (!i) return
   if (editState.enabled) {
     setEditTarget({ node: i.id })
-    return
-  }
-  if (i.isExit || nodeFor(i).jumpTo) {
-    go(i.isExit ? i.id : nodeFor(i).jumpTo, true)
-    return
+    if (!returnTarget(i)) return
   }
   select(key)
 }
@@ -47,4 +50,4 @@ function edgesFor(i) {
   return outgoing.get(i.id) || []
 }
 
-export { activateNode, edgesFor, isOpen, nodeFor, nodeGroup, nodeKind, returnTarget }
+export { activateNode, edgesFor, followReturn, isOpen, nodeFor, nodeGroup, nodeKind, returnTarget }

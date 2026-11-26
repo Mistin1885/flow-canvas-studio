@@ -8,7 +8,7 @@ import { isFrameNode, kindLabels } from '../graph/nodeTypes.js'
 import { $, el, icon } from '../ui/dom.js'
 import { diagramState } from '../diagram/state.js'
 import { say } from '../ui/toast.js'
-import { edgesFor, nodeKind } from '../diagram/nodes.js'
+import { edgesFor, followReturn, nodeKind, returnTarget } from '../diagram/nodes.js'
 import { graphModel } from '../graph/model.js'
 import { go } from '../diagram/navigation.js'
 import { expandedFlows, sheetFor, tagList } from '../diagram/visibleGraph.js'
@@ -153,6 +153,13 @@ function renderDetail() {
     el('span', 'detail-type ' + nodeKind(i), kindLabels[nodeKind(i)]),
     el('h2', 'detail-title', n.title),
   )
+  const target = returnTarget(i)
+  if (target) {
+    const jump = el('button', 'return-button', '跳轉到 ' + graphModel.nodes[target].title)
+    jump.type = 'button'
+    jump.onclick = () => followReturn(i)
+    frag.append(jump)
+  }
   if (n.description) frag.append(el('p', 'description', n.description))
   const sf = (graphModel.document.subflows || []).find(
     (s) => s.parent === i.id || s.id === sheetFor(n.id),

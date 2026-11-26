@@ -48,7 +48,7 @@ export async function verifyFormDrafts(alice, bob) {
   await expect(a.locator('#node-title')).toHaveValue('Local title')
   await expect(a.locator('.block-value')).toHaveValue('Unpublished content')
   await expect(a.locator('.edge-condition')).toHaveValue('valid')
-  await expect(picker).toHaveAttribute('placeholder', /Gamma/)
+  await expect(picker).toHaveValue(/Gamma/)
   await expect(a.locator('.incoming-condition')).toHaveValue('ready')
   await a.getByRole('button', { name: '套用變更' }).click()
   await alice.getByRole('button', { name: '比對並合併草稿' }).click()
