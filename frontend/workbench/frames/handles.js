@@ -158,6 +158,7 @@ function renderGroupLinks(frag) {
     g.dataset.from = edge.from
     g.dataset.to = edge.to
     g._edge = edge
+    g.wirePoints = pts
     g.wireGeometry = geometry
     g.append(
       svg('path', {

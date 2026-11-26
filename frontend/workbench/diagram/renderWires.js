@@ -48,6 +48,7 @@ export function renderWires(projectNodes, pathSet) {
       d = rightAnglePath(points),
       active = pathSet.has(a.key) && pathSet.has(b.key),
       group = svg('g', { class: 'edge-route' })
+    group.wirePoints = points
     group.dataset.from = a.key
     group.dataset.to = b.key
     const p = svg('path', {

@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   straightPoints,
   dragLanes,
+  parallelGuides,
   wirePorts,
   resolveWire,
   validateWireLayout,
@@ -197,4 +198,37 @@ test('a lane dragged back into the snap radius becomes a straight line; an inten
   const blocked = { ...view, obstacles: [{ x: 125, y: 28, w: 10, h: 4 }] }
   const detour = resolveWire(blocked, { ...layout, lanes }, 1)
   assert.ok(detour.length > 2 && clearRoute(detour, blocked.obstacles))
+})
+
+test('parallel branches snap at a shared junction in either orientation and release outside six screen pixels', () => {
+  for (const vertical of [true, false]) {
+    const point = (at, pos) => vertical ? { x: at, y: pos } : { x: pos, y: at }
+    const axis = vertical ? 'x' : 'y'
+    const points = [point(44, 10), point(44, 90)]
+    const routes = [
+      [point(56, 10), point(56, -60)], // the two branches only touch at the split
+      [point(53, 200), point(53, 300)], // unrelated segment elsewhere
+      [point(40, 30), point(65, 30)], // crossing
+    ]
+    const ports = [0, 120].map(at => ({ point: point(at, 0), stub: point(at + 10, 0) }))
+    for (const zoom of [0.5, 1, 2]) {
+      const radius = 6 / zoom
+      const guides = parallelGuides(routes, points, 0, radius)
+      assert.deepEqual(guides, [{ at: 56, overlap: 0 }])
+      const lane = offset => dragLanes(points, 0, { [axis]: 56 - 44 + offset }, ports, 1, guides, radius)[0]
+      assert.equal(lane(radius).at + 60, 56)
+      assert.equal(lane(radius + 1).at + 60, 56 + radius + 1)
+    }
+  }
+})
+
+test('a snapped peer near the port midpoint keeps its exact lane after serialization', () => {
+  const view = { ...wire, to: { ...to, y: 10 }, autoPoints: [{x:100,y:25}, {x:200,y:35}] }
+  const layout = { start: 'right', end: 'left' }
+  const points = [{x:120,y:60}, {x:180,y:60}]
+  const guides = parallelGuides([[{x:120,y:32}, {x:170,y:32}]], points, 0, 6)
+  layout.lanes = dragLanes(points, 0, {x:0,y:-28}, wirePorts(view, layout, 1), 1, guides, 6)
+  const path = resolveWire(view, JSON.parse(JSON.stringify(layout)), 1)
+  assert.ok(path.some((p,i) => i && p.y === 32 && path[i-1].y === 32))
+  assert.ok(clearRoute(path, [view.from, view.to]))
 })

@@ -3,7 +3,7 @@ import { legacyRoute } from './legacyWire.js'
 import { routeBetweenPorts } from './wireDocking.js'
 
 import { dockSides, extendPort, facePort, nearestFace, nearStraightRoute, portSnapRadius } from './dockPoints.js'
-import { clearRoute } from './routing.js'
+import { clearRoute, wireTrack, tracksOf } from './routing.js'
 
 export { nearestFace }
 const finite = (v) => Number.isFinite(v) && Math.abs(v) <= 1e7
@@ -58,18 +58,54 @@ export function routeAnchor(points) {
   return points[0]
 }
 
+// Snapshot the displayed routes once per drag. Only parallel runs which overlap
+// or almost meet along their length can guide the segment (including split branches).
+export function parallelGuides(routes, points, index, radius) {
+  const segment = points[index + 1] && wireTrack(points[index], points[index + 1])
+  if (!segment) return []
+  const guides = []
+  for (const route of routes) {
+    for (const track of tracksOf(straightPoints(route))) {
+      if (track.axis !== segment.axis) continue
+      const overlap = Math.min(track.hi, segment.hi) - Math.max(track.lo, segment.lo)
+      if (overlap >= -radius) guides.push({ at: track.at, overlap })
+    }
+  }
+  return guides
+}
+
 // Only the line the user moved is a constraint. The bends that connected it
 // to the ports are disposable, otherwise each new drag accumulates old bends.
-export function dragLanes(points, index, delta, ports, scale) {
+export function dragLanes(points, index, delta, ports, scale, guides = [], radius = 0) {
   const p = points[index]
   const axis = p.x === points[index + 1].x ? 'x' : 'y'
-  let coordinate = p[axis] + delta[axis]
-  const aligned = ports.filter(port => port.point[axis] === port.stub[axis])
-    .sort((a, b) => Math.abs(coordinate - a.point[axis]) - Math.abs(coordinate - b.point[axis]))
-  if (aligned.length && Math.abs(coordinate - aligned[0].point[axis]) <= portSnapRadius * scale)
-    coordinate = aligned[0].point[axis]
+  const desired = p[axis] + delta[axis]
+  let coordinate = desired
+  let distance = Infinity
+  for (const { point, stub } of ports) {
+    const offset = Math.abs(desired - point[axis])
+    if (point[axis] === stub[axis] && offset <= portSnapRadius * scale && offset < distance) {
+      distance = offset
+      coordinate = point[axis]
+    }
+  }
+  // Prefer the closest guide. On a tie retain a dock or the best overlapping run.
+  let overlap = Infinity
+  let peer = false
+  for (const guide of guides) {
+    const offset = Math.abs(guide.at - desired)
+    if (offset > radius || offset > distance) continue
+    if (offset === distance && (guide.overlap < overlap ||
+        (guide.overlap === overlap && guide.at >= coordinate))) continue
+    coordinate = guide.at
+    distance = offset
+    overlap = guide.overlap
+    peer = true
+  }
   const midpoint = (ports[0].point[axis] + ports[1].point[axis]) / 2
-  return [{ axis, at: (coordinate - midpoint) / scale }]
+  const at = (coordinate - midpoint) / scale
+  // A peer can sit just beside the midpoint where automatic port straightening kicks in.
+  return [peer && at !== 0 && Math.abs(at) <= portSnapRadius ? { axis, at, exact: true } : { axis, at }]
 }
 
 export function closestSegment(points, p) {
@@ -94,7 +130,7 @@ export function resolveWire(view, layout, scale) {
   const single = layout.lanes?.length === 1 && layout.lanes[0]
   // A dragged lane is stored relative to the ports' midpoint. Let a user
   // pull it back onto their common axis without having to reset the wire.
-  if (!layout.lanes || (single && finite(single.at) && Math.abs(single.at) <= portSnapRadius)) {
+  if (!layout.lanes || (single && single.exact !== true && finite(single.at) && Math.abs(single.at) <= portSnapRadius)) {
     const corridor = layout.start || layout.end ? [a.point, b.point] : view.autoPoints
     const straight = nearStraightRoute(view.from, view.to, corridor, scale)
     if (straight && (!single || straight[0][single.axis] === straight[1][single.axis]) &&
