@@ -12,7 +12,7 @@ For a new installation, start with [Docker deployment](#deploy-with-docker-compo
 
 The workspace catalog supports search by canvas name, sorting by name or last edit, pagination, and grid or list view. Open **節點總覽** inside a canvas to find a step, or use the workbench search to locate a node by ID, title or content. The graph supports up to 300 nodes and 800 connections per canvas.
 
-Collapse a branch with **−** and expand its descendants with **＋**. Nodes reachable through other visible paths stay on screen. Use **拖拉編輯** to position nodes on the grid. Canvas and group styles supply defaults for new nodes, and individual nodes can override them. In the node editor, choose or create a reusable **醒目標籤** to mark a step. Set its color, style and icon, then drag it above or below the node.
+Collapse a branch with **−** and expand its descendants with **＋**. Nodes reachable through other visible paths stay on screen. Use **拖拉編輯** to position nodes on the grid. To move several nodes together, enable **框選** or hold Shift and drag from empty canvas space around the nodes. Drag any selected node to move the group. Undo restores all positions in one step. Click empty space or press Escape to clear the selection. Canvas and group styles supply defaults for new nodes, and individual nodes can override them. In the node editor, choose or create a reusable **醒目標籤** to mark a step. Set its color, style and icon, then drag it above or below the node.
 
 ### Node IDs and assignments
 

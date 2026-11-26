@@ -14,7 +14,17 @@ import { say } from '../ui/toast.js'
 import { initGestures } from './gestures.js'
 import { restoreWireDrag } from './wireDrag.js'
 import { canvas } from '../diagram/viewport.js'
+import { clearBox } from './boxSelection.js'
+import { resetMove } from './moveNodes.js'
+
+function setBoxMode(on) {
+  editState.boxMode = on
+  $('canvas-box').setAttribute('aria-pressed', String(on))
+  canvas.classList.toggle('box-mode', on)
+}
+
 function initGraphTools() {
+  $('canvas-box').onclick = () => setBoxMode(!editState.boxMode)
   $('canvas-properties').onclick = editContext
   $('manage-frames').onclick = $('canvas-members').onclick = () => editMembers(preferredFrame())
   $('canvas-connect').onclick = () =>
@@ -22,6 +32,7 @@ function initGraphTools() {
   $('history-undo').onclick = () => historyStep(false)
   $('history-redo').onclick = () => historyStep(true)
   $('canvas-edit').onclick = () => {
+    setBoxMode(false)
     editState.enabled = !editState.enabled
     $('canvas-edit').setAttribute('aria-pressed', String(editState.enabled))
     $('canvas').classList.toggle('edit-mode', editState.enabled)
@@ -96,21 +107,14 @@ function cancelGesture() {
   const g = editState.gesture
   if (!g) return
   editState.gesture = null
-  if (g.wire) {
-    restoreWireDrag(g)
-    if (g.capture.hasPointerCapture(g.pointer)) g.capture.releasePointerCapture(g.pointer)
-    return
+  if (g.box) clearBox(g)
+  else if (g.wire) restoreWireDrag(g)
+  else if (g.moving) resetMove(g)
+  else {
+    g.preview?.remove()
+    g.target?.classList.remove('link-target')
   }
-  g.preview?.remove()
-  g.target?.classList.remove('link-target')
-  g.card.classList.remove('being-moved')
-  if (!g.card.classList.contains('graph-handle'))
-    g.card.style.transform = 'translate(' + g.item.x + 'px,' + g.item.y + 'px)'
   if (g.capture?.hasPointerCapture(g.pointer)) g.capture.releasePointerCapture(g.pointer)
-  for (const v of g.wires || []) {
-    v.p.setAttribute('d', v.d)
-    v.hit.setAttribute('d', v.d)
-  }
 }
 
 export { cancelGesture, initGraphTools }

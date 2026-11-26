@@ -271,3 +271,17 @@ body[data-theme='dark'] #delete-node,
 .line-fields #line-reset-row[hidden] {
   display: none;
 }
+
+.canvas.box-mode { cursor: crosshair; }
+.selection-box {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  border: 1px solid var(--trace-line);
+  background: color-mix(in srgb, var(--trace-line) 15%, transparent);
+}
+.edit-mode .node.box-candidate {
+  outline: 2px solid var(--trace-line);
+  outline-offset: 2px;
+}
+.edit-mode .node.being-moved { transition: none; }

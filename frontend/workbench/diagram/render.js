@@ -9,7 +9,10 @@ import { renderCards } from './renderCards.js'
 import { renderWires } from './renderWires.js'
 import { layoutDiagram } from './layoutDiagram.js'
 
+import { cancelGesture } from '../editing/tools.js'
+
 function draw(anchorKey) {
+  cancelGesture()
   const oldPositions = new Map(diagramState.displayPositions)
   cancelAnimationFrame(diagramState.diagramFrame)
   const renderRevision = ++diagramState.diagramRevision

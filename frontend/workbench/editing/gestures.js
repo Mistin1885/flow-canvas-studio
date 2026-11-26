@@ -1,7 +1,7 @@
 import { editState } from './state.js'
 import { canvas } from '../diagram/viewport.js'
 
-import { setEditTarget } from './selection.js'
+import { setEditTarget, setNodeSelection } from './selection.js'
 import { editMembers } from '../frames/memberDialog.js'
 import { diagramState } from '../diagram/state.js'
 import { openEdge } from './edges.js'
@@ -11,15 +11,11 @@ import { updateTrace } from '../diagram/animation.js'
 import { rightAnglePath } from '../diagram/paths.js'
 import { frameTargetAt } from '../frames/handles.js'
 import { cancelGesture } from './tools.js'
-import { exportGraph } from '../io/graph.js'
-import { snapDrag, overlapsAt } from '../layout/nodePlacement.js'
-import { isFrameNode } from '../graph/nodeTypes.js'
-import { hiddenGroups } from '../groups/visibility.js'
-import { say } from '../ui/toast.js'
-import { graphModel } from '../graph/model.js'
-import { replaceGraph } from '../graph/replace.js'
 
 import { beginWireDrag, moveWireDrag, commitWireDrag } from './wireDrag.js'
+
+import { beginBox, updateBox } from './boxSelection.js'
+import { prepareMove, previewMove, commitMove } from './moveNodes.js'
 
 function initGestures() {
   let swallowClick = false,
@@ -40,7 +36,7 @@ function initGestures() {
     'pointerdown',
     (e) => {
       if (
-        !editState.enabled ||
+        !editState.enabled || editState.gesture ||
         e.button !== 0 ||
         e.target.closest('.edit-dock,#group-empty,.highlight-badge')
       )
@@ -65,7 +61,7 @@ function initGestures() {
         const grip = e.target.closest('.wire-grip,.wire-label-grip')
         const route = grip?.route || e.target.closest('.edge-route')
         if (route) {
-          if (editState.gesture || !route.wireGeometry) return
+          if (!route.wireGeometry) return
           setEditTarget({ edge: route.wireGeometry.edge })
           editState.gesture = beginWireDrag(route, e, grip?.dataset.grip)
           e.stopImmediatePropagation()
@@ -78,10 +74,15 @@ function initGestures() {
               lastTap = null
             } else lastTap = { route, at: now }
           }
+        } else if (editState.boxMode || (e.pointerType === 'mouse' && e.shiftKey)) {
+          e.stopImmediatePropagation()
+          e.preventDefault()
+          cancelAnimationFrame(diagramState.frame)
+          editState.gesture = beginBox(canvas, e)
         } else setEditTarget(null)
         return
       }
-      if (e.target.closest('.toggle') || editState.gesture) return
+      if (e.target.closest('.toggle')) return
       const item =
         diagramState.instanceMap.get(card.dataset.key) || frameHandles.get(card.dataset.endpoint)
       if (!item) return
@@ -95,11 +96,9 @@ function initGestures() {
         item,
         card,
         port,
-        dx: 0,
-        dy: 0,
       }
       // Capture on the pressed button so a short tap retains its native click target.
-      editState.gesture.wires = diagramState.edgeViews.filter((v) => v.from === item || v.to === item)
+      if (!port) Object.assign(editState.gesture, prepareMove(item))
       editState.gesture.capture = e.target.closest('button') || card
       editState.gesture.capture.setPointerCapture(e.pointerId)
       if (port) {
@@ -119,11 +118,16 @@ function initGestures() {
         dy = e.clientY - g.y
       if (!g.started && Math.hypot(dx, dy) < 4) return
       if (!g.started) {
+        if (g.keys?.length === 1) setEditTarget({ node: g.item.id })
         diagramState.hoverTrace = null
         diagramState.focusTrace = null
         updateTrace()
       }
       g.started = true
+      if (g.box) {
+        updateBox(g, e)
+        return
+      }
       if (g.wire) {
         lastTap = null
         moveWireDrag(g, e)
@@ -144,24 +148,7 @@ function initGestures() {
         g.target?.classList.remove('link-target')
         g.target = target !== g.card ? target : null
         g.target?.classList.add('link-target')
-      } else {
-        const pos = snapDrag(g.item, dx, dy, diagramState.readingScale, diagramState.scale)
-        g.dx = pos.x - g.item.x
-        g.dy = pos.y - g.item.y
-        for (const v of g.wires) {
-          const last = v.points.length - 1
-          const d = rightAnglePath(
-            v.points.map((p, k) => {
-              const pull = (v.from === g.item ? 1 - k / last : 0) + (v.to === g.item ? k / last : 0)
-              return { x: p.x + pull * g.dx, y: p.y + pull * g.dy }
-            }),
-          )
-          v.p.setAttribute('d', d)
-          v.hit.setAttribute('d', d)
-        }
-        g.card.classList.add('being-moved')
-        g.card.style.transform = 'translate(' + (g.item.x + g.dx) + 'px,' + (g.item.y + g.dy) + 'px)'
-      }
+      } else previewMove(g, e)
     },
     true,
   )
@@ -170,6 +157,14 @@ function initGestures() {
     (e) => {
       const g = editState.gesture
       if (!g || g.pointer !== e.pointerId) return
+      if (g.box) {
+        const keys = g.started ? updateBox(g, e) : []
+        cancelGesture()
+        setNodeSelection(keys)
+        e.stopImmediatePropagation()
+        swallowClick = true
+        return
+      }
       if (g.wire) {
         if (g.started) moveWireDrag(g, e)
         cancelGesture()
@@ -192,26 +187,7 @@ function initGestures() {
         if (target && target !== g.item.key) openEdge(g.item.id, target, null)
         return
       }
-      const { item } = g, { readingScale, scale } = diagramState
-      if (diagramState.instanceMap.get(item.key) !== item) return
-      const pos = snapDrag(item, e.clientX - g.x, e.clientY - g.y, readingScale, scale)
-      if (pos.x === item.x && pos.y === item.y) return
-      if (!isFrameNode(graphModel.nodes[item.id]) && diagramState.instances.some(other =>
-        other !== item && other.scope === item.scope && !isFrameNode(graphModel.nodes[other.id]) &&
-        !hiddenGroups.has(graphModel.nodes[other.id].group) && overlapsAt(item, pos, other))) {
-        say('該格會與其他節點重疊，請選擇空位。')
-        return
-      }
-      const graph = exportGraph(), node = graph.nodes[item.id]
-      delete node.layoutOffset
-      delete node.layoutOrder
-      node.layoutPosition = {
-        x: (pos.x - (item.scopeOrigin?.x || 0)) / readingScale,
-        y: (pos.y - (item.scopeOrigin?.y || 0)) / readingScale,
-      }
-      diagramState.displayPositions.set(item.key, pos)
-      replaceGraph(graph, { keepView: true, selection: g.item.id })
-      setEditTarget({ node: g.item.id })
+      commitMove(g, e)
     },
     true,
   )
@@ -224,7 +200,9 @@ function initGestures() {
       true,
     )
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && editState.gesture) cancelGesture()
+    if (e.key !== 'Escape' || !editState.enabled || document.querySelector('dialog[open]')) return
+    if (editState.gesture) cancelGesture()
+    else setEditTarget(null)
   })
 }
 

@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium, expect } from '@playwright/test'
 
+import { verifyGroupMove } from './group-move.mjs'
 import { verifyCanvasLifecycle } from './canvas-lifecycle.mjs'
 import { verifyAdminBackups } from './admin-backups.mjs'
 import { verifyImport } from './import-review.mjs'
@@ -74,6 +75,7 @@ try {
   await verifyLegacyEdits(alice, origin)
   await verifyNodeCreation(alice, bob, origin)
   await verifyStylePalette(alice, origin)
+  await verifyGroupMove(alice, bob, origin)
   await verifyHighlightBadges(alice, bob, origin)
   await verifyCanvasLifecycle(alice, bob, origin)
   await verifyAdminBackups(alice, bob, origin, root)

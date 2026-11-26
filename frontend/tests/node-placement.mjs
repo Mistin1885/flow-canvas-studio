@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { gridStep, overlapsAt, snapDrag } from '../workbench/layout/nodePlacement.js'
+import { gridStep, overlapsAt, snapDrag, snappedDisplacement, dropPositions } from '../workbench/layout/nodePlacement.js'
 import { addNode } from '../workbench/graph/addNode.js'
 import { effectiveStyle } from '../workbench/appearance/schema.js'
 import { invalidatePeerStyles, peerStyle } from '../workbench/appearance/groupPalette.js'
@@ -46,4 +46,19 @@ test('new cards inherit same-type styles, then group consensus for a new type', 
   delete g.nodes.second
   invalidatePeerStyles(g)
   assert.deepEqual(peerStyle(g, n), {})
+})
+
+test('a multi-node drop snaps only the anchor and rejects a collision on any member', () => {
+  const first = { x: 17, y: -3, w: 20, h: 20, scope: 'project' }
+  const second = { ...first, x: 103, y: 2 }
+  for (const scale of [0.35, 1, 2]) {
+    const delta = snappedDisplacement(first, 45 * scale, 65 * scale, 1, scale)
+    const group = [first, second]
+    const other = { ...second, x: second.x + delta.x, y: second.y + delta.y }
+    const unaffected = { ...other, scope: 'subflow' }
+    const result = dropPositions(group, delta, [unaffected], () => false)
+    assert.deepEqual(result.map(({x,y}) => [x,y]), [[60,60],[146,65]])
+    assert.equal(dropPositions(group, delta, [other], () => false), null)
+    assert.deepEqual(group.map(({x,y}) => [x,y]), [[17,-3],[103,2]])
+  }
 })

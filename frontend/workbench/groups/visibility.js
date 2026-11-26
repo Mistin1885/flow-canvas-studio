@@ -9,7 +9,7 @@ import { diagramState } from '../diagram/state.js'
 import { canvas } from '../diagram/viewport.js'
 import { tweenView } from '../diagram/navigation.js'
 import { syncFrameControls } from '../frames/handles.js'
-import { deleteEditTarget, setEditTarget } from '../editing/selection.js'
+import { deleteEditTarget, setEditTarget, setNodeSelection } from '../editing/selection.js'
 import { updateTrace } from '../diagram/animation.js'
 import { mobileNav } from '../bootstrap.js'
 
@@ -109,6 +109,11 @@ function syncGroups() {
       ))
   )
     setEditTarget(null)
+  if (selectionState.editTarget?.nodes)
+    setNodeSelection([...selectionState.editTarget.nodes].filter(key => {
+      const item = diagramState.instanceMap.get(key)
+      return item && !hide(item)
+    }))
   if (selectionState.editTarget?.edge) setEditTarget(selectionState.editTarget)
   diagramState.hoverTrace = null
   diagramState.focusTrace = null

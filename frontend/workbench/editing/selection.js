@@ -14,6 +14,12 @@ import { openEdge } from './edges.js'
 import { populateEditor } from './nodeForm.js'
 import { sheetFor } from '../diagram/visibleGraph.js'
 import { attachSearch } from './searchPicker.js'
+export function setNodeSelection(keys) {
+  const nodes = new Set(keys)
+  const [node] = nodes
+  setEditTarget(nodes.size > 1 ? { nodes } : node ? { node } : null)
+}
+
 function setEditTarget(next) {
   selectionState.editTarget = next
   const name = next?.node
@@ -26,17 +32,21 @@ function setEditTarget(next) {
   b.disabled = !name
   b.title = name ? '刪除 ' + name : '先選取節點或連線'
   b.textContent = next?.edge ? '刪除連線' : next?.node ? '刪除節點' : '刪除'
-  for (const [id, dom] of diagramState.domNodes) dom.classList.toggle('edit-picked', id === next?.node)
+  for (const [id, dom] of diagramState.domNodes) dom.classList.toggle('edit-picked', id === next?.node || !!next?.nodes?.has(id))
   for (const v of diagramState.edgeViews)
     v.group.classList.toggle('edit-picked', v.link.edge === next?.edge)
   for (const line of $('paths').querySelectorAll('.graph-link'))
     line.classList.toggle('edit-picked', line._edge === next?.edge)
   showWireGrips(next?.edge && $('paths').querySelector('.edge-route.edit-picked'))
-  $('canvas-properties').disabled = !(next?.node || next?.edge || diagramState.selected)
+  const multi = !!next?.nodes
+  $('canvas-properties').disabled = multi || !(next?.node || next?.edge || diagramState.selected)
+  $('canvas-members').disabled = $('canvas-connect').disabled = multi
+  $('edit-selection-hint').textContent = multi ? `已選取 ${next.nodes.size} 個節點，拖曳其中一個一起移動。Esc 取消選取。` : ''
+  $('edit-default-hint').hidden = multi
 }
 
 function deleteEditTarget() {
-  if (!editState.enabled || !selectionState.editTarget) return
+  if (!editState.enabled || !selectionState.editTarget || selectionState.editTarget.nodes) return
   const g = exportGraph(),
     target = selectionState.editTarget
   if (target.node) removeGraphNode(g, target.node)

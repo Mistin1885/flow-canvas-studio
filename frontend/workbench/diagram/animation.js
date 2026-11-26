@@ -26,7 +26,7 @@ function animateDiagram(oldPositions, revision) {
         pos = { x: old.x + (i.x - old.x) * t, y: old.y + (i.y - old.y) * t }
       positions.set(i.key, pos)
       const dom = diagramState.domNodes.get(i.key)
-      if (dom && !(editState.gesture?.started && editState.gesture.card === dom)) {
+      if (dom && !(editState.gesture?.started && editState.gesture.moving?.has(i))) {
         dom.style.transform = `translate(${pos.x}px,${pos.y}px)`
         dom.style.opacity = oldPositions.has(i.key) ? '1' : String(Math.min(1, progress * 1.6))
       }

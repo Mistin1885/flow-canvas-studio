@@ -74,6 +74,7 @@
         <div class="edit-dock" role="group" aria-label="畫布編輯工具">
           <button id="canvas-edit" type="button" aria-pressed="false">✥ 拖拉編輯</button>
           <span id="edit-tools-list" hidden>
+            <button id="canvas-box" type="button" aria-pressed="false" title="從空白處拖曳框選節點；也可按住 Shift 拖曳">框選</button>
             <button id="canvas-properties">編輯</button>
             <button id="canvas-members">框內步驟</button>
             <button id="canvas-connect">連線</button>
@@ -84,7 +85,10 @@
             ↷
           </button>
         </div>
-        <div id="edit-hint" hidden>拖動線段或文字調整位置，選取連線後可拖動兩端接點。從 ＋ 拖出可建立連線。</div>
+        <div id="edit-hint" hidden>
+          <span id="edit-default-hint">按「框選」或按住 Shift 從空白處拖曳框選節點。拖動線段或文字可調整位置，從 ＋ 拖出可連線。</span>
+          <span id="edit-selection-hint" role="status"></span>
+        </div>
         <div id="group-empty" hidden>
           目前畫布沒有顯示中的群組
           <button id="empty-all" type="button">顯示全部群組</button>
