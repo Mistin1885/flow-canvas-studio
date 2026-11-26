@@ -1,3 +1,4 @@
+import { storeDisplayedPosition } from './nodePosition.js'
 import { diagramState } from '../diagram/state.js'
 import { movingWirePoints } from '../layout/movingWire.js'
 import { centerConnection } from '../layout/cardCenters.js'
@@ -91,13 +92,7 @@ export function commitMove(g, e) {
   }
   const graph = exportGraph()
   for (const { item, x, y } of positions) {
-    const node = graph.nodes[item.id]
-    delete node.layoutOffset
-    delete node.layoutOrder
-    node.layoutPosition = {
-      x: (x - (item.scopeOrigin?.x || 0)) / diagramState.readingScale,
-      y: (y - (item.scopeOrigin?.y || 0)) / diagramState.readingScale,
-    }
+    storeDisplayedPosition(graph.nodes[item.id], item, { x, y }, diagramState.readingScale)
     diagramState.displayPositions.set(item.key, { x, y })
   }
   replaceGraph(graph, { keepView: true, selection: g.item.id })

@@ -9,6 +9,9 @@ import { simplifyWire } from './ports.js'
 
 // Use workbook ports and waypoints unless the displayed card sizes obstruct a wire.
 function clearCardRoutes() {
+  // When both docks are specified, resolveWire computes the complete path from
+  // the saved geometry. Searching for an unused automatic path doubles the work.
+  if (diagramState.graphLinks.every(l => l.edge.wireLayout?.start && l.edge.wireLayout?.end)) return
   const cards = diagramState.instances.filter((i) => !isFrameNode(graphModel.nodes[i.id]))
   const outside = (p, i, d) => {
     const sides = [

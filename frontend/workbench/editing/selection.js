@@ -38,6 +38,7 @@ function setEditTarget(next) {
   for (const line of $('paths').querySelectorAll('.graph-link'))
     line.classList.toggle('edit-picked', line._edge === next?.edge)
   showWireGrips(next?.edge && $('paths').querySelector('.edge-route.edit-picked'))
+  $('canvas-straighten').hidden = !next?.edge
   const multi = !!next?.nodes
   $('canvas-duplicate').disabled = !next?.node || !graphModel.nodes[next.node]
   $('canvas-properties').disabled = multi || !(next?.node || next?.edge || diagramState.selected)

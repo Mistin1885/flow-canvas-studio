@@ -92,6 +92,16 @@ function prepareInlineFlow(sf) {
     bounds = editedBounds
     dockProjectLinks(editedBounds.affected)
   }
+  if (nodes.every(i => {
+    const p = graphModel.nodes[i.id].layoutPosition
+    return p && p.x >= 0 && p.y >= 0
+  })) {
+    const scale = diagramState.readingScale
+    bounds = {
+      width: Math.max(...nodes.map(i => graphModel.nodes[i.id].layoutPosition.x * scale + i.w)),
+      height: Math.max(...nodes.map(i => graphModel.nodes[i.id].layoutPosition.y * scale + i.h + i.badgeBottom)),
+    }
+  }
   const headerSpace = host.badgeTop + host.h + host.badgeBottom + gap
   host.inlineFlow = {
     nodes,

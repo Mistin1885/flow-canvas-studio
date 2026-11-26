@@ -19,6 +19,9 @@ import { canvas } from '../diagram/viewport.js'
 import { clearBox } from './boxSelection.js'
 import { resetMove } from './moveNodes.js'
 
+import { initAutoArrange } from './autoArrange.js'
+import { straightenEdge } from './straightenEdge.js'
+
 function setBoxMode(on) {
   editState.boxMode = on
   $('canvas-box').setAttribute('aria-pressed', String(on))
@@ -26,6 +29,8 @@ function setBoxMode(on) {
 }
 
 function initGraphTools() {
+  initAutoArrange()
+  $('canvas-straighten').onclick = straightenEdge
   $('canvas-box').onclick = () => setBoxMode(!editState.boxMode)
   $('canvas-duplicate').onclick = duplicateSelectedNode
   $('canvas-properties').onclick = editContext
