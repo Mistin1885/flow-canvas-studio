@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium, expect } from '@playwright/test'
 
 import { verifySharedOptions } from './shared-options.mjs'
+import { verifyFrameInteractions } from './frame-interactions.mjs'
 import { verifyGroupMove } from './group-move.mjs'
 import { verifyCanvasLifecycle } from './canvas-lifecycle.mjs'
 import { verifyAdminBackups } from './admin-backups.mjs'
@@ -82,6 +83,7 @@ try {
   await verifyStylePalette(alice, origin)
   await verifyNodeTypeManagement(alice, bob, origin)
   await verifyGroupMove(alice, bob, origin)
+  await verifyFrameInteractions(alice, bob, origin)
   await verifyHighlightBadges(alice, bob, origin)
   await verifySharedOptions(alice, bob, origin)
   await verifyCanvasLifecycle(alice, bob, origin)

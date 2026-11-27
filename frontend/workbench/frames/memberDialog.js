@@ -4,7 +4,6 @@ import { suggestNodeId } from '../graph/nodeIds.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { $, el } from '../ui/dom.js'
 import { flowKey, frameObjects, getMembers } from './membership.js'
-import { reservedOption } from '../options/catalog.js'
 import { graphModel } from '../graph/model.js'
 
 import { sheetFor } from '../diagram/visibleGraph.js'
@@ -14,13 +13,25 @@ import { replaceGraph } from '../graph/replace.js'
 import { say } from '../ui/toast.js'
 
 function editMembers(initial) {
+  if (initial?.startsWith('group:')) return
   const dialog = $('members-dialog'),
     picker = $('member-object'),
-    objects = frameObjects()
+    kind = initial?.startsWith('flow:') ? 'flow' : 'source',
+    objects = frameObjects(kind)
+  if (!objects.length) {
+    say(kind === 'source' ? '尚無可管理的外框，請先使用「建立外框」。' : '尚無子流程，請先使用工具中的「建立子流程」。')
+    return
+  }
+  const labels = { source: '框內步驟', flow: '子流程步驟' }
+  $('members-heading').textContent = '管理' + labels[kind]
+  $('member-list-title').textContent = labels[kind]
+  $('members-close').ariaLabel = '關閉' + labels[kind]
+  $('member-apply').textContent = '套用步驟'
+  $('object-type').replaceChildren(new Option({ source: '外框', flow: '子流程' }[kind], kind))
   picker.replaceChildren(...objects.map(([id, label]) => new Option(label, id)))
   picker.value = objects.some(([id]) => id === initial) ? initial : objects[0][0]
   let key, ids, draft, dirty
-  const type = () => (key.startsWith('group:') ? 'group' : key.startsWith('flow:') ? 'flow' : 'source')
+  const type = () => (key.startsWith('flow:') ? 'flow' : 'source')
   function refresh() {
     const rows = $('member-chosen'),
       options = $('member-options')
@@ -93,7 +104,7 @@ function editMembers(initial) {
         continue
       options.append(make(n.id, [['＋', '加入', () => ids.push(n.id)]]))
     }
-    if (!rows.children.length) rows.append(el('p', 'member-note', '框內尚無步驟'))
+    if (!rows.children.length) rows.append(el('p', 'member-note', '尚無步驟'))
     if (!options.children.length) options.append(el('p', 'member-note', '沒有符合的步驟'))
   }
   function load() {
@@ -102,30 +113,24 @@ function editMembers(initial) {
     draft = exportGraph()
     dirty = false
     $('pack-label').hidden = type() !== 'source' || sheetFor(key) !== 'project'
-    $('member-pack').checked = true
+    $('member-pack').checked = false
     $('frame-actions').open = false
     $('object-name').value =
-      type() === 'group'
-        ? key.slice(6)
-        : type() === 'flow'
+      type() === 'flow'
           ? graphModel.document.subflows.find((f) => flowKey(f.id) === key).title
           : graphModel.nodes[key].title
-    const reserved = type() === 'group' && reservedOption('group', key.slice(6))
-    $('frame-rename').disabled = $('frame-remove').disabled = reserved
+    $('frame-rename').disabled = $('frame-remove').disabled = false
     $('object-type').value = type()
     $('frame-remove').textContent =
       type() === 'source'
         ? '移除外框及外框連線'
-        : type() === 'group'
-          ? '解散群組及移除群組連線'
-          : '展平子流程及移除子流程連線'
+        : '展平子流程及移除子流程連線'
     const links = relatedLinks(key, true)
     $('member-links').replaceChildren(...(links ? [links] : []))
     $('member-search').value = $('member-new').value = $('member-error').textContent = ''
     $('member-rule').textContent =
       {
-        source: '調整外框包含的步驟與詳情清單順序。外框會包住成員。',
-        group: '加入會更改該節點的排版群組。移出會歸到「未分組」。順序用於成員清單。',
+        source: '調整外框包含的步驟與詳情清單順序。可包含不同排版群組的節點，不會更改節點的群組歸屬。',
         flow: '加入的步驟會在展開此子流程時顯示。移出後回到專案畫布。清單首項為入口。',
       }[type()] + ' 成員順序不會建立箭頭。'
     refresh()
@@ -157,9 +162,7 @@ function editMembers(initial) {
       type: memberType,
       title,
       group:
-        type() === 'group'
-          ? key.slice(6)
-          : type() === 'flow'
+        type() === 'flow'
             ? graphModel.document.subflows.find((f) => flowKey(f.id) === key).title
             : '未分組',
       sheetId: type() === 'source' ? sheetFor(key) : 'project',
@@ -177,21 +180,13 @@ function editMembers(initial) {
     try {
       const old = getMembers(key),
         kind = type()
-      if (kind === 'source') draft.nodes[key].frameMembers = [...ids]
-      else if (kind === 'group') {
-        const name = key.slice(6)
-        for (const id of new Set([...old, ...ids])) {
-          const n = draft.nodes[id]
-          if (graphModel.nodes[id]) n.sheetId = sheetFor(id)
-          n.group = ids.includes(id) ? name : name === '未分組' ? '其他步驟' : '未分組'
-        }
-        let record = (draft.layoutGroups ??= []).find((x) => x.name === name)
-        if (!record) {
-          record = { name, direction: 'auto' }
-          draft.layoutGroups.push(record)
-        }
-        record.memberOrder = [...ids]
-      } else {
+      if (kind === 'source') {
+        if (!isFrameNode(draft.nodes[key])) throw Error('只有外框類型可設定框內步驟。')
+        draft.nodes[key].frameMembers = [...ids]
+        // Explicitly changing membership refits the frame; direct resize remains manual.
+        delete draft.nodes[key].layoutSize
+      }
+      else {
         if (!ids.length) throw Error('子流程需要至少一個入口步驟。')
         const f = draft.subflows.find((f) => flowKey(f.id) === key)
         for (const n of Object.values(graphModel.nodes))
@@ -212,7 +207,7 @@ function editMembers(initial) {
         replaceGraph(arranged, { keepView: true, record: false })
       }
       dialog.close()
-      say('已更新框內步驟，可復原')
+      say('已更新' + labels[kind] + '，可復原')
     } catch (e) {
       $('member-error').textContent = e.message
     }

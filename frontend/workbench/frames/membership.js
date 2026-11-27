@@ -1,4 +1,3 @@
-import { groupNamesInGraph } from '../groups/visibility.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { graphModel } from '../graph/model.js'
 
@@ -18,6 +17,7 @@ function objectName(key) {
 }
 
 function sourceMembers(n) {
+  if (!isFrameNode(n)) return []
   if (n.frameMembers) return n.frameMembers
   if (!n.drawingBox) return []
   const [x, y, w, h] = n.drawingBox
@@ -31,8 +31,8 @@ function sourceMembers(n) {
     .map((c) => c.id)
 }
 
-function frameObjects() {
-  return [
+function frameObjects(kind) {
+  const objects = [
     ...Object.values(graphModel.nodes)
       .filter((n) => isFrameNode(n))
       .map((n) => [
@@ -40,22 +40,16 @@ function frameObjects() {
         (n.sourceKind === 'container' && n.sourceId ? '原圖外框' : '自訂外框') + ' · ' + n.title,
       ]),
     ...(graphModel.document.subflows || []).map((f) => [flowKey(f.id), '子流程 · ' + f.title]),
-    ...groupNamesInGraph().map((g) => [groupKey(g), '排版群組 · ' + g]),
   ]
+  return kind ? objects.filter(([key]) => kind === 'flow' ? key.startsWith('flow:') : !!graphModel.nodes[key]) : objects
 }
 
 function getMembers(key) {
   if (graphModel.nodes[key]) return sourceMembers(graphModel.nodes[key])
-  const group = key.startsWith('group:'),
-    id = key.slice(group ? 6 : 5)
-  const members = Object.values(graphModel.nodes)
-    .filter((n) => (group ? n.group === id : sheetFor(n.id) === id))
-    .map((n) => n.id)
-  const saved =
-    (group
-      ? graphModel.document.layoutGroups?.find((g) => g.name === id)
-      : graphModel.document.subflows.find((f) => f.id === id)
-    )?.memberOrder || []
+  if (!key.startsWith('flow:')) return []
+  const id = key.slice(5)
+  const members = Object.values(graphModel.nodes).filter(n => sheetFor(n.id) === id).map(n => n.id)
+  const saved = graphModel.document.subflows?.find(f => f.id === id)?.memberOrder || []
   return [...new Set([...saved.filter((k) => members.includes(k)), ...members])]
 }
 

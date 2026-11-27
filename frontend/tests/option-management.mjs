@@ -79,3 +79,20 @@ test('duplicate source legend entries retain all of their styles through rename 
   keepDefinition(graph, team, 'category', 'QA')
   assert.deepEqual(graph.sourceLegend.items, items)
 })
+
+
+test('group rename and deletion never alter independent frame membership or geometry', () => {
+  const frame = { id: 'F', type: 'frame', group: '未分組', frameMembers: ['A', 'B'],
+    layoutSize: { width: 600, height: 240 }, layoutPosition: { x: 20, y: 40 } }
+  const g = { nodes: { F: structuredClone(frame), A: { id: 'A', group: 'QA', sheetId: 'project' },
+    B: { id: 'B', group: 'Other', sheetId: 'project' } }, edges: [{ from: 'A', to: 'B' }],
+    layoutGroups: [{ name: 'QA', direction: 'TD', nodeStyle: { frame: 'on', light: '#ffffff' } }] }
+  applyOptionEdit(g, { kind: 'group', from: 'QA', to: 'Review' })
+  assert.deepEqual(g.nodes.F, frame)
+  assert.equal(g.nodes.A.group, 'Review')
+  applyOptionEdit(g, { kind: 'group', from: 'Review', to: null })
+  assert.deepEqual(g.nodes.F, frame)
+  assert.equal(g.nodes.A.group, '未分組')
+  assert.equal(g.nodes.B.group, 'Other')
+  assert.deepEqual(g.edges, [{ from: 'A', to: 'B' }])
+})

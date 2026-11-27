@@ -40,10 +40,12 @@ export function reconcileEdgeReviews(graph) {
 }
 
 // Move the existing record between collections when an endpoint changes from
-// a node to a group handle (or back). All writes are to the caller's draft.
+// a node to a subflow handle (or back). All writes are to the caller's draft.
 export function editConnection(graph, original, old, from, to, label) {
   if (!from || !to || (from === to && !(old?.from === from && old.to === to)))
     throw Error('請選擇兩個不同的端點。')
+  if ([from, to].some(key => key.startsWith('group:')))
+    throw Error('排版群組不能作為連線端點，請選擇節點、外框或子流程。')
   const field = graph.nodes[from] && graph.nodes[to] ? 'edges' : 'groupLinks'
   const source = old && original.edges.includes(old) ? 'edges' : 'groupLinks'
   let edge = { from, to, kind: 'next', dashed: false, label: '' }
@@ -55,9 +57,6 @@ export function editConnection(graph, original, old, from, to, label) {
     if (source === field) index = pos
   }
   updateEdge(edge, { from, to, kind: field === 'edges' ? edge.kind || 'next' : edge.kind, label })
-  for (const key of [from, to])
-    if (key.startsWith('group:') && !graph.layoutGroups?.some(r => r.name === key.slice(6)))
-      (graph.layoutGroups ??= []).push({ name: key.slice(6), direction: 'auto' })
   const destination = graph[field] ??= []
   destination.splice(index, 0, edge)
   reconcileEdgeReviews(graph)

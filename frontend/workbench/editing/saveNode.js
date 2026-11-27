@@ -88,6 +88,7 @@ function applyEditor() {
     if (n.originalDecision === undefined) n.originalDecision = !!n.decision
     delete n.nodeRole
     n.decision = type === 'decision'
+    if (type !== 'frame') delete n.frameMembers
     if (type === 'frame') {
       n.frameMembers ??= []
       for (const owner of Object.values(graph.nodes))

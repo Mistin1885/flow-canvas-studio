@@ -48,8 +48,9 @@ function sizeReadableNodes() {
     }
     i.badgeTop = railHeight('top')
     i.badgeBottom = railHeight('bottom')
-    i.w = card.offsetWidth
-    i.h = Math.max(Math.ceil((i.scope === 'project' ? 64 : 54) * s), card.offsetHeight + 2)
+    const custom = graphModel.nodes[i.id].layoutSize
+    i.w = custom ? custom.width * s : card.offsetWidth
+    i.h = custom ? custom.height * s : Math.max(Math.ceil((i.scope === 'project' ? 64 : 54) * s), card.offsetHeight + 2)
   })
   probe.remove()
   document.documentElement.style.setProperty('--node-w', diagramState.W + 'px')

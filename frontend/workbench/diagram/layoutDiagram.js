@@ -47,6 +47,8 @@ export function layoutDiagram() {
   placeInlineFlows()
   explicitFrameBounds()
   reserveFrameHeaders()
+  diagramState.totalW = Math.max(diagramState.totalW, ...diagramState.instances.map(i => i.x + i.w + 45))
+  diagramState.totalH = Math.max(diagramState.totalH, ...diagramState.instances.map(i => i.y + i.h + 45))
   // An editor may add explicit links between levels. Only draw actual data edges.
   for (const l of diagramState.graphLinks.filter((l) => l.from.scope !== l.to.scope)) {
     const a = l.from,

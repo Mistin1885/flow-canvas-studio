@@ -14,7 +14,7 @@ function openEdge(from, to, edge) {
   editState.edgeDraft = { from, to, edge }
   endpointControls(from, to)
   $('edge-heading').textContent = edge ? '編輯連線' : '建立連線'
-  $('edge-endpoints').textContent = '可連接節點、原圖外框、排版群組或子流程。'
+  $('edge-endpoints').textContent = '可連接節點、外框節點或子流程。排版群組僅用於分類與樣式。'
   const layout = edge?.wireLayout
   $('line-reset-layout').checked = false
   $('line-reset-row').hidden = !layout

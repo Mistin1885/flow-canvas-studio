@@ -5,7 +5,6 @@ import { $, svg } from '../ui/dom.js'
 import { nodeKind } from './nodes.js'
 import { scrollState } from './navigation.js'
 import { updateTrace } from './animation.js'
-import { drawStyleFrames } from '../appearance/styles.js'
 
 import { flowKey } from '../frames/membership.js'
 import { labelColor } from '../appearance/edgeColors.js'
@@ -17,7 +16,6 @@ export function renderWires(projectNodes, pathSet) {
   const fragments = document.createDocumentFragment()
   layoutFrameHandles()
   renderGroupLinks(fragments)
-  drawStyleFrames(fragments)
   for (const i of projectNodes) {
     const f = i.inlineFlow
     if (f)

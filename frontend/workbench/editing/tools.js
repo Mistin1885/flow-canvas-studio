@@ -1,3 +1,7 @@
+import { editFrameObject } from '../frames/mutations.js'
+import { resetResize } from './resizeNodes.js'
+import { createFrameFromSelection } from '../frames/create.js'
+import { initGroupManager } from '../groups/manager.js'
 import { ungrouped } from '../options/catalog.js'
 import { showEndpointTarget } from './endpointFeedback.js'
 import { duplicateSelectedNode } from './duplicateNode.js'
@@ -29,11 +33,18 @@ function setBoxMode(on) {
 }
 
 function initGraphTools() {
+  $('create-subflow').onclick = () => {
+    $('tools-menu').open = false
+    try { editFrameObject('flow:', 'create', 'flow', '新子流程') }
+    catch (error) { say(error.message) }
+  }
   $('canvas-straighten').onclick = straightenEdge
   $('canvas-box').onclick = () => setBoxMode(!editState.boxMode)
   $('canvas-duplicate').onclick = duplicateSelectedNode
   $('canvas-properties').onclick = editContext
-  $('manage-frames').onclick = $('canvas-members').onclick = () => editMembers(preferredFrame())
+  $('canvas-create-frame').onclick = createFrameFromSelection
+  $('canvas-members').onclick = () => { const key = preferredFrame(); if (key) editMembers(key) }
+  initGroupManager()
   $('canvas-connect').onclick = () =>
     openEdge(selectionState.editTarget?.node || diagramState.selected?.id || '', '', null)
   $('history-undo').onclick = () => historyStep(false)
@@ -113,7 +124,8 @@ function cancelGesture() {
   const g = editState.gesture
   if (!g) return
   editState.gesture = null
-  if (g.box) clearBox(g)
+  if (g.resize) resetResize(g)
+  else if (g.box) clearBox(g)
   else if (g.wire) restoreWireDrag(g)
   else if (g.moving) resetMove(g)
   else g.preview?.remove()

@@ -1,3 +1,4 @@
+import { validNodeSize } from '../layout/nodeGeometry.js'
 import { validLabelBackground } from '../appearance/edgeColors.js'
 import { validateWireLayout } from '../layout/wireGeometry.js'
 import { checkKnowledge } from '../knowledge/validate.js'
@@ -249,6 +250,7 @@ function readGraph(value, { deferKnowledgePins = false } = {}) {
     if (n.layoutPosition !== undefined &&
         (!n.layoutPosition || ![n.layoutPosition.x, n.layoutPosition.y].every(Number.isFinite)))
       bad(n.id, '格線位置無效')
+    if (n.layoutSize !== undefined && !validNodeSize(n.layoutSize)) bad(n.id, '節點尺寸無效（寬 80–1000000、高 48–1000000）')
     if (n.inheritPeerStyle !== undefined && typeof n.inheritPeerStyle !== 'boolean')
       bad(n.id, '群組樣式繼承設定無效')
   }

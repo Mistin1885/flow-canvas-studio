@@ -107,7 +107,7 @@ function bindViewport() {
   )
   canvas.addEventListener('pointerdown', (e) => {
     // Keep the native click target on a wire so a double click can open its editor.
-    if (e.target.closest('button,a,input,select,.edge-route')) return
+    if (e.target.closest('button,a,input,select,.edge-route,.frame-rim,.node-resize,.flow-outline')) return
     cancelAnimationFrame(diagramState.frame)
     pointerState.drag = { x: e.clientX, y: e.clientY, tx: diagramState.tx, ty: diagramState.ty }
     canvas.setPointerCapture(e.pointerId)

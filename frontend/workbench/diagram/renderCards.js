@@ -1,7 +1,7 @@
+import { addResizeHandles } from '../editing/resizeNodes.js'
 import { typeLabel } from '../modeling/nodeTypeCatalog.js'
 import { renderBadges } from '../badges/canvas.js'
 import { rules } from '../modeling/fields.js'
-import { editState } from '../editing/state.js'
 import { effectiveStyle } from '../appearance/schema.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { diagramState } from './state.js'
@@ -9,7 +9,7 @@ import { tagList } from './visibleGraph.js'
 import { graphModel } from '../graph/model.js'
 import { renderFoldControls } from './foldControls.js'
 import { $, el } from '../ui/dom.js'
-import { activateNode, followReturn, nodeFor, nodeGroup, nodeKind, returnTarget } from './nodes.js'
+import { activateNode, nodeFor, nodeGroup, nodeKind, returnTarget } from './nodes.js'
 import { scrollState } from './navigation.js'
 import { updateTrace } from './animation.js'
 import { applyLegendStyle, paintCard } from '../appearance/styles.js'
@@ -29,7 +29,9 @@ export function renderCards(oldPositions, pathSet) {
       const kicker = el('span', 'node-kicker'),
         title = el('span', 'node-title')
       body.append(kicker, title)
-      body.addEventListener('click', () => activateNode(i.key))
+      dom.addEventListener('click', e => {
+        if (!e.target.closest('.connect-port,.toggle,.highlight-badge,.node-resize')) activateNode(i.key)
+      })
       dom.addEventListener('pointermove', (e) => {
         if (
           e.pointerType !== 'touch' &&
@@ -98,18 +100,15 @@ export function renderCards(oldPositions, pathSet) {
       (type === 'return' ? '↩ ' : n.jumpTo ? '↗ ' : '') + n.title
     const target = returnTarget(i)
     const body = dom.querySelector('.node-body')
-    body.title = target ? '單擊選取，雙擊跳轉到 ' + graphModel.nodes[target].title : ''
+    body.title = '單擊選取，雙擊編輯' + (target ? '；跳轉請使用詳情中的按鈕' : '')
     body.setAttribute('aria-label', n.title + (target ? '：' + body.title : '：查看詳情'))
     body.setAttribute('aria-pressed', String(diagramState.selected?.key === i.key))
     const sf = graphModel.document.subflows?.find((s) => s.parent === i.id)
     dom.ondblclick = (e) => {
-      if (e.target.closest('.connect-port,.toggle,.highlight-badge,.frame-rim')) return
-      if (target && body.contains(e.target)) {
-        followReturn(i)
-      } else if (editState.enabled) {
-        setEditTarget({ node: i.id })
-        editContext()
-      }
+      if (e.target.closest('.connect-port,.toggle,.highlight-badge,.node-resize')) return
+      e.stopPropagation()
+      setEditTarget({ node: i.id })
+      editContext()
     }
     if (isFrameNode(n) && !dom.querySelector('.frame-rim'))
       for (const side of ['top', 'bottom', 'left', 'right']) {
@@ -117,6 +116,8 @@ export function renderCards(oldPositions, pathSet) {
         rim.dataset.side = side
         dom.append(rim)
       }
+    if (!isFrameNode(n)) for (const rim of dom.querySelectorAll('.frame-rim')) rim.remove()
+    addResizeHandles(dom)
     renderFoldControls(dom, i, sf, n.title)
     renderBadges(dom, n)
     paintCard(dom, effectiveStyle(graphModel.document, n))

@@ -11,14 +11,14 @@ export function usedColors(graph) {
     counts.set(color, (counts.get(color) || 0) + 1)
   }
   for (const item of [graph, ...(graph.layoutGroups || []), ...(graph.nodeTypeDefinitions || []), ...Object.values(graph.nodes || {})]) {
-    for (const key of Object.keys(defaultColors)) add(item.nodeStyle?.[key])
+    for (const key of Object.keys(defaultColors).filter(key => !key.startsWith('frame'))) add(item.nodeStyle?.[key])
     add(item.group)
   }
   for (const item of graph.customCategories || []) add(item.color)
   for (const item of graph.sourceLegend?.items || [])
     if (['outline', 'fill'].includes(item.kind)) add('#' + item.value)
   for (const item of Object.values(graph.badgeStyles || {})) add(item.color)
-  for (const edge of [...(graph.edges || []), ...(graph.groupLinks || [])]) {
+  for (const edge of [...(graph.edges || []), ...(graph.groupLinks || []).filter(e => !e.from?.startsWith('group:') && !e.to?.startsWith('group:'))]) {
     const colors = edgeColors(edge)
     for (const color of new Set([colors.line, colors.background, edge.label && labelColor(edge)])) add(color)
   }

@@ -1,8 +1,9 @@
 import { peerStyle } from './groupPalette.js'
 import { typeStyle } from '../modeling/nodeTypeCatalog.js'
 
+// Legacy frame fields remain valid for lossless imports; no UI or renderer uses them.
 const styleSpec = {
-  edge: ['外框色'],
+  edge: ['節點框線色'],
   light: ['淺色底色'],
   dark: ['深色底色'],
   radius: ['卡片形狀', { 0: '直角矩形', 8: '小圓角', 18: '大圓角' }],

@@ -1,4 +1,3 @@
-import { applyOptionEdit, ungrouped, validateName } from '../options/catalog.js'
 import { moveToSheet } from '../graph/nodeSheet.js'
 import { addNode } from '../graph/addNode.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
@@ -7,10 +6,9 @@ import { diagramState } from '../diagram/state.js'
 import { graphModel } from '../graph/model.js'
 import { gridPlacement } from '../layout/grid.js'
 import { $, el } from '../ui/dom.js'
-import { flowKey, groupKey, objectName } from './membership.js'
+import { flowKey, objectName } from './membership.js'
 import { openEdge } from '../editing/edges.js'
 import { exportGraph } from '../io/graph.js'
-import { groupNamesInGraph } from '../groups/visibility.js'
 import { sheetFor } from '../diagram/visibleGraph.js'
 import { removeGraphNode } from '../graph/removeNode.js'
 import { replaceGraph } from '../graph/replace.js'
@@ -84,16 +82,10 @@ function relatedLinks(key, includeNormal = false) {
 }
 
 function editFrameObject(key, action, kind, name) {
+  if (kind === 'group' || key.startsWith('group:')) throw Error('請使用排版群組管理。')
   const g = exportGraph(),
-    group = key.startsWith('group:'),
     flow = key.startsWith('flow:')
-  const names = groupNamesInGraph(),
-    flows = g.subflows || [],
-    label = group
-      ? key.slice(6)
-      : flow
-        ? flows.find((f) => flowKey(f.id) === key).title
-        : g.nodes[key].title
+  const flows = g.subflows || []
   const newId = (prefix) => {
     let k = 1
     while (g.nodes[prefix + k] || flows.some((f) => f.id === prefix + k)) k++
@@ -111,11 +103,7 @@ function editFrameObject(key, action, kind, name) {
   })
   if (action !== 'remove' && !name) throw Error('請輸入名稱。')
   if (action === 'create') {
-    if (kind === 'group') {
-      validateName('group', null, name, names)
-      ;(g.layoutGroups ??= []).push({ name, direction: 'auto', nodeStyle: { frame: 'on' } })
-      key = groupKey(name)
-    } else if (kind === 'source') {
+    if (kind === 'source') {
       const id = newId('FRAME')
       addNode(g, { ...node(id, name), sourceKind: 'container', type: 'frame', frameMembers: [] })
       key = id
@@ -128,11 +116,6 @@ function editFrameObject(key, action, kind, name) {
       ;(g.subflows ??= []).push({ id, title: name, parent, root, memberOrder: [root] })
       key = flowKey(id)
     }
-  } else if (group) {
-    const to = action === 'remove' ? null : name
-    validateName('group', label, to, names)
-    applyOptionEdit(g, { kind: 'group', from: label, to })
-    key = groupKey(to ?? ungrouped)
   } else if (flow) {
     const f = flows.find((f) => flowKey(f.id) === key)
     if (action === 'rename') {
@@ -149,8 +132,7 @@ function editFrameObject(key, action, kind, name) {
   } else if (action === 'rename') {
     g.nodes[key].title = name
   } else removeGraphNode(g, key)
-  replaceGraph(g, { keepView: true, optionEdits: group && action !== 'create'
-    ? [{ kind: 'group', from: label, to: action === 'remove' ? null : name }] : undefined })
+  replaceGraph(g, { keepView: true })
   $('members-dialog').close()
   say('已更新畫布物件，可復原')
   if (action !== 'remove') editMembers(key)

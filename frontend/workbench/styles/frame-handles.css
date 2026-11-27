@@ -71,3 +71,13 @@ html #nodes .node.frame-node > .node-body .node-title {
 #nodes .frame-node:has(> .fold-controls) > .node-body {
   max-width: calc(100% - 62px);
 }
+
+.node-resize { display: none; position: absolute; width: 12px; height: 12px; border: 2px solid var(--teal); background: var(--paper); border-radius: 3px; z-index: 8; pointer-events: auto; touch-action: none; transform: scale(var(--port-scale, 1)); }
+.edit-mode .node.edit-picked > .node-resize { display: block; }
+.node-resize[data-corner='nw'] { left: -6px; top: -6px; cursor: nwse-resize; }
+.node-resize[data-corner='ne'] { right: -6px; top: -6px; cursor: nesw-resize; }
+.node-resize[data-corner='sw'] { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.node-resize[data-corner='se'] { right: -6px; bottom: -6px; cursor: nwse-resize; }
+.node.being-resized { transition: none; }
+#nodes .node-body { overflow: hidden; }
+#nodes .frame-node > .node-body { max-height: calc(100% - 8px); }

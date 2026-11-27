@@ -2,7 +2,6 @@ import { typeLabel } from '../modeling/nodeTypeCatalog.js'
 import { linkText, pinnedEntries, readingEntry } from '../knowledge/reader.js'
 import { proseSegments } from '../knowledge/references.js'
 import { properties, rules } from '../modeling/fields.js'
-import { groupStyle } from '../appearance/schema.js'
 import { categoryTags } from '../categories/model.js'
 
 import { isFrameNode, kindLabels } from '../graph/nodeTypes.js'
@@ -13,7 +12,7 @@ import { edgesFor, followReturn, nodeKind, returnTarget } from '../diagram/nodes
 import { graphModel } from '../graph/model.js'
 import { go } from '../diagram/navigation.js'
 import { expandedFlows, sheetFor, tagList } from '../diagram/visibleGraph.js'
-import { flowKey, groupKey, sourceMembers } from '../frames/membership.js'
+import { flowKey, sourceMembers } from '../frames/membership.js'
 
 import { editMembers } from '../frames/memberDialog.js'
 import { toggleInlineFlow } from '../layout/inlineFlows.js'
@@ -171,10 +170,12 @@ function renderDetail() {
       isFrameNode(f) && f.id !== n.id && sourceMembers(f).some((k) => k === n.id || k === inside?.parent),
   )
   const memberships = []
-  if (inside) memberships.push(['子流程 · ' + inside.title, () => go(inside.parent)])
+  if (inside) {
+    const parent = el('button', 'return-button', '所屬子流程 · ' + inside.title)
+    parent.onclick = () => go(inside.parent)
+    frag.append(parent)
+  }
   for (const f of owners) memberships.push([f.title, () => go(f.id)])
-  if ({ ...graphModel.document.nodeStyle, ...groupStyle(graphModel.document, n.group) }.frame === 'on')
-    memberships.push(['排版群組 · ' + n.group, () => editMembers(groupKey(n.group))])
   if (memberships.length) {
     const section = el('section', 'frame-membership'),
       label = el('strong', '', '所屬外框')
@@ -208,16 +209,16 @@ function renderDetail() {
       ),
     )
   }
-  const frameEdit = el('button', 'return-button', '編輯框內步驟')
-  frameEdit.onclick = () =>
-    editMembers(
-      isFrameNode(n)
-        ? n.id
-        : inside
-          ? flowKey(inside.id)
-          : owners[0]?.id || (sf ? flowKey(sf.id) : groupKey(n.group)),
-    )
-  frag.append(frameEdit)
+  if (isFrameNode(n)) {
+    const frameEdit = el('button', 'return-button', '編輯框內步驟')
+    frameEdit.onclick = () => editMembers(n.id)
+    frag.append(frameEdit)
+  }
+  if (sf && sf.parent === n.id) {
+    const manage = el('button', 'return-button', '管理子流程步驟')
+    manage.onclick = () => editMembers(flowKey(sf.id))
+    frag.append(manage)
+  }
   if (sf) {
     const b = el(
       'button',

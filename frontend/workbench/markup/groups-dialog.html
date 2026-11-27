@@ -1,0 +1,30 @@
+<dialog id="groups-dialog" aria-labelledby="groups-heading">
+  <header class="editor-head">
+    <h2 id="groups-heading">管理排版群組</h2>
+    <button id="groups-close" aria-label="關閉排版群組管理">✕</button>
+  </header>
+  <div class="member-scroll">
+    <p class="member-note">用於分類流程、設定排列方向與共用樣式。群組不產生外框，也不是連線端點。節點的群組歸屬請在「編輯節點」調整。</p>
+    <label>選擇群組<select id="group-manager-target"></select></label>
+    <p id="group-manager-impact" class="member-note"></p>
+    <div class="group-settings-grid">
+      <label>群組名稱<input id="group-manager-name" maxlength="80" /></label>
+      <label>排列方向<select id="group-manager-direction">
+        <option value="auto">自動</option><option value="TD">由上至下</option><option value="LR">由左至右</option>
+        <option value="BT">由下至上</option><option value="RL">由右至左</option>
+      </select></label>
+    </div>
+    <div class="group-settings-actions">
+      <button id="group-manager-save" class="primary">套用群組設定</button>
+      <button id="group-manager-style">設定群組樣式</button>
+      <button id="group-manager-remove">移除群組</button>
+    </div>
+    <section class="group-settings-new">
+      <h3>新增排版群組</h3>
+      <label>新群組名稱<input id="group-manager-new" maxlength="80" placeholder="例如：前置檢查" /></label>
+      <button id="group-manager-add">新增群組</button>
+    </section>
+    <p id="group-manager-error" role="alert"></p>
+  </div>
+  <footer class="editor-footer"><button id="groups-done">完成</button></footer>
+</dialog>

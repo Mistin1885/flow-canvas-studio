@@ -153,33 +153,12 @@
   padding: 10px 12px;
   height: auto;
 }
-#style-sample .sample-frame {
-  padding: 10px;
-  border-radius: 8px;
-}
-#style-sample .frame-name {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 650;
-  margin: 0 0 6px;
-  color: var(--ink);
-}
 #style-origin {
   padding: 0 12px;
   margin: 8px 0;
 }
 #reset-style {
   margin-right: auto;
-}
-.style-group-frame {
-  pointer-events: none;
-}
-.style-group-frame text {
-  fill: var(--ink);
-  paint-order: stroke;
-  stroke: var(--paper);
-  stroke-width: 4px;
-  font: 600 12px var(--ui);
 }
 @media (max-width: 590px) {
   .style-scroll {
@@ -257,12 +236,6 @@
 }
 #style-dialog #style-sample[data-preview='dark'] .node-kicker {
   color: var(--ink-dark, #deebf5);
-}
-#style-sample[data-preview='dark'] .frame-name {
-  color: #deebf5;
-}
-#style-sample[data-preview='light'] .frame-name {
-  color: #284055;
 }
 html[data-theme='dark'] #nodes .node.fill-dark:not(.frame-node):not(.preview-container),
 html[data-theme='dark'] #nodes .node.fill-dark:not(.frame-node):not(.preview-container) .node-body:hover {

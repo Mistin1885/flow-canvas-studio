@@ -4,7 +4,6 @@ import { graphModel } from '../graph/model.js'
 import { $, el } from '../ui/dom.js'
 import { expandedFlows, sheetFor } from '../diagram/visibleGraph.js'
 import { draw } from '../diagram/render.js'
-import { groupKey } from '../frames/membership.js'
 import { diagramState } from '../diagram/state.js'
 import { canvas } from '../diagram/viewport.js'
 import { tweenView } from '../diagram/navigation.js'
@@ -56,7 +55,6 @@ function renderGroupPanel() {
       syncGroups()
       if (names.filter((g) => !hiddenGroups.has(g)).length === 1) fitVisible()
     }
-    wrap.dataset.endpoint = groupKey(name)
     wrap.append(input, document.createTextNode(name))
     list.append(wrap)
   }
@@ -85,8 +83,6 @@ function fitVisible() {
 
 function syncGroups() {
   syncFrameControls()
-  for (const box of $('paths').querySelectorAll('.style-group-frame'))
-    box.classList.toggle('group-off', hiddenGroups.has(box.dataset.layoutGroup))
   const hide = (i) => hiddenGroups.has(graphModel.nodes[i.id].group)
   let shown = 0
   for (const i of diagramState.instances) {

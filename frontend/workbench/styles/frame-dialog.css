@@ -1,4 +1,5 @@
-#members-dialog {
+#members-dialog,
+#groups-dialog {
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
@@ -7,7 +8,8 @@
   width: min(780px, 95vw);
   max-height: 92dvh;
 }
-#members-dialog[open] {
+#members-dialog[open],
+#groups-dialog[open] {
   display: flex;
   flex-direction: column;
 }
@@ -115,18 +117,18 @@
 .canvas:not(.edit-mode) .group-port {
   display: none;
 }
-.edit-mode .style-group-frame rect,
 .edit-mode .flow-outline {
   pointer-events: stroke;
   cursor: pointer;
 }
 .frame-rim {
   position: absolute;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 .edit-mode .frame-rim {
   pointer-events: auto;
-  cursor: pointer;
+  cursor: grab;
 }
 .frame-rim[data-side='top'],
 .frame-rim[data-side='bottom'] {
@@ -222,3 +224,11 @@
 #member-pack {
   width: auto;
 }
+
+#groups-dialog { width: min(620px, 95vw); }
+.group-settings-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+.group-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.group-settings-new { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 18px; }
+.group-settings-new button { margin-top: 10px; }
+#group-panel > .member-note { margin: 0 0 8px; }
+@media (max-width: 500px) { .group-settings-grid { grid-template-columns: 1fr; } }

@@ -70,8 +70,8 @@ function initStyleEditor() {
       local = owner()?.nodeStyle || {}
     sampleBox.replaceChildren()
     sampleBox.dataset.preview = $('preview-mode').value
-    $('style-origin').textContent = '此層自訂 ' + Object.keys(local).length + ' 項'
-    $('reset-style').disabled = !Object.keys(local).length
+    $('style-origin').textContent = '此層自訂 ' + Object.keys(local).filter(key => !key.startsWith('frame')).length + ' 項'
+    $('reset-style').disabled = !Object.keys(local).filter(key => !key.startsWith('frame')).length
     $('apply-style').disabled = !dirty
     if (!n) {
       sampleBox.textContent = '群組尚無節點'
@@ -81,12 +81,6 @@ function initStyleEditor() {
       outer = el('div'),
       card = el('div', 'node'),
       body = el('div', 'node-body')
-    if (s.frame === 'on') {
-      outer.className = 'sample-frame'
-      outer.style.border =
-        '2px ' + (s.frameLine || 'dashed') + ' ' + (s.frameColor || defaultColors.frameColor)
-      outer.append(el('span', 'frame-name', n.group))
-    }
     applyLegendStyle(card, n)
     if (isFrameNode(n)) card.classList.add('preview-container')
     paintCard(card, s)
@@ -97,13 +91,11 @@ function initStyleEditor() {
   }
   function render() {
     fields.replaceChildren()
-    $('frame-controls').replaceChildren()
     const local = owner()?.nodeStyle || {},
       n = sample()
     const groupParent = ['node', 'type'].includes(level) ? groupStyle(graph, n?.group) : null
     const typeParent = level === 'node' && n ? typeStyle(graph, n) : null
     const peers = level === 'node' && n?.inheritPeerStyle ? peerStyle(graph, n) : {}
-    $('frame-fields').hidden = ['node', 'type'].includes(level)
     const count =
       level === 'diagram'
         ? Object.keys(graph.nodes).length
@@ -115,7 +107,7 @@ function initStyleEditor() {
           ' 個節點 · ' +
           (level === 'type' ? '所有同類型節點共用樣式；個別節點可逐項覆寫。' : level === 'group' ? '新加入此群組的節點也會繼承。' : '群組、類型與個別節點可逐項覆寫。')
     for (const [key, [name, choices]] of Object.entries(styleSpec)) {
-      if (['node', 'type'].includes(level) && key.startsWith('frame')) continue
+      if (key.startsWith('frame')) continue
       const inherited = typeParent?.[key] || groupParent?.[key] || (level !== 'diagram' && graph.nodeStyle?.[key]) || peers[key]
       const source = typeParent?.[key] ? '節點類型' : groupParent?.[key]
         ? '群組'
@@ -167,7 +159,7 @@ function initStyleEditor() {
         pair.append(sel, color)
         row.append(pair, palette)
       }
-      ;(key.startsWith('frame') ? $('frame-controls') : fields).append(row)
+      fields.append(row)
     }
     preview()
   }

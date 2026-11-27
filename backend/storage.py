@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from . import activity, knowledge
 from .node_types import check_node_types
+from .node_geometry import check_node_size
 from .postgres import migrate, session
 
 
@@ -155,6 +156,7 @@ def check_graph(graph):
             for c in node["content"]
         ):
             raise Invalid("節點內容格式無效")
+        check_node_size(node, Invalid)
         badges = node.get("badges", {})
         if not isinstance(badges, dict) or any(
             name not in badge_styles or side not in ("top", "bottom") for name, side in badges.items()

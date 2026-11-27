@@ -1,8 +1,9 @@
+import { editMembers } from '../frames/memberDialog.js'
+import { beginResize, previewResize, commitResize } from './resizeNodes.js'
 import { editState } from './state.js'
 import { canvas } from '../diagram/viewport.js'
 
 import { setEditTarget, setNodeSelection } from './selection.js'
-import { editMembers } from '../frames/memberDialog.js'
 import { diagramState } from '../diagram/state.js'
 import { openEdge } from './edges.js'
 import { frameHandles } from '../frames/membership.js'
@@ -19,6 +20,10 @@ import { beginBox, updateBox } from './boxSelection.js'
 import { prepareMove, previewMove, commitMove } from './moveNodes.js'
 
 function initGestures() {
+  canvas.addEventListener('dblclick', event => {
+    const outline = event.target.closest('.flow-outline')
+    if (outline) { event.stopPropagation(); editMembers(outline.dataset.endpoint) }
+  })
   let swallowClick = false,
     lastTap = null
   canvas.addEventListener(
@@ -46,16 +51,8 @@ function initGestures() {
       const card = e.target.closest('.node,.graph-handle'),
         port = e.target.closest('.connect-port,.group-port')
       if (card?.matches('.graph-handle') && !port) return
-      if (e.target.closest('.frame-rim')) {
+      if (e.target.closest('.flow-outline')) {
         e.stopImmediatePropagation()
-        setEditTarget({ node: card.dataset.key })
-        editMembers(card.dataset.key)
-        return
-      }
-      const outline = e.target.closest('.style-group-frame,.flow-outline')
-      if (outline) {
-        e.stopImmediatePropagation()
-        editMembers(outline.dataset.endpoint)
         return
       }
       if (!card) {
@@ -87,6 +84,14 @@ function initGestures() {
       const item =
         diagramState.instanceMap.get(card.dataset.key) || frameHandles.get(card.dataset.endpoint)
       if (!item) return
+      const resize = e.target.closest('.node-resize')
+      if (resize) {
+        e.stopImmediatePropagation()
+        cancelAnimationFrame(diagramState.frame)
+        setEditTarget({ node: item.id })
+        editState.gesture = beginResize(item, card, resize, e)
+        return
+      }
       e.stopImmediatePropagation()
       swallowClick = false
       cancelAnimationFrame(diagramState.frame)
@@ -127,6 +132,7 @@ function initGestures() {
         updateTrace()
       }
       g.started = true
+      if (g.resize) { previewResize(g, e); return }
       if (g.box) {
         updateBox(g, e)
         return
@@ -159,6 +165,16 @@ function initGestures() {
     (e) => {
       const g = editState.gesture
       if (!g || g.pointer !== e.pointerId) return
+      if (g.resize) {
+        cancelGesture()
+        if (g.started) {
+          e.stopImmediatePropagation()
+          e.preventDefault()
+          swallowClick = true
+          commitResize(g, e)
+        }
+        return
+      }
       if (g.box) {
         const keys = g.started ? updateBox(g, e) : []
         cancelGesture()

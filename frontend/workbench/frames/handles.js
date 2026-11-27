@@ -1,8 +1,7 @@
-import { groupStyle } from '../appearance/schema.js'
 
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { canvas } from '../diagram/viewport.js'
-import { flowKey, frameHandles, groupKey, objectName, sourceMembers } from './membership.js'
+import { flowKey, frameHandles, objectName, sourceMembers } from './membership.js'
 import { $, el, svg } from '../ui/dom.js'
 import { diagramState } from '../diagram/state.js'
 
@@ -12,7 +11,7 @@ import { editMembers } from './memberDialog.js'
 import { labelColor } from '../appearance/edgeColors.js'
 import { readableInk } from '../appearance/contrast.js'
 import { openEdge } from '../editing/edges.js'
-import { groupNamesInGraph, hiddenGroups } from '../groups/visibility.js'
+import { hiddenGroups } from '../groups/visibility.js'
 
 import { facePort, facingSide, straightenAutomaticWire } from '../layout/dockPoints.js'
 import { clearRoute, orthogonalRoute } from '../layout/routing.js'
@@ -29,7 +28,7 @@ function frameTargetAt(x, y) {
     return null
   const containing = []
   for (const outline of canvas.querySelectorAll(
-    '.frame-node:not(.group-off),.flow-outline:not(.group-off),.style-group-frame:not(.group-off) rect',
+    '.frame-node:not(.group-off),.flow-outline:not(.group-off)',
   )) {
     const r = outline.getBoundingClientRect()
     if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)
@@ -56,7 +55,7 @@ function layoutFrameHandles() {
   const linked = new Set((graphModel.document.groupLinks || []).flatMap((e) => [e.from, e.to]))
   function handle(key, label, anchor, always, group, scope) {
     if (!anchor) return
-    const w = Math.max(100, Math.min(240, label.length * 8 + (key.startsWith('group:') ? 94 : 56))),
+    const w = Math.max(100, Math.min(240, label.length * 8 + 56)),
       h = 26
     const pos = gridPlacement(anchor.x, Math.max(0, anchor.y - h - 12), w, h, blocked)
     const i = { ...pos, w, h, id: key, key, group, scope }
@@ -65,29 +64,17 @@ function layoutFrameHandles() {
     const box = el('div', 'graph-handle' + (always || linked.has(key) ? '' : ' edit-only-handle'))
     box.dataset.endpoint = key
     box.style.cssText = 'left:' + i.x + 'px;top:' + i.y + 'px;width:' + w + 'px;height:' + h + 'px'
-    const title = el('button', 'handle-title', key.startsWith('group:') ? '群組 · ' + label : label),
+    const title = el('button', 'handle-title', label),
       port = el('button', 'group-port', '＋')
-    title.ariaLabel = '編輯' + objectName(key) + '的步驟'
+    title.ariaLabel = '雙擊管理' + objectName(key) + '的成員'
     title.title = title.ariaLabel
-    title.onclick = () => editMembers(key)
+    title.ondblclick = event => { event.stopPropagation(); editMembers(key) }
     port.title = port.ariaLabel = '從' + objectName(key) + '建立連線'
     port.onclick = () => openEdge(key, '', null)
     box.append(title, port)
     $('world').append(box)
     diagramState.totalW = Math.max(diagramState.totalW, i.x + w + 20)
     diagramState.totalH = Math.max(diagramState.totalH, i.y + h + 20)
-  }
-  for (const name of groupNamesInGraph()) {
-    const items = diagramState.instances.filter((i) => graphModel.nodes[i.id].group === name)
-    const groupAnchor =
-      items
-        .filter((i) => !isFrameNode(graphModel.nodes[i.id]))
-        .sort((a, b) => a.y - b.y || a.x - b.x)[0] || items[0]
-    const belongs = Object.values(graphModel.nodes).some((n) => n.group === name)
-    const anchor = groupAnchor || (!belongs ? { x: 30, y: 55 } : null)
-    const enabled =
-      { ...graphModel.document.nodeStyle, ...groupStyle(graphModel.document, name) }.frame === 'on'
-    handle(groupKey(name), name, anchor, enabled, name, anchor?.scope)
   }
   for (const f of graphModel.document.subflows || []) {
     const p = diagramState.instanceMap.get(f.parent)
@@ -223,7 +210,18 @@ function explicitFrameBounds() {
   const redock = new Set()
   for (const i of diagramState.instances) {
     const n = graphModel.nodes[i.id]
-    if (!isFrameNode(n) || !n.frameMembers) continue
+    if (!isFrameNode(n)) continue
+    if (n.layoutSize) {
+      i.w = n.layoutSize.width * diagramState.readingScale
+      i.h = n.layoutSize.height * diagramState.readingScale
+      if (n.layoutPosition) {
+        i.x = n.layoutPosition.x * diagramState.readingScale + (i.scopeOrigin?.x || 0)
+        i.y = n.layoutPosition.y * diagramState.readingScale + (i.scopeOrigin?.y || 0)
+      }
+      redock.add(i)
+      continue
+    }
+    if (!n.frameMembers) continue
     const items = n.frameMembers
         .map((k) => diagramState.instanceMap.get(k))
         .filter(Boolean)
@@ -251,6 +249,7 @@ function reserveFrameHeaders() {
   document.body.append(probe)
   const changed = new Set()
   for (const i of frames) {
+    if (graphModel.nodes[i.id].layoutSize) continue
     const members = sourceMembers(graphModel.nodes[i.id])
       .map((k) => diagramState.instanceMap.get(k))
       .filter(Boolean)

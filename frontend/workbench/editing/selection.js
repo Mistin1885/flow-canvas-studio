@@ -3,7 +3,7 @@ import { showWireGrips } from './wireDrag.js'
 import { selectionState, editState } from './state.js'
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { graphModel } from '../graph/model.js'
-import { flowKey, frameObjects, groupKey, objectName } from '../frames/membership.js'
+import { frameObjects, objectName } from '../frames/membership.js'
 import { $ } from '../ui/dom.js'
 import { diagramState } from '../diagram/state.js'
 import { exportGraph } from '../io/graph.js'
@@ -12,7 +12,6 @@ import { replaceGraph } from '../graph/replace.js'
 import { say } from '../ui/toast.js'
 import { openEdge } from './edges.js'
 import { populateEditor } from './nodeForm.js'
-import { sheetFor } from '../diagram/visibleGraph.js'
 import { attachSearch } from './searchPicker.js'
 export function setNodeSelection(keys) {
   const nodes = new Set(keys)
@@ -42,7 +41,8 @@ function setEditTarget(next) {
   const multi = !!next?.nodes
   $('canvas-duplicate').disabled = !next?.node || !graphModel.nodes[next.node]
   $('canvas-properties').disabled = multi || !(next?.node || next?.edge || diagramState.selected)
-  $('canvas-members').disabled = $('canvas-connect').disabled = multi
+  $('canvas-connect').disabled = multi
+  $('canvas-members').disabled = multi || !next?.node || !graphModel.nodes[next.node] || !isFrameNode(graphModel.nodes[next.node])
   $('edit-selection-hint').textContent = multi ? `已選取 ${next.nodes.size} 個節點，拖曳其中一個一起移動。Esc 取消選取。` : ''
   $('edit-default-hint').hidden = multi
 }
@@ -82,10 +82,7 @@ function editContext() {
 
 function preferredFrame() {
   const n = graphModel.nodes[selectionState.editTarget?.node || diagramState.selected?.id]
-  if (!n) return frameObjects()[0]?.[0]
-  if (isFrameNode(n)) return n.id
-  const f = graphModel.document.subflows?.find((f) => f.parent === n.id || sheetFor(n.id) === f.id)
-  return f ? flowKey(f.id) : groupKey(n.group)
+  return n && isFrameNode(n) ? n.id : null
 }
 
 function endpointControls(from, to) {

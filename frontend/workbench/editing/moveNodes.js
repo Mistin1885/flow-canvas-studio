@@ -1,4 +1,5 @@
-import { storeDisplayedPosition } from './nodePosition.js'
+import { sourceMembers } from '../frames/membership.js'
+import { storeDisplayedPosition, pinDisplayedNodes } from './nodePosition.js'
 import { diagramState } from '../diagram/state.js'
 import { movingWirePoints } from '../layout/movingWire.js'
 import { centerConnection } from '../layout/cardCenters.js'
@@ -18,9 +19,13 @@ import { setNodeSelection } from './selection.js'
 
 export function prepareMove(item) {
   const selected = selectionState.editTarget?.nodes
-  const items = selected?.has(item.key)
+  let items = selected?.has(item.key)
     ? diagramState.instances.filter(i => selected.has(i.key))
     : [item]
+  const keys = items.map(i => i.key)
+  const members = new Set(items.filter(i => isFrameNode(graphModel.nodes[i.id]))
+    .flatMap(i => sourceMembers(graphModel.nodes[i.id])))
+  items = [...new Set([...items, ...diagramState.instances.filter(i => members.has(i.id))])]
   // An expanded subflow carries its children. Preserve their local coordinates.
   const carried = new Set(items.flatMap(i => i.inlineFlow?.nodes || []))
   const roots = items.filter(i => !carried.has(i))
@@ -31,7 +36,7 @@ export function prepareMove(item) {
   const connected = new Set(wires.filter(v => v.from === item || v.to === item)
     .map(v => v.from === item ? v.to : v.from))
   const peers = centerPeers(item, visibleCards.filter(i => !moving.has(i)), connected)
-  return { roots, moving, wires, peers, visibleCards, keys: items.map(i => i.key) }
+  return { roots, moving, wires, peers, visibleCards, keys }
 }
 
 function displacement(g, e) {
@@ -91,7 +96,9 @@ export function commitMove(g, e) {
     return
   }
   const graph = exportGraph()
+  if (g.roots.some(isFrame)) pinDisplayedNodes(graph, diagramState.instances, diagramState.readingScale)
   for (const { item, x, y } of positions) {
+    if (isFrame(item)) graph.nodes[item.id].layoutSize = { width: item.w / diagramState.readingScale, height: item.h / diagramState.readingScale }
     storeDisplayedPosition(graph.nodes[item.id], item, { x, y }, diagramState.readingScale)
     diagramState.displayPositions.set(item.key, { x, y })
   }

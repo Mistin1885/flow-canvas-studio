@@ -12,3 +12,7 @@ export function storeDisplayedPosition(node, item, point, scale) {
     y: (point.y - (item.scopeOrigin?.y || 0)) / scale,
   })
 }
+
+export function pinDisplayedNodes(graph, instances, scale) {
+  for (const item of instances) storeDisplayedPosition(graph.nodes[item.id], item, item, scale)
+}
