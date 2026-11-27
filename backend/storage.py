@@ -9,6 +9,7 @@ from psycopg.types.json import Jsonb
 from uuid import uuid4
 
 from . import activity, knowledge
+from .node_types import check_node_types
 from .postgres import migrate, session
 
 
@@ -133,6 +134,7 @@ def check_graph(graph):
         raise Invalid("畫布最多支援 300 個節點及 800 條連線")
     knowledge.validate(graph)
     badge_styles = check_badge_styles(graph)
+    check_node_types(graph, Invalid)
     for key in ("ownerRoleOptions", "locationOptions"):
         if key in graph and (not isinstance(graph[key], list) or
                              any(not isinstance(v, str) or not v.strip() for v in graph[key])):

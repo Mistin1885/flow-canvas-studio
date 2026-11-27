@@ -9,7 +9,7 @@ import { annotateOptions } from '../options/controls.js'
 import { bindOptionManager, showOptionStatus } from '../options/manager.js'
 import { selectionState, editState } from './state.js'
 import { cloneGraph } from '../graph/json.js'
-import { effectiveType, nodeTypes } from '../graph/nodeTypes.js'
+import { typeDefinition, typeDefinitions, typeKey } from '../modeling/nodeTypeCatalog.js'
 import { $, el } from '../ui/dom.js'
 import { attachSearch, nodeChoiceLabel } from './searchPicker.js'
 import { formGraph } from './formSource.js'
@@ -169,7 +169,7 @@ export function showReturnTarget(value, self) {
 }
 
 export function syncReturnField() {
-  const enabled = $('node-type').value === 'return'
+  const enabled = typeDefinition(formGraph(), $('node-type').value)?.baseType === 'return'
   $('return-target-field').hidden = !enabled
   $('return-target-field').querySelector('input').disabled = !enabled
 }
@@ -216,8 +216,8 @@ function populateEditor(id, add = false) {
   $('node-id').readOnly = !add
   $('suggest-id').hidden = !add
   checkNodeId()
-  $('node-type').replaceChildren(...Object.entries(nodeTypes).map(([key, name]) => new Option(name, key)))
-  $('node-type').value = add ? type : n.jumpTo ? 'return' : effectiveType(n)
+  $('node-type').replaceChildren(...typeDefinitions(formGraph()).map(({id, name}) => new Option(name, id)))
+  $('node-type').value = add ? type : typeKey(n)
   showReturnTarget(n.jumpTo, add ? null : n.id)
   syncReturnField()
   $('content-editor').replaceChildren()
@@ -278,7 +278,7 @@ function bindNodeForm() {
     if (!nodeForm.adding) return
     const field = $('node-id')
     if (force) nodeForm.autoId = true
-    nodeForm.suggestion = suggestNodeId($('node-type').value, formGraph().nodes)
+    nodeForm.suggestion = suggestNodeId(typeDefinition(formGraph(), $('node-type').value)?.baseType, formGraph().nodes)
     if (nodeForm.autoId) field.value = nodeForm.suggestion
     checkNodeId()
   }

@@ -1,6 +1,6 @@
 import { useRef, useId } from 'react'
 import { Moon, SlidersHorizontal, Sun, X } from 'lucide-react'
-import { levels, defaults, type DisplayPrefs } from './preferences'
+import { colors, levels, defaults, type DisplayPrefs } from './preferences'
 import type { useDisplayPreferences } from './useDisplayPreferences'
 export function DisplayControls({
   prefs,
@@ -69,17 +69,16 @@ export function DisplayControls({
             />
           </label>
         ))}
-        <label>
-          效果顏色
-          <select
-            value={prefs.color}
-            onChange={(e) => update({ color: e.target.value as DisplayPrefs['color'] })}
-          >
-            <option value="cyan">青藍</option>
-            <option value="yellow">亮黃</option>
-            <option value="pink">粉紅</option>
-          </select>
-        </label>
+        <div className="cursorColors" role="group" aria-label="效果顏色">
+          <span>效果顏色</span>
+          {(Object.entries(colors) as [DisplayPrefs['color'], string][]).map(([key, color]) => (
+            <button type="button" key={key} aria-pressed={prefs.color === key}
+              onClick={() => update({ color: key })}>
+              <i aria-hidden="true" style={{ backgroundColor: color }} />
+              {{ cyan: '青藍', yellow: '亮黃', pink: '粉紅' }[key]}
+            </button>
+          ))}
+        </div>
         <footer>
           <button type="button" onClick={() => update({ ...defaults, theme: prefs.theme })}>
             還原閱讀與游標

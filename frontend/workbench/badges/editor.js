@@ -1,3 +1,5 @@
+import { bindColorPalette } from '../appearance/colorPalette.js'
+import { categoryDraft } from '../categories/editor.js'
 import { optionGraph } from '../options/draft.js'
 import { $, el } from '../ui/dom.js'
 import { badgeChip } from './chip.js'
@@ -45,6 +47,9 @@ function editStyle(name = '', spec = defaultBadge) {
   $('badge-name').readOnly = !!name
   $('badge-name').value = name
   $('badge-color').value = spec.color
+  const graph = optionGraph()
+  bindColorPalette($('badge-color'), $('badge-color-palette'),
+    { ...graph, badgeStyles: catalog(), customCategories: [...(graph.customCategories || []), ...categoryDraft.items] }, '標籤顏色')
   $('badge-icon').value = spec.icon
   $('badge-style').value = spec.style
   $('badge-style-apply').textContent = name ? '更新共用樣式' : '建立並加入'

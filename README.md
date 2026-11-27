@@ -340,3 +340,11 @@ Open **工作區知識庫** from a workspace or **畫布知識** from a canvas. 
 - Select text in the node editor and choose **引用知識條目** to link to an entry or section. Readers see a hover summary and can open the full article or table in the inspector. The editor highlights incomplete references and requires a correction before applying changes. Use **釘選至畫布參考資料** for a reference that applies throughout a canvas.
 - Edits to an original update its linked canvases. Detaching or revoking a share retains the last available content as a local copy. New canvases imported from JSON keep independent copies. Same-workspace forks retain shared originals. Cross-workspace forks default to independent copies and offer a preview of which entries can remain linked.
 - JSON and portable HTML include the referenced text and tables. Linked external images need network access. Embedded PNG, JPEG and WebP data URLs can travel with the document.
+
+### Reusable node types and colors
+
+Open **Tools → Node types and styles** (節點類型與樣式) to add, rename, or remove a custom node type and edit shared appearance. Choose its built-in behavior when creating it; this behavior remains fixed. Removing a custom type restores its members to that built-in behavior and preserves their content and individual styles. Changes are staged until **Apply styles** and can be undone.
+
+Appearance resolves each property from **individual node → node type → layout group → diagram default**. The same used-color swatches are available across node, type, group, diagram, category, badge, and connection color fields. Category outlines remain visible while browsing. Double-click a connection or its label to edit it without enabling drag mode.
+
+JSON and portable HTML retain optional `nodeTypeDefinitions` entries (`id`, `name`, `baseType`, `nodeStyle`) and a node's optional `customType` reference. The node's existing `type` field retains its built-in behavior, so older graphs do not require conversion.

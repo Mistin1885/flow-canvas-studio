@@ -13,6 +13,7 @@ import { verifyAdminBackups } from './admin-backups.mjs'
 import { verifyImport } from './import-review.mjs'
 import { verifyLegacyEdits } from './legacy-edits.mjs'
 import { verifyHighlightBadges } from './highlight-badges.mjs'
+import { verifyNodeTypeManagement } from './node-type-management.mjs'
 import { verifyStylePalette } from './style-palette.mjs'
 import { verifyNodeCreation } from './node-creation.mjs'
 import { verifyFormDrafts } from './form-drafts.mjs'
@@ -79,6 +80,7 @@ try {
   await verifyLegacyEdits(alice, origin)
   await verifyNodeCreation(alice, bob, origin)
   await verifyStylePalette(alice, origin)
+  await verifyNodeTypeManagement(alice, bob, origin)
   await verifyGroupMove(alice, bob, origin)
   await verifyHighlightBadges(alice, bob, origin)
   await verifySharedOptions(alice, bob, origin)

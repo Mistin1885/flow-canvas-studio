@@ -13,28 +13,27 @@ export async function verifyStylePalette(page, origin) {
   expect(created.ok()).toBeTruthy()
   const { id } = await created.json()
   await page.goto(origin + '/#canvas/' + id)
+  const theme = page.getByRole('button', { name: '深色模式', exact: true })
+  if (await theme.getAttribute('aria-pressed') !== 'true') await theme.click()
   const frame = page.frameLocator('iframe'), dialog = frame.locator('#style-dialog')
   await frame.locator('#node-style-launch').click()
-  for (const scope of ['group', 'node']) {
+  for (const scope of ['diagram', 'group', 'node']) {
     await dialog.locator('[data-level="' + scope + '"]').click()
     for (const key of ['light', 'dark']) {
-      const select = dialog.locator('#style-' + key)
-      // selectOption bypasses the popup. Exercise the opening click and the separate
-      // choice (scrolling to an option below the fold) just as a pointer user does.
-      await select.click()
-      await expect(dialog.locator('#style-' + key + ':open')).toBeVisible()
-      const last = select.getByRole('option', { name: '#AABB1F' })
+      const palette = dialog.locator('#style-' + key + '-palette')
+      await palette.getByRole('button', { name: '更多已用色' }).click()
+      const last = palette.locator('button[value="#aabb1f"]')
       await last.scrollIntoViewIfNeeded()
       await last.click()
-      await expect(select).toHaveValue('custom')
-      await expect(dialog.locator('#style-' + key + ':open')).toHaveCount(0)
+      await expect(dialog.locator('#style-' + key)).toHaveValue('custom')
+      await expect(last).toHaveAttribute('aria-pressed', 'true')
+      await expect(last).toHaveCSS('background-color', 'rgb(170, 187, 31)')
       await expect(dialog.getByLabel(key === 'light' ? '淺色底色 HEX' : '深色底色 HEX')).toHaveValue('#aabb1f')
+      // Reopening the palette must preserve the chosen color without native popup races.
+      await palette.getByRole('button', { name: '更多已用色' }).click()
+      await palette.getByRole('button', { name: '更多已用色' }).click()
+      await expect(last).toHaveAttribute('aria-pressed', 'true')
     }
-    const select = dialog.locator('#style-dark')
-    await select.click()
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeVisible()
-    await expect(dialog.locator('#style-dark:open')).toHaveCount(0)
   }
   await dialog.locator('#apply-style').click()
   await expect.poll(async () => {

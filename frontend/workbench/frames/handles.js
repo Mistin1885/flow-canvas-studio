@@ -1,5 +1,4 @@
 import { groupStyle } from '../appearance/schema.js'
-import { editState } from '../editing/state.js'
 
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { canvas } from '../diagram/viewport.js'
@@ -202,8 +201,9 @@ function renderGroupLinks(frag) {
       label.append(rect, txt)
       g.append(label)
     }
-    g.ondblclick = () => {
-      if (editState.enabled) openEdge(edge.from, edge.to, edge)
+    g.ondblclick = (event) => {
+      event.stopPropagation()
+      openEdge(edge.from, edge.to, edge)
     }
     frag.append(g)
   }

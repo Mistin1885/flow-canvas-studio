@@ -1,3 +1,4 @@
+import { bindColorPalette } from '../appearance/colorPalette.js'
 import { optionGraph } from '../options/draft.js'
 import { categoryNames } from '../options/catalog.js'
 import { $, el } from '../ui/dom.js'
@@ -7,6 +8,9 @@ const categoryDraft = {}
 categoryDraft.items = []
 
 function editorLegend(n) {
+  const graph = optionGraph()
+  bindColorPalette($('category-color'), $('category-color-palette'),
+    { ...graph, customCategories: [...(graph.customCategories || []), ...categoryDraft.items] }, '分類顏色')
   const wrap = $('legend-fields')
   wrap.replaceChildren()
   const names = categoryNames(optionGraph())

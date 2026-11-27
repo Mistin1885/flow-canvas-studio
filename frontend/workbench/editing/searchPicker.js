@@ -1,11 +1,10 @@
 import { selectionState } from './state.js'
 import { graphModel } from '../graph/model.js'
-import { effectiveType, nodeTypes } from '../graph/nodeTypes.js'
+import { typeLabel } from '../modeling/nodeTypeCatalog.js'
 import { el } from '../ui/dom.js'
 
 export function nodeChoiceLabel(node) {
-  const type = node.jumpTo ? 'return' : effectiveType(node)
-  return `${nodeTypes[type]} | ${node.id} · ${node.title}`
+  return `${typeLabel(graphModel.document, node)} | ${node.id} · ${node.title}`
 }
 
 function attachSearch(select, value, description, rows = Object.values(graphModel.nodes)) {

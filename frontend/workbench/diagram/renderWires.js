@@ -1,4 +1,3 @@
-import { editState } from '../editing/state.js'
 import { diagramState } from './state.js'
 import { layoutFrameHandles, renderGroupLinks } from '../frames/handles.js'
 import { rightAnglePath } from './paths.js'
@@ -71,10 +70,8 @@ export function renderWires(projectNodes, pathSet) {
     if (link) {
       group.wireGeometry = link.geometry
       group.addEventListener('dblclick', (e) => {
-        if (editState.enabled) {
-          e.stopPropagation()
-          openEdge(a.id, b.id, link.edge)
-        }
+        e.stopPropagation()
+        openEdge(a.id, b.id, link.edge)
       })
       if (link.edge.conditionColor) {
         group.classList.add('user-color')

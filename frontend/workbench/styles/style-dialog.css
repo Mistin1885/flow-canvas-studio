@@ -94,28 +94,6 @@
 .style-color select {
   flex: 1;
 }
-/* Keep long palettes inside the browser's top layer and away from the opening click. */
-@supports (appearance: base-select) and selector(::picker(select)) {
-  .style-color select,
-  .style-color select::picker(select) {
-    appearance: base-select;
-  }
-  .style-color select::picker(select) {
-    max-height: min(16rem, 40dvh);
-    overflow-y: auto;
-    color: var(--ink);
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-  }
-  .style-color option {
-    padding: 4px 8px;
-  }
-  .style-color option:is(:focus, :hover) {
-    color: var(--ink);
-    background: var(--teal-soft);
-  }
-}
 .style-color input {
   border: 1px solid var(--line);
   background: var(--paper);
@@ -147,6 +125,8 @@
   align-items: center;
   font-size: 0.9rem;
 }
+.style-preview-head strong { flex: none; white-space: nowrap; }
+.style-preview-head select { width: auto; min-width: 0; }
 #preview-mode {
   font-size: 0.78rem;
   color: var(--muted);
@@ -314,3 +294,12 @@ html:not([data-theme='dark'])
   background: transparent !important;
   border-style: dashed;
 }
+
+#type-manager { padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; }
+.type-manager-heading, .type-manager-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.type-manager-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 10px; }
+.type-manager-fields label { display: grid; gap: 5px; font-size: .88rem; min-width: 0; }
+#type-name { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--paper); min-height: 34px; }
+#type-behavior-note, #type-message, #style-priority { color: var(--muted); font-size: .82rem; line-height: 1.55; }
+#type-message:empty { display: none; }
+@media (max-width: 590px) { .scope-switch { flex-wrap: wrap; } .scope-switch button { flex: 1 0 40%; } .type-manager-fields { grid-template-columns: 1fr; } }

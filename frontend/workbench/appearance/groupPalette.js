@@ -1,4 +1,4 @@
-import { effectiveType } from '../graph/nodeTypes.js'
+import { typeKey } from '../modeling/nodeTypeCatalog.js'
 
 const palettes = new WeakMap()
 
@@ -27,7 +27,7 @@ export function peerStyle(graph, node) {
       n.group === node.group && !n.inheritPeerStyle && n.nodeStyle && Object.keys(n.nodeStyle).length)
     const byType = new Map()
     for (const peer of peers) {
-      const type = effectiveType(peer)
+      const type = typeKey(peer)
       if (!byType.has(type)) byType.set(type, [])
       byType.get(type).push(peer)
     }
@@ -37,7 +37,7 @@ export function peerStyle(graph, node) {
     })
   }
   const group = groups.get(node.group)
-  return group.byType.get(effectiveType(node)) ?? group.common
+  return group.byType.get(typeKey(node)) ?? group.common
 }
 
 export function invalidatePeerStyles(graph) {

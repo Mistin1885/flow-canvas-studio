@@ -6,6 +6,7 @@ import { directions } from '../editing/state.js'
 import { unmappedTag } from '../categories/constants.js'
 import { checkNodeStyles } from '../appearance/schema.js'
 import { nodeTypes } from './nodeTypes.js'
+import { checkNodeTypes } from '../modeling/nodeTypeCatalog.js'
 import { adaptDfxDraft } from './dfx.js'
 
 import { validateFrameData } from '../frames/validation.js'
@@ -264,6 +265,7 @@ function readGraph(value, { deferKnowledgePins = false } = {}) {
   }
   checkKnowledge(value, bad, deferKnowledgePins)
   checkBadges(value, bad)
+  checkNodeTypes(value, bad, checkNodeStyles)
   validateFrameData(value)
   checkNodeStyles(value.nodeStyle, '全圖', true)
   for (const g of value.layoutGroups || []) checkNodeStyles(g.nodeStyle, g.name, true)

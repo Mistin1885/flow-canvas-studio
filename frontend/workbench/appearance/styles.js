@@ -20,6 +20,8 @@ function applyLegendStyle(card, node) {
   const stripe =
     colorOf(outline) || colorOf(fill) || (/^#[0-9a-f]{6}$/i.test(node.group) ? node.group : '')
   card.style.setProperty('--stripe', stripe)
+  card.style.setProperty('--category-outline', colorOf(outline))
+  card.toggleAttribute('data-category-outline', !!colorOf(outline))
   card.style.setProperty('--surface', colorOf(fill))
   card.dataset.surface = fill?.name || ''
   card.classList.toggle(

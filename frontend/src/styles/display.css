@@ -91,3 +91,9 @@
     flex-wrap: wrap;
   }
 }
+
+.cursorColors { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 14px; }
+.cursorColors > span { flex-basis: 100%; font-weight: 600; }
+.cursorColors button { display: inline-flex; align-items: center; gap: 7px; }
+.cursorColors button[aria-pressed='true'] { outline: 2px solid var(--ink); outline-offset: 1px; }
+.cursorColors i { width: 20px; height: 20px; border: 1px solid #526474; border-radius: 4px; }

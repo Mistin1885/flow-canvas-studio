@@ -39,12 +39,12 @@
       <input id="cursor-glow" type="range" min="0" max="3" step="1" value="0" />
     </div>
     <div class="display-option">
-      <label for="cursor-color">效果顏色</label>
-      <select id="cursor-color">
-        <option value="cyan">青藍</option>
-        <option value="yellow">亮黃</option>
-        <option value="pink">粉紅</option>
-      </select>
+      <span>效果顏色</span>
+      <div id="cursor-colors" class="cursor-colors" role="group" aria-label="效果顏色">
+        <button type="button" data-cursor-color="cyan"><i style="background:#00bfe7" aria-hidden="true"></i>青藍</button>
+        <button type="button" data-cursor-color="yellow"><i style="background:#ffd43b" aria-hidden="true"></i>亮黃</button>
+        <button type="button" data-cursor-color="pink"><i style="background:#ff74ce" aria-hidden="true"></i>粉紅</button>
+      </div>
     </div>
     <p>游標效果只在滑鼠或觸控筆移動時顯示。手機流程圖可單指拖曳空白處、雙指縮放；點選節點開啟詳情。</p>
   </div>

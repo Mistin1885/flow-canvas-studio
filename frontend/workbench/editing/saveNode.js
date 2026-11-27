@@ -1,3 +1,5 @@
+import { typeDefinition } from '../modeling/nodeTypeCatalog.js'
+import { nodeTypes } from '../graph/nodeTypes.js'
 import { optionEdits } from '../options/draft.js'
 import { applyOptionEdit } from '../options/catalog.js'
 import { alignedBaseline } from '../options/baseline.js'
@@ -69,14 +71,18 @@ function applyEditor() {
     const retained = (n.tags || []).filter(tag => !before.tags.includes(tag) || categories.includes(tag))
     n.tags = [...retained, ...categories.filter(tag => !retained.includes(tag))]
   }
-  const type = after.fields['node-type']
+  const typeId = after.fields['node-type']
+  const type = typeDefinition(graph, typeId)?.baseType
+  if (!type) throw Error('節點類型已不存在，請重新選擇。')
   if (type === 'return') n.jumpTo = after.fields['node-return-target']
-  else if (before.fields['node-type'] === 'return') {
+  else if (n.jumpTo || n.type === 'return') {
     delete n.jumpTo
     delete n.jumpScope
   }
   if (edited('node-type')) {
     n.type = type
+    if (Object.hasOwn(nodeTypes, typeId)) delete n.customType
+    else n.customType = typeId
     if (n.originalDecision === undefined) n.originalDecision = !!n.decision
     delete n.nodeRole
     n.decision = type === 'decision'

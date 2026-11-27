@@ -1,3 +1,6 @@
+import { typeDefinition, typeDefinitions, typeKey, typeStyle } from '../modeling/nodeTypeCatalog.js'
+import { bindTypeManager } from '../modeling/nodeTypeManager.js'
+import { markColorSelection, renderColorPalette, usedColors } from './colorPalette.js'
 import { invalidatePeerStyles, peerStyle } from './groupPalette.js'
 import { selectionState } from '../editing/state.js'
 import { defaultColors, effectiveStyle, groupStyle, styleSpec } from './schema.js'
@@ -18,10 +21,19 @@ function initStyleEditor() {
     target = $('style-target'),
     fields = $('style-fields')
   let graph, level, anchor, dirty
+  const typeManager = bindTypeManager({ graph: () => graph, target, changed: () => { dirty = true }, render })
   const group = (name) => graph.layoutGroups?.find((g) => g.name === name)
   function owner(create = false) {
     if (level === 'diagram') return graph
     if (level === 'node') return graph.nodes[target.value]
+    if (level === 'type') {
+      let item = graph.nodeTypeDefinitions?.find(item => item.id === target.value)
+      if (!item && create) {
+        item = { ...typeDefinition(graph, target.value) }
+        ;(graph.nodeTypeDefinitions ??= []).push(item)
+      }
+      return item
+    }
     let g = group(target.value)
     if (!g && create) {
       g = { name: target.value, direction: 'auto' }
@@ -32,6 +44,13 @@ function initStyleEditor() {
   function sample() {
     if (level === 'node') return graph.nodes[target.value]
     const n = graph.nodes[anchor]
+    if (level === 'type') {
+      const definition = typeDefinition(graph, target.value)
+      const peer = Object.values(graph.nodes).find(node => typeKey(node) === target.value)
+      // Preview this layer without a sample node's individual overrides.
+      return { ...peer, id: peer?.id || 'preview', title: definition?.name || '類型預覽',
+        type: definition?.baseType || 'action', customType: target.value, group: peer?.group || '', nodeStyle: undefined }
+    }
     if (n && (level === 'diagram' || n.group === target.value)) return n
     return Object.values(graph.nodes).find((n) => n.group === target.value)
   }
@@ -83,23 +102,24 @@ function initStyleEditor() {
     $('frame-controls').replaceChildren()
     const local = owner()?.nodeStyle || {},
       n = sample()
-    const groupParent = level === 'node' ? groupStyle(graph, n?.group) : null
+    const groupParent = ['node', 'type'].includes(level) ? groupStyle(graph, n?.group) : null
+    const typeParent = level === 'node' && n ? typeStyle(graph, n) : null
     const peers = level === 'node' && n?.inheritPeerStyle ? peerStyle(graph, n) : {}
-    $('frame-fields').hidden = level === 'node'
+    $('frame-fields').hidden = ['node', 'type'].includes(level)
     const count =
       level === 'diagram'
         ? Object.keys(graph.nodes).length
-        : Object.values(graph.nodes).filter((n) => n.group === target.value).length
+        : Object.values(graph.nodes).filter((n) => level === 'type' ? typeKey(n) === target.value : n.group === target.value).length
     $('style-impact').textContent =
       level === 'node'
         ? '僅套用至此節點 · ' + (n?.group || '')
         : count +
           ' 個節點 · ' +
-          (level === 'group' ? '新加入此群組的節點也會繼承。' : '群組與個別節點可逐項覆寫。')
+          (level === 'type' ? '所有同類型節點共用樣式；個別節點可逐項覆寫。' : level === 'group' ? '新加入此群組的節點也會繼承。' : '群組、類型與個別節點可逐項覆寫。')
     for (const [key, [name, choices]] of Object.entries(styleSpec)) {
-      if (level === 'node' && key.startsWith('frame')) continue
-      const inherited = groupParent?.[key] || (level !== 'diagram' && graph.nodeStyle?.[key]) || peers[key]
-      const source = groupParent?.[key]
+      if (['node', 'type'].includes(level) && key.startsWith('frame')) continue
+      const inherited = typeParent?.[key] || groupParent?.[key] || (level !== 'diagram' && graph.nodeStyle?.[key]) || peers[key]
+      const source = typeParent?.[key] ? '節點類型' : groupParent?.[key]
         ? '群組'
         : level !== 'diagram' && graph.nodeStyle?.[key]
           ? '全圖'
@@ -127,29 +147,27 @@ function initStyleEditor() {
         color.setAttribute('aria-label', name + ' HEX')
         sel.add(new Option('自訂', 'custom'))
         sel.value = local[key] ? 'custom' : ''
-        const used = new Set()
-        for (const item of [graph, ...(graph.layoutGroups || []), ...Object.values(graph.nodes)]) {
-          for (const k of Object.keys(defaultColors)) if (item.nodeStyle?.[k]) used.add(item.nodeStyle[k])
-        }
-        if (used.size) {
-          const opt = el('optgroup')
-          opt.label = '重用圖面色碼'
-          for (const hex of used) opt.append(new Option(hex.toUpperCase(), hex))
-          sel.append(opt)
-        }
         color.value = local[key] || inherited || defaultColors[key]
         color.disabled = !local[key]
-        sel.onchange = () => {
-          if (sel.value.startsWith('#')) {
-            color.value = sel.value
-            sel.value = 'custom'
-          }
-          color.disabled = !sel.value
-          update(key, sel.value ? color.value : '')
+        const palette = el('div', 'edge-swatches')
+        palette.id = id + '-palette'
+        const choose = value => {
+          color.value = value
+          color.disabled = false
+          sel.value = 'custom'
+          update(key, value)
+          markColorSelection(palette, value)
         }
-        color.oninput = () => update(key, color.value)
+        renderColorPalette(palette, usedColors(graph), { name, value: local[key], onSelect: choose })
+        sel.onchange = () => {
+          color.disabled = !sel.value
+          if (!sel.value) color.value = inherited || defaultColors[key]
+          update(key, sel.value ? color.value : '')
+          markColorSelection(palette, sel.value ? color.value : null)
+        }
+        color.oninput = () => choose(color.value)
         pair.append(sel, color)
-        row.append(pair)
+        row.append(pair, palette)
       }
       ;(key.startsWith('frame') ? $('frame-controls') : fields).append(row)
     }
@@ -168,6 +186,12 @@ function initStyleEditor() {
         target.add(new Option(item.title + ' · ' + item.id, item.id))
       if (n) target.value = n.id
     }
+    if (level === 'type') {
+      for (const item of typeDefinitions(graph)) target.add(new Option(item.name, item.id))
+      if (n) target.value = typeKey(n)
+      typeManager.refresh()
+    }
+    $('type-manager').hidden = level !== 'type'
     target.hidden = level === 'diagram'
     for (const b of dialog.querySelectorAll('[data-level]'))
       b.setAttribute('aria-pressed', String(b.dataset.level === level))
@@ -186,10 +210,12 @@ function initStyleEditor() {
   $('preview-mode').onchange = preview
   $('node-style-launch').onclick = () => open('node')
   $('style-launch').onclick = () => open('diagram')
+  $('type-style-launch').onclick = () => open('type')
   $('group-style-launch').onclick = () => open('group')
   for (const b of dialog.querySelectorAll('[data-level]')) b.onclick = () => scope(b.dataset.level)
   target.onchange = () => {
-    if (level === 'node') anchor = target.value
+    if (level === 'type') typeManager.refresh()
+    else if (level === 'node') anchor = target.value
     else anchor = Object.values(graph.nodes).find((n) => n.group === target.value)?.id
     render()
   }

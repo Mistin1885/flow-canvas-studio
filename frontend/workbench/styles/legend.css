@@ -137,13 +137,13 @@ html[data-theme='dark'] .legend-swatch.text b + b {
   filter: saturate(0.55);
 }
 #world.legend-active :is(#nodes, #style-sample) .node[data-legend-level='match'] {
-  outline: 2px solid var(--trace-source);
-  outline-offset: 2px;
+  outline: 2px solid var(--category-outline, var(--trace-source));
+  outline-offset: 3px;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--trace-source) 17%, transparent);
 }
 #world.legend-active :is(#nodes, #style-sample) .node[data-legend-level='neighbor'] {
-  outline: 2px solid var(--trace-target);
-  outline-offset: 1px;
+  outline: 2px solid var(--category-outline, var(--trace-target));
+  outline-offset: 3px;
 }
 #world.legend-active .edge-route:is([data-legend-level='match'], [data-legend-level='neighbor']) .wire {
   stroke: var(--trace-line);

@@ -1,3 +1,4 @@
+import { typeLabel } from '../modeling/nodeTypeCatalog.js'
 import { linkText, pinnedEntries, readingEntry } from '../knowledge/reader.js'
 import { proseSegments } from '../knowledge/references.js'
 import { properties, rules } from '../modeling/fields.js'
@@ -150,7 +151,7 @@ function renderDetail() {
     frag = document.createDocumentFragment()
   $('detail-id').textContent = ''
   frag.append(
-    el('span', 'detail-type ' + nodeKind(i), kindLabels[nodeKind(i)]),
+    el('span', 'detail-type ' + nodeKind(i), i.isExit ? kindLabels.return : typeLabel(graphModel.document, n)),
     el('h2', 'detail-title', n.title),
   )
   const target = returnTarget(i)

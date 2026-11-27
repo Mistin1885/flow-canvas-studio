@@ -46,6 +46,14 @@ html[data-theme='dark'] :is(#nodes, #style-sample) .node-kicker {
   outline: 3px solid var(--node-accent);
   outline-offset: 3px;
 }
+/* Category identity stays visible even when a custom style owns the card border. */
+:is(#nodes, #style-sample) .node[data-category-outline] {
+  outline: 2px solid var(--category-outline);
+  outline-offset: 3px;
+}
+:is(#nodes, #style-sample) .node[data-category-outline].selected {
+  outline-width: 3px;
+}
 :is(#nodes, #style-sample) .node.frame-node {
   background: transparent !important;
   box-shadow: none;

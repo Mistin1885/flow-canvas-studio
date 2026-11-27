@@ -105,7 +105,8 @@ function updateDisplayControls() {
             : 'glow-value',
     ).textContent = names[displayState.prefs[k]]
   }
-  $('cursor-color').value = displayState.prefs.color
+  for (const button of $('cursor-colors').children)
+    button.setAttribute('aria-pressed', String(button.dataset.cursorColor === displayState.prefs.color))
 }
 
 function applyDisplayPreferences(redraw = true) {
@@ -161,8 +162,8 @@ function bindDisplayControls() {
       displayState.prefs[k] = Number(e.target.value)
       saveDisplayPreferences()
     })
-  $('cursor-color').onchange = (e) => {
-    displayState.prefs.color = e.target.value
+  for (const button of $('cursor-colors').children) button.onclick = () => {
+    displayState.prefs.color = button.dataset.cursorColor
     saveDisplayPreferences()
   }
   $('display-reset').onclick = () => {

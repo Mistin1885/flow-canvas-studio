@@ -1,3 +1,4 @@
+import { typeDefinition } from '../modeling/nodeTypeCatalog.js'
 import { annotateOptions } from '../options/controls.js'
 import { showOptionStatus } from '../options/manager.js'
 import { optionEdits, optionGraph, restoreOptionEdits } from '../options/draft.js'
@@ -57,7 +58,7 @@ export function restoreValues(saved, base) {
   editState.groupDraft = new Map(saved.groups)
   $('node-group').replaceChildren(...saved.groups.map(([name]) => new Option(name, name)))
   showAssignments({ ownerRole: saved.fields['node-role'], where: saved.fields['node-where'] }, saved.options)
-  if (saved.adding) nodeForm.suggestion = suggestNodeId(saved.fields['node-type'], base.graph.nodes)
+  if (saved.adding) nodeForm.suggestion = suggestNodeId(typeDefinition(base.graph, saved.fields['node-type'])?.baseType, base.graph.nodes)
   for (const id of valueIds) if (id in saved.fields) $(id).value = saved.fields[id]
   showReturnTarget(saved.fields['node-return-target'], saved.node)
   syncReturnField()

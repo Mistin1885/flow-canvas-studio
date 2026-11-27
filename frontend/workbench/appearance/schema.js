@@ -1,4 +1,5 @@
 import { peerStyle } from './groupPalette.js'
+import { typeStyle } from '../modeling/nodeTypeCatalog.js'
 
 const styleSpec = {
   edge: ['外框色'],
@@ -36,7 +37,7 @@ function groupStyle(g, name) {
 }
 
 function effectiveStyle(g, n) {
-  return { ...(n.inheritPeerStyle && peerStyle(g, n)), ...g.nodeStyle, ...groupStyle(g, n.group), ...n.nodeStyle }
+  return { ...(n.inheritPeerStyle && peerStyle(g, n)), ...g.nodeStyle, ...groupStyle(g, n.group), ...typeStyle(g, n), ...n.nodeStyle }
 }
 
 export { styleSpec, defaultColors, checkNodeStyles, groupStyle, effectiveStyle }

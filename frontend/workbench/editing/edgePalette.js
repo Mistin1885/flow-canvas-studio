@@ -1,5 +1,7 @@
-import { defaultLabelColor, edgeColors, labelColor, storeEdgeColors } from '../appearance/edgeColors.js'
-import { $, el } from '../ui/dom.js'
+import { defaultLabelColor, edgeColors, storeEdgeColors } from '../appearance/edgeColors.js'
+import { $ } from '../ui/dom.js'
+import { markColorSelection, renderColorPalette, usedColors } from '../appearance/colorPalette.js'
+import { graphModel } from '../graph/model.js'
 
 const channels = [
   { key: 'line', picker: 'line-color', auto: 'line-auto', name: '線段顏色' },
@@ -8,42 +10,18 @@ const channels = [
 
 function markSelection(channel) {
   const value = $(channel.auto).checked ? null : $(channel.picker).value.toLowerCase()
-  for (const b of $(channel.picker + '-palette').querySelectorAll('.edge-swatch'))
-    b.setAttribute('aria-pressed', String(b.value === value))
+  markColorSelection($(channel.picker + '-palette'), value)
 }
 
 function renderSwatches(channel, colors) {
-  const host = $(channel.picker + '-palette')
-  host.replaceChildren()
-  host.hidden = !colors.length
-  host.append(el('span', 'palette-caption', '已用色'))
-  for (const [i, color] of colors.entries()) {
-    const swatch = el('button', 'edge-swatch')
-    swatch.type = 'button'
-    swatch.value = color
-    swatch.title = color
-    swatch.setAttribute('aria-label', channel.name + ' ' + color)
-    swatch.style.setProperty('--swatch', color)
-    swatch.hidden = i >= 6
-    swatch.onclick = () => {
+  renderColorPalette($(channel.picker + '-palette'), colors, {
+    name: channel.name,
+    value: $(channel.auto).checked ? null : $(channel.picker).value,
+    onSelect: color => {
       $(channel.picker).value = color
       $(channel.auto).checked = false
-      markSelection(channel)
-    }
-    host.append(swatch)
-  }
-  if (colors.length <= 6) return
-  const toggle = el('button', 'swatch-more', '+' + (colors.length - 6))
-  toggle.type = 'button'
-  toggle.setAttribute('aria-label', '更多已用色')
-  toggle.setAttribute('aria-expanded', 'false')
-  toggle.onclick = () => {
-    const expand = toggle.getAttribute('aria-expanded') === 'false'
-    toggle.setAttribute('aria-expanded', String(expand))
-    toggle.textContent = expand ? '收合' : '+' + (colors.length - 6)
-    host.querySelectorAll('.edge-swatch').forEach((button, i) => { button.hidden = !expand && i >= 6 })
-  }
-  host.append(toggle)
+    },
+  })
 }
 
 function loadControls(edge) {
@@ -58,19 +36,16 @@ export function openEdgePalette(edge, edges) {
   const text = $('line-text'), preset = $('line-preset')
   text.value = edge.label || ''
   loadControls(edge)
-  const counts = new Map(), presets = new Map(), labelCounts = new Map()
+  const presets = new Map(), labelCounts = new Map()
   for (const item of edges) {
     const colors = edgeColors(item)
-    for (const color of new Set([colors.line?.toLowerCase(), item.label && labelColor(item).toLowerCase()])) {
-      if (color) counts.set(color, (counts.get(color) || 0) + 1)
-    }
     if (!item.label) continue
     const key = JSON.stringify([item.label, colors.line?.toLowerCase(), colors.background?.toLowerCase()])
     if (presets.has(key)) continue
     presets.set(key, item)
     labelCounts.set(item.label, (labelCounts.get(item.label) || 0) + 1)
   }
-  const colors = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b))
+  const colors = usedColors(graphModel.document)
   for (const channel of channels) {
     renderSwatches(channel, colors)
     markSelection(channel)
