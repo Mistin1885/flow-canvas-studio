@@ -1,3 +1,4 @@
+import { hiddenFrameMembers } from '../frames/folding.js'
 import { diagramState } from './state.js'
 import { expandedFlows, visibleGraph } from './visibleGraph.js'
 import { sizeReadableNodes } from '../layout/nodeSize.js'
@@ -69,5 +70,14 @@ export function layoutDiagram() {
     link.geometry = wireGeometry(link.edge, link.from, link.to, link.points, { originalPorts: link.originalPorts })
     link.points = routedPoints(link.geometry)
   }
-  return projectNodes
+  diagramState.layoutInstances = [...diagramState.instances]
+  const hidden = hiddenFrameMembers(graphModel.document)
+  diagramState.instances = diagramState.instances.filter(i => !hidden.has(i.id))
+  for (const id of hidden) diagramState.instanceMap.delete(id)
+  diagramState.graphLinks = diagramState.graphLinks.filter(l => !hidden.has(l.from.id) && !hidden.has(l.to.id))
+  for (const item of diagramState.instances) {
+    item.children = item.children.filter(i => !hidden.has(i.id))
+    item.incoming = item.incoming.filter(l => !hidden.has(l.from.id))
+  }
+  return projectNodes.filter(i => !hidden.has(i.id))
 }

@@ -1,3 +1,4 @@
+import { collectFrameMembers } from '../frames/collect.js'
 import { editFrameObject } from '../frames/mutations.js'
 import { resetResize } from './resizeNodes.js'
 import { createFrameFromSelection } from '../frames/create.js'
@@ -43,6 +44,7 @@ function initGraphTools() {
   $('canvas-duplicate').onclick = duplicateSelectedNode
   $('canvas-properties').onclick = editContext
   $('canvas-create-frame').onclick = createFrameFromSelection
+  $('canvas-collect-members').onclick = () => collectFrameMembers(preferredFrame())
   $('canvas-members').onclick = () => { const key = preferredFrame(); if (key) editMembers(key) }
   initGroupManager()
   $('canvas-connect').onclick = () =>

@@ -78,6 +78,8 @@ def edge_key(edge):
 
 
 def check_edge_appearance(edge):
+    if "lineStyle" in edge and edge["lineStyle"] not in ("solid", "dashed", "dotted"):
+        raise Invalid("線段樣式無效")
     background = edge.get("labelBackgroundColor", "auto")
     if background != "auto" and (not isinstance(background, str) or not re.fullmatch(r"#[a-fA-F0-9]{6}", background)):
         raise Invalid("條件文字底色無效")

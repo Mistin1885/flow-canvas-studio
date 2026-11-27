@@ -1,3 +1,4 @@
+import { paintEdgeLine } from '../appearance/edgeStyle.js'
 
 import { isFrameNode } from '../graph/nodeTypes.js'
 import { canvas } from '../diagram/viewport.js'
@@ -157,6 +158,7 @@ function renderGroupLinks(frag) {
       }),
       svg('path', { class: 'edge-hit', d }),
     )
+    paintEdgeLine(g.querySelector('.wire'), edge)
     if (edge.label) {
       let length = 0,
         at = start

@@ -1,3 +1,4 @@
+import { paintEdgeLine } from '../appearance/edgeStyle.js'
 import { diagramState } from './state.js'
 import { layoutFrameHandles, renderGroupLinks } from '../frames/handles.js'
 import { rightAnglePath } from './paths.js'
@@ -60,7 +61,7 @@ export function renderWires(projectNodes, pathSet) {
     p.dataset.to = b.key
     hit.dataset.from = a.key
     hit.dataset.to = b.key
-    if (b.isExit || link?.edge.dashed) p.setAttribute('stroke-dasharray', '5 4')
+    paintEdgeLine(p, link?.edge || { dashed: b.isExit })
     group.append(p, hit)
     fragments.append(group)
     const view = { from: a, to: b, main, link, points, p, hit, group, d, label: null }

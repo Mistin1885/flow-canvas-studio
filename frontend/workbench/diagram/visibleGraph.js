@@ -1,3 +1,4 @@
+import { revealFrameMember } from '../frames/folding.js'
 import { sheetInGraph } from '../graph/nodeSheet.js'
 import { categoryTags, legendState, unmappedTag } from '../categories/model.js'
 import { graphModel, outgoing } from '../graph/model.js'
@@ -93,6 +94,7 @@ export function expandFlowMembers(flow) {
 }
 
 export function revealNode(id) {
+  revealFrameMember(graphModel.document, id)
   const seen = new Set()
   while (!diagramState.instanceMap.has(id) && !seen.has(id)) {
     seen.add(id)

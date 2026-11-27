@@ -25,7 +25,7 @@ export function prepareMove(item) {
   const keys = items.map(i => i.key)
   const members = new Set(items.filter(i => isFrameNode(graphModel.nodes[i.id]))
     .flatMap(i => sourceMembers(graphModel.nodes[i.id])))
-  items = [...new Set([...items, ...diagramState.instances.filter(i => members.has(i.id))])]
+  items = [...new Set([...items, ...diagramState.layoutInstances.filter(i => members.has(i.id))])]
   // An expanded subflow carries its children. Preserve their local coordinates.
   const carried = new Set(items.flatMap(i => i.inlineFlow?.nodes || []))
   const roots = items.filter(i => !carried.has(i))
@@ -84,7 +84,7 @@ export function resetMove(g) {
 }
 
 export function commitMove(g, e) {
-  if (g.roots.some(i => diagramState.instanceMap.get(i.key) !== i)) return
+  if (g.roots.some(i => !diagramState.layoutInstances.includes(i))) return
   const { delta } = displacement(g, e)
   if (!delta.x && !delta.y) return
   const isFrame = item => isFrameNode(graphModel.nodes[item.id])
@@ -96,7 +96,7 @@ export function commitMove(g, e) {
     return
   }
   const graph = exportGraph()
-  if (g.roots.some(isFrame)) pinDisplayedNodes(graph, diagramState.instances, diagramState.readingScale)
+  if (g.roots.some(isFrame)) pinDisplayedNodes(graph, diagramState.layoutInstances, diagramState.readingScale)
   for (const { item, x, y } of positions) {
     if (isFrame(item)) graph.nodes[item.id].layoutSize = { width: item.w / diagramState.readingScale, height: item.h / diagramState.readingScale }
     storeDisplayedPosition(graph.nodes[item.id], item, { x, y }, diagramState.readingScale)

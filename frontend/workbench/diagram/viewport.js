@@ -76,10 +76,19 @@ function bindViewport() {
   }
   $('show-detail').onclick = () => {
     if (matchMedia('(min-width:851px)').matches) {
-      const closed = document.body.classList.toggle('hide-detail')
-      $('show-detail').setAttribute('aria-label', closed ? '展開節點詳情' : '收合節點詳情')
-    } else $('inspector').classList.add('open')
+      document.body.classList.toggle('hide-detail')
+    } else $('inspector').classList.toggle('open')
   }
+  const syncDetailToggle = () => {
+    const open = matchMedia('(min-width:851px)').matches ? !document.body.classList.contains('hide-detail') : $('inspector').classList.contains('open')
+    const button = $('show-detail')
+    button.title = button.ariaLabel = open ? '收合節點詳情' : '展開節點詳情'
+    button.setAttribute('aria-expanded', String(open))
+  }
+  const detailObserver = new MutationObserver(syncDetailToggle)
+  for (const target of [document.body, $('inspector')]) detailObserver.observe(target, { attributes: true, attributeFilter: ['class'] })
+  matchMedia('(min-width:851px)').addEventListener('change', syncDetailToggle)
+  syncDetailToggle()
   $('close-detail').onclick = () => $('inspector').classList.remove('open')
   document.addEventListener(
     'pointerdown',

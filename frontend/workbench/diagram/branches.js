@@ -2,10 +2,13 @@
 // not own a downstream branch. A shared step stays visible via any open path.
 export function branchIndex(nodes, edges, sheetFor, flows) {
   const children = new Map(), roots = new Map(), incoming = new Set()
+  const byId = new Map(nodes.map(node => [node.id, node]))
   const sheets = new Map(nodes.map(node => [node.id, sheetFor(node.id)]))
   for (const node of nodes) children.set(node.id, [])
   for (const edge of edges) {
-    if (edge.kind !== 'next' && edge.kind !== 'spine') continue
+    if (!byId.has(edge.from) || !byId.has(edge.to) || byId.get(edge.from).jumpTo) continue
+    const returnCard = byId.get(edge.to).jumpTo || byId.get(edge.to).type === 'return'
+    if (edge.kind !== 'next' && edge.kind !== 'spine' && !returnCard) continue
     if (sheets.get(edge.from) !== sheets.get(edge.to)) continue
     children.get(edge.from).push(edge.to)
     incoming.add(edge.to)

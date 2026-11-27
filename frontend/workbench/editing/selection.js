@@ -43,6 +43,7 @@ function setEditTarget(next) {
   $('canvas-properties').disabled = multi || !(next?.node || next?.edge || diagramState.selected)
   $('canvas-connect').disabled = multi
   $('canvas-members').disabled = multi || !next?.node || !graphModel.nodes[next.node] || !isFrameNode(graphModel.nodes[next.node])
+  $('canvas-collect-members').hidden = $('canvas-members').disabled
   $('edit-selection-hint').textContent = multi ? `已選取 ${next.nodes.size} 個節點，拖曳其中一個一起移動。Esc 取消選取。` : ''
   $('edit-default-hint').hidden = multi
 }

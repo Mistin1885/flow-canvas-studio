@@ -5,6 +5,7 @@ const diagramState = {
   rack: '',
   selected: null,
   instances: [],
+  layoutInstances: [],
   instanceMap: new Map(),
   overrides: new Map(),
   domNodes: new Map(),

@@ -1,3 +1,4 @@
+import { lineStyles } from '../appearance/edgeStyle.js'
 import { validNodeSize } from '../layout/nodeGeometry.js'
 import { validLabelBackground } from '../appearance/edgeColors.js'
 import { validateWireLayout } from '../layout/wireGeometry.js'
@@ -88,6 +89,7 @@ function readGraph(value, { deferKnowledgePins = false } = {}) {
   for (const [index, e] of value.edges.entries()) {
     const p = 'edges[' + index + ']'
     obj(e, p)
+    if (e.lineStyle !== undefined && !lineStyles.includes(e.lineStyle)) throw Error('線段樣式無效')
     validateWireLayout(e.wireLayout)
     str(e.from, p + '.from', 64)
     str(e.to, p + '.to', 64)

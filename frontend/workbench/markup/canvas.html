@@ -80,6 +80,7 @@
             <button id="canvas-duplicate" type="button" disabled>複製節點</button>
             <button id="canvas-create-frame" type="button" title="依選取節點範圍與邊距建立外框；未選取時建立空白外框">建立外框</button>
             <button id="canvas-members" disabled>框內步驟</button>
+            <button id="canvas-collect-members" type="button" hidden title="將完整位於外框內的可見節點納入框內步驟，保留原排版">納入框內節點</button>
             <button id="canvas-straighten" type="button" hidden title="對齊端點並移除選取連線的折點">拉直連線</button>
             <button id="canvas-connect">連線</button>
           </span>
@@ -128,6 +129,14 @@
         </div>
       </footer>
     </main>
+    <div class="detail-rail">
+      <button class="nav-toggle" id="show-detail" type="button" aria-label="收合節點詳情" aria-expanded="true" aria-controls="inspector" title="收合節點詳情">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M15 4v16m-6-11 3 3-3 3" />
+        </svg>
+      </button>
+    </div>
     <aside class="inspector" id="inspector" aria-label="節點詳情">
       <div
         class="inspector-resize"

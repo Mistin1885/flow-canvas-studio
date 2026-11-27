@@ -1,3 +1,5 @@
+import { selectionState } from '../editing/state.js'
+import { setEditTarget } from '../editing/selection.js'
 import { diagramState } from './state.js'
 import { ancestors } from './paths.js'
 import { transform, updateNav } from './navigation.js'
@@ -41,6 +43,13 @@ function draw(anchorKey) {
   animateDiagram(oldPositions, renderRevision)
   updateLegendHighlights()
   updateTrace()
+  const target = selectionState.editTarget
+  if ((target?.node && !diagramState.instanceMap.has(target.node)) ||
+      (target?.edge && [target.edge.from, target.edge.to].some(id => !diagramState.instanceMap.has(id) && !id.startsWith('flow:')))) setEditTarget(null)
+  if (target?.nodes) {
+    const nodes = new Set([...target.nodes].filter(id => diagramState.instanceMap.has(id)))
+    setEditTarget(nodes.size ? { nodes } : null)
+  }
   syncGroups()
   transform()
   updateNav()

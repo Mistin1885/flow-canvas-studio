@@ -1,3 +1,4 @@
+import { edgeLineStyle, storeEdgeLineStyle } from '../appearance/edgeStyle.js'
 import { editConnection } from '../graph/edgeMutation.js'
 import { openEdgePalette, saveEdgePalette } from './edgePalette.js'
 import { editState } from './state.js'
@@ -15,6 +16,7 @@ function openEdge(from, to, edge) {
   endpointControls(from, to)
   $('edge-heading').textContent = edge ? '編輯連線' : '建立連線'
   $('edge-endpoints').textContent = '可連接節點、外框節點或子流程。排版群組僅用於分類與樣式。'
+  $('line-style').value = edgeLineStyle(edge)
   const layout = edge?.wireLayout
   $('line-reset-layout').checked = false
   $('line-reset-row').hidden = !layout
@@ -51,6 +53,7 @@ function saveEdge() {
   }
   if (Object.keys(layout).length) e.wireLayout = layout
   else delete e.wireLayout
+  storeEdgeLineStyle(e, $('line-style').value)
   saveEdgePalette(e)
   replaceGraph(g, { keepView: true })
   $('line-dialog').close()

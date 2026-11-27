@@ -1,3 +1,4 @@
+import { lineStyles } from '../appearance/edgeStyle.js'
 import { validLabelBackground } from '../appearance/edgeColors.js'
 import { validateWireLayout } from '../layout/wireGeometry.js'
 
@@ -42,6 +43,7 @@ function validateFrameData(g) {
         seen.has(key)
       )
         throw Error('群組連線端點、條件或顏色無效，或已有相同連線')
+      if (e.lineStyle !== undefined && !lineStyles.includes(e.lineStyle)) throw Error('線段樣式無效')
       validateWireLayout(e.wireLayout)
       seen.add(key)
     }
