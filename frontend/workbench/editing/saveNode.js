@@ -1,3 +1,4 @@
+import { applyTypeEdits } from '../modeling/nodeTypeDraft.js'
 import { typeDefinition } from '../modeling/nodeTypeCatalog.js'
 import { nodeTypes } from '../graph/nodeTypes.js'
 import { optionEdits } from '../options/draft.js'
@@ -34,6 +35,7 @@ function applyEditor() {
   const graph = cloneGraph(formGraph()),
     n = nodeForm.adding ? { id } : graph.nodes[id]
   finishBadgeEditor()
+  applyTypeEdits(graph)
   for (const edit of optionEdits) applyOptionEdit(graph, edit)
   const before = alignedBaseline(nodeForm.initial, optionEdits), after = formValues()
   const differs = (key) => !equalJson(before[key], after[key])

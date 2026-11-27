@@ -1,3 +1,5 @@
+import { typeEdits, restoreTypeEdits, typeDraftGraph } from '../modeling/nodeTypeDraft.js'
+import { showTypeChoices } from '../modeling/nodeTypeManager.js'
 import { typeDefinition } from '../modeling/nodeTypeCatalog.js'
 import { annotateOptions } from '../options/controls.js'
 import { showOptionStatus } from '../options/manager.js'
@@ -35,7 +37,7 @@ export function formValues() {
   return {
     adding: nodeForm.adding, node: nodeForm.node, parent: nodeForm.parent,
     fields: Object.fromEntries(valueIds.map(id => [id, $(id).value])),
-    optionEdits, knowledge: pendingKnowledge.docs, badges: badgeDraft(), options: pendingOptions, autoId: nodeForm.autoId,
+    typeEdits, optionEdits, knowledge: pendingKnowledge.docs, badges: badgeDraft(), options: pendingOptions, autoId: nodeForm.autoId,
     groups: [...editState.groupDraft], categories: categoryDraft.items,
     tags: [...$('legend-fields').querySelectorAll('input')].filter(i => i.checked).map(i => i.value),
     values: Object.fromEntries([...$('custom-values').querySelectorAll('[data-field]')].map(i => [i.dataset.field, i.value])),
@@ -51,6 +53,8 @@ export function formValues() {
 
 export function restoreValues(saved, base) {
   restoreOptionEdits(saved.optionEdits)
+  restoreTypeEdits(saved.typeEdits)
+  showTypeChoices(saved.fields['node-type'])
   showOptionStatus()
   showNodeFields(optionGraph().nodes[saved.node] || {}, optionGraph())
   pendingKnowledge.docs = saved.knowledge || {}
@@ -58,7 +62,7 @@ export function restoreValues(saved, base) {
   editState.groupDraft = new Map(saved.groups)
   $('node-group').replaceChildren(...saved.groups.map(([name]) => new Option(name, name)))
   showAssignments({ ownerRole: saved.fields['node-role'], where: saved.fields['node-where'] }, saved.options)
-  if (saved.adding) nodeForm.suggestion = suggestNodeId(typeDefinition(base.graph, saved.fields['node-type'])?.baseType, base.graph.nodes)
+  if (saved.adding) nodeForm.suggestion = suggestNodeId(typeDefinition(typeDraftGraph(), saved.fields['node-type'])?.baseType, base.graph.nodes)
   for (const id of valueIds) if (id in saved.fields) $(id).value = saved.fields[id]
   showReturnTarget(saved.fields['node-return-target'], saved.node)
   syncReturnField()

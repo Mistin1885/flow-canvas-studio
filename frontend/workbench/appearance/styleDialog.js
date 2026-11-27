@@ -1,5 +1,4 @@
 import { typeDefinition, typeDefinitions, typeKey, typeStyle } from '../modeling/nodeTypeCatalog.js'
-import { bindTypeManager } from '../modeling/nodeTypeManager.js'
 import { markColorSelection, renderColorPalette, usedColors } from './colorPalette.js'
 import { invalidatePeerStyles, peerStyle } from './groupPalette.js'
 import { selectionState } from '../editing/state.js'
@@ -21,7 +20,6 @@ function initStyleEditor() {
     target = $('style-target'),
     fields = $('style-fields')
   let graph, level, anchor, dirty
-  const typeManager = bindTypeManager({ graph: () => graph, target, changed: () => { dirty = true }, render })
   const group = (name) => graph.layoutGroups?.find((g) => g.name === name)
   function owner(create = false) {
     if (level === 'diagram') return graph
@@ -189,9 +187,7 @@ function initStyleEditor() {
     if (level === 'type') {
       for (const item of typeDefinitions(graph)) target.add(new Option(item.name, item.id))
       if (n) target.value = typeKey(n)
-      typeManager.refresh()
     }
-    $('type-manager').hidden = level !== 'type'
     target.hidden = level === 'diagram'
     for (const b of dialog.querySelectorAll('[data-level]'))
       b.setAttribute('aria-pressed', String(b.dataset.level === level))
@@ -210,13 +206,11 @@ function initStyleEditor() {
   $('preview-mode').onchange = preview
   $('node-style-launch').onclick = () => open('node')
   $('style-launch').onclick = () => open('diagram')
-  $('type-style-launch').onclick = () => open('type')
   $('group-style-launch').onclick = () => open('group')
   for (const b of dialog.querySelectorAll('[data-level]')) b.onclick = () => scope(b.dataset.level)
   target.onchange = () => {
-    if (level === 'type') typeManager.refresh()
-    else if (level === 'node') anchor = target.value
-    else anchor = Object.values(graph.nodes).find((n) => n.group === target.value)?.id
+    if (level === 'node') anchor = target.value
+    else if (level === 'group') anchor = Object.values(graph.nodes).find((n) => n.group === target.value)?.id
     render()
   }
   $('reset-style').onclick = () => {

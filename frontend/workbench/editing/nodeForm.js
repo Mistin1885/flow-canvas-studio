@@ -1,3 +1,5 @@
+import { restoreTypeEdits, typeDraftGraph } from '../modeling/nodeTypeDraft.js'
+import { bindTypeManager, showTypeChoices } from '../modeling/nodeTypeManager.js'
 import { bindInsert, pendingKnowledge } from '../knowledge/insert.js'
 import { showBadges, bindBadges } from '../badges/editor.js'
 import { beginDraft, draftOpened } from './formDrafts.js'
@@ -9,7 +11,7 @@ import { annotateOptions } from '../options/controls.js'
 import { bindOptionManager, showOptionStatus } from '../options/manager.js'
 import { selectionState, editState } from './state.js'
 import { cloneGraph } from '../graph/json.js'
-import { typeDefinition, typeDefinitions, typeKey } from '../modeling/nodeTypeCatalog.js'
+import { typeDefinition, typeKey } from '../modeling/nodeTypeCatalog.js'
 import { $, el } from '../ui/dom.js'
 import { attachSearch, nodeChoiceLabel } from './searchPicker.js'
 import { formGraph } from './formSource.js'
@@ -169,7 +171,7 @@ export function showReturnTarget(value, self) {
 }
 
 export function syncReturnField() {
-  const enabled = typeDefinition(formGraph(), $('node-type').value)?.baseType === 'return'
+  const enabled = typeDefinition(typeDraftGraph(), $('node-type').value)?.baseType === 'return'
   $('return-target-field').hidden = !enabled
   $('return-target-field').querySelector('input').disabled = !enabled
 }
@@ -195,6 +197,7 @@ function populateEditor(id, add = false) {
     : formGraph().nodes[id]
   if (!n) return
   restoreOptionEdits()
+  restoreTypeEdits()
   showOptionStatus()
   categoryDraft.items = []
   $('category-name').value = ''
@@ -216,8 +219,7 @@ function populateEditor(id, add = false) {
   $('node-id').readOnly = !add
   $('suggest-id').hidden = !add
   checkNodeId()
-  $('node-type').replaceChildren(...typeDefinitions(formGraph()).map(({id, name}) => new Option(name, id)))
-  $('node-type').value = add ? type : typeKey(n)
+  showTypeChoices(add ? type : typeKey(n))
   showReturnTarget(n.jumpTo, add ? null : n.id)
   syncReturnField()
   $('content-editor').replaceChildren()
@@ -270,6 +272,7 @@ function bindNodeForm() {
   bindInsert()
   bindBadges()
   bindOptionManager()
+  bindTypeManager()
   $('node-id').oninput = () => {
     nodeForm.autoId = !$('node-id').value
     checkNodeId()
@@ -278,7 +281,7 @@ function bindNodeForm() {
     if (!nodeForm.adding) return
     const field = $('node-id')
     if (force) nodeForm.autoId = true
-    nodeForm.suggestion = suggestNodeId(typeDefinition(formGraph(), $('node-type').value)?.baseType, formGraph().nodes)
+    nodeForm.suggestion = suggestNodeId(typeDefinition(typeDraftGraph(), $('node-type').value)?.baseType, formGraph().nodes)
     if (nodeForm.autoId) field.value = nodeForm.suggestion
     checkNodeId()
   }

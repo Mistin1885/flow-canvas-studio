@@ -89,7 +89,7 @@ export function draftOpened(saved) {
 
 export function refreshTeamForm() {
   const dialog = $('node-editor')
-  if (!dialog.open || dialog.dataset.draftState !== 'clean' || $('option-dialog').open) return
+  if (!dialog.open || dialog.dataset.draftState !== 'clean' || $('option-dialog').open || $('type-manager').open) return
   if (!graphModel.nodes[nodeForm.node]) {
     dialog.close()
     say('此節點已由團隊移除。')

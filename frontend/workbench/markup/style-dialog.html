@@ -1,6 +1,9 @@
 <dialog id="style-dialog" aria-labelledby="style-title">
   <header class="editor-head">
-    <div><h2 id="style-title">畫布樣式</h2></div>
+    <div>
+      <h2 id="style-title">畫布樣式</h2>
+      <p id="style-priority">樣式優先順序（由高至低）：個別節點 → 節點類型 → 排版群組 → 全圖預設。未設定的項目會沿用下一層設定。</p>
+    </div>
     <button type="button" id="style-close" aria-label="關閉畫布樣式">✕</button>
   </header>
   <div class="style-scroll">
@@ -11,17 +14,6 @@
       <button data-level="node">個別節點</button>
     </div>
     <select id="style-target" aria-label="樣式對象"></select>
-    <section id="type-manager" hidden aria-label="管理節點類型">
-      <div class="type-manager-heading"><strong>管理節點類型</strong><button id="type-new" type="button">＋ 新增類型</button></div>
-      <div class="type-manager-fields">
-        <label for="type-name">類型名稱<input id="type-name" maxlength="64" /></label>
-        <label for="type-base">基本行為<select id="type-base"></select></label>
-      </div>
-      <p id="type-behavior-note">基本行為決定節點的操作方式，建立後固定；名稱與樣式可隨時調整。</p>
-      <div class="type-manager-actions"><button id="type-save" type="button">更新名稱</button><button id="type-delete" type="button">刪除類型</button></div>
-      <p id="type-message" role="status"></p>
-    </section>
-    <p id="style-priority">樣式優先順序：個別節點 → 節點類型 → 排版群組 → 全圖預設</p>
     <p id="style-impact"></p>
     <div class="style-columns">
       <section>

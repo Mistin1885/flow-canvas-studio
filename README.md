@@ -343,7 +343,7 @@ Open **工作區知識庫** from a workspace or **畫布知識** from a canvas. 
 
 ### Reusable node types and colors
 
-Open **Tools → Node types and styles** (節點類型與樣式) to add, rename, or remove a custom node type and edit shared appearance. Choose its built-in behavior when creating it; this behavior remains fixed. Removing a custom type restores its members to that built-in behavior and preserves their content and individual styles. Changes are staged until **Apply styles** and can be undone.
+Open **Edit node → Node type → Manage options** (編輯節點 → 節點類型 → 管理選項) to add, rename, or remove a custom node type. Choose its built-in behavior when creating it; this behavior remains fixed. Removing a custom type restores its members to that built-in behavior and preserves their content and individual styles. Type changes are included in the node form’s private draft and saved with **Apply changes**. Edit shared appearance under **Canvas styles → Node type**; the style dialog explains the per-property inheritance order below its title.
 
 Appearance resolves each property from **individual node → node type → layout group → diagram default**. The same used-color swatches are available across node, type, group, diagram, category, badge, and connection color fields. Category outlines remain visible while browsing. Double-click a connection or its label to edit it without enabling drag mode.
 

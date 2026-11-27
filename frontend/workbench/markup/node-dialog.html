@@ -30,10 +30,14 @@
           <button type="button" id="suggest-id" hidden>使用建議 ID</button>
           <small id="id-check" role="status"></small>
         </div>
-        <label>
-          節點類型
-          <select id="node-type" required></select>
-        </label>
+        <div class="node-type-field">
+          <label for="node-type">節點類型</label>
+          <div class="edit-row">
+            <select id="node-type" required></select>
+            <button type="button" id="manage-node-types" class="manage-options" aria-haspopup="dialog" aria-label="管理節點類型">管理選項</button>
+          </div>
+          <small id="type-draft-status" role="status"></small>
+        </div>
         <label id="return-target-field" hidden>返回目標
           <select id="node-return-target"></select>
         </label>
@@ -205,4 +209,27 @@
       <button id="option-add" type="button" hidden>新增為另一個選項</button>
       <button id="option-rename" type="submit" class="editor-primary">套用新名稱</button></footer>
   </form>
+</dialog>
+
+<dialog id="type-manager" aria-labelledby="type-manager-title">
+  <header class="editor-head">
+    <h2 id="type-manager-title">管理節點類型</h2>
+    <button type="button" id="type-close" aria-label="關閉節點類型管理">✕</button>
+  </header>
+  <div class="editor-scroll">
+    <label>目前畫布的類型<select id="managed-type"></select></label>
+    <p id="type-impact" role="status"></p>
+    <div class="type-manager-fields">
+      <label for="type-name">類型名稱<input id="type-name" maxlength="64" /></label>
+      <label for="type-base">基本行為<select id="type-base"></select></label>
+    </div>
+    <p id="type-behavior-note">基本行為決定節點的操作方式，建立後固定。共用配色可在「畫布樣式 → 節點類型」調整。</p>
+    <p class="editor-tip">完成後，請在節點編輯器按「套用變更」儲存到此畫布。</p>
+    <p id="type-message" role="status"></p>
+  </div>
+  <footer class="editor-footer">
+    <button id="type-delete" type="button">刪除類型</button>
+    <button id="type-new" type="button">＋ 新增類型</button>
+    <button id="type-save" type="button" class="editor-primary">更新名稱</button>
+  </footer>
 </dialog>

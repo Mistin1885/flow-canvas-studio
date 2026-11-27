@@ -243,3 +243,15 @@ dialog code {
 #option-add[hidden] { display: none; }
 .custom-value-field .manage-options { margin-top: 6px; }
 #node-form .manage-options { width: auto; }
+
+.node-type-field { display: grid; gap: 6px; align-content: start; }
+.node-type-field .edit-row { margin: 0; }
+.node-type-field select { min-width: 0; }
+#type-manager { width: min(520px, calc(100vw - 32px)); }
+#type-manager p { margin: 12px 0; }
+#type-manager label { display: grid; gap: 6px; min-width: 0; }
+#type-manager input, #type-manager select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--paper); min-height: 36px; }
+.type-manager-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+#type-behavior-note, #type-impact, #type-message, #type-draft-status { color: var(--muted); font-size: .82rem; line-height: 1.55; }
+#type-message:empty, #type-draft-status:empty { display: none; }
+@media (max-width: 590px) { .type-manager-fields { grid-template-columns: 1fr; } }
